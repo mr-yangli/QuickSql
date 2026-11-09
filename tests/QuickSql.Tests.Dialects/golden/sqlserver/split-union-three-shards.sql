@@ -1,0 +1,2 @@
+
+SELECT * FROM (SELECT [t0].[Id], [t0].[Message], [t0].[Level], [t0].[OccurredAt], [t0].[CustomerId] FROM [QuickSqlShardLog_202601] AS [t0] WHERE [t0].[Level] > @p0 UNION ALL SELECT [t0].[Id], [t0].[Message], [t0].[Level], [t0].[OccurredAt], [t0].[CustomerId] FROM [QuickSqlShardLog_202602] AS [t0] WHERE [t0].[Level] > @p1 UNION ALL SELECT [t0].[Id], [t0].[Message], [t0].[Level], [t0].[OccurredAt], [t0].[CustomerId] FROM [QuickSqlShardLog_202603] AS [t0] WHERE [t0].[Level] > @p2) AS [t0] ORDER BY [t0].[OccurredAt] ASC OFFSET @p3 ROWS FETCH NEXT @p4 ROWS ONLY

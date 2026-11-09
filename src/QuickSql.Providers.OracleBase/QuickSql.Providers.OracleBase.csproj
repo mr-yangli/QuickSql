@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.OracleBase</RootNamespace>
+    <Description>QuickSql ORM 的 Oracle 血统方言基类（§4 的能力继承链）：达梦/神通共享的 SQL 文本层。标识符双引号且<b>折成大写</b>（§9.2 那一路的坑由这一家负责）、分页是三层嵌套的 ROWNUM（§9.4 的第三套实现；"三层"是原稿口径且与本程序集的实际产出和 §9.4 都不符，v0.23 已在 OracleDialect.EmitPaging 与 §9.4 两处按实测改判为两层，这一格到 v0.31 才跟着改）、没有原生布尔与 uuid、没有批量 RETURNING 所以回填这一档要拒。编译期不引用任何驱动程序集 —— 驱动一律由内建表 BuiltinDrivers 在运行期解析（§1.2 原则 3）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Core\QuickSql.Core.csproj" />
+  </ItemGroup>
+
+</Project>

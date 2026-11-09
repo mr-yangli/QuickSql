@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.PostgreSqlBase</RootNamespace>
+    <Description>QuickSql ORM 的 PG 系方言血统（§4 的能力继承链）：金仓/openGauss/瀚高共用的 SQL 文本层。标识符双引号、BOOLEAN 与 uuid 都是原生类型、RETURNING 落在句尾、分页 LIMIT/OFFSET 本身不要求 ORDER BY。编译期不引用任何驱动程序集 —— 驱动一律由内建表 BuiltinDrivers 在运行期解析（§1.2 原则 3）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Core\QuickSql.Core.csproj" />
+  </ItemGroup>
+
+</Project>

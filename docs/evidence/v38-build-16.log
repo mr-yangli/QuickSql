@@ -1,0 +1,36 @@
+  正在确定要还原的项目…
+  所有项目均是最新的，无法还原。
+  FastSql.Generators -> E:\Resource\Fast\sql\src\FastSql.Generators\bin\Release\netstandard2.0\FastSql.Generators.dll
+  FastSql.Abstractions -> E:\Resource\Fast\sql\src\FastSql.Abstractions\bin\Release\net10.0\FastSql.Abstractions.dll
+  FastSql.Core -> E:\Resource\Fast\sql\src\FastSql.Core\bin\Release\net10.0\FastSql.Core.dll
+  FastSql.Providers.Sqlite -> E:\Resource\Fast\sql\src\FastSql.Providers.Sqlite\bin\Release\net10.0\FastSql.Providers.Sqlite.dll
+  FastSql.Providers.MySqlBase -> E:\Resource\Fast\sql\src\FastSql.Providers.MySqlBase\bin\Release\net10.0\FastSql.Providers.MySqlBase.dll
+  FastSql.Providers.Xugu -> E:\Resource\Fast\sql\src\FastSql.Providers.Xugu\bin\Release\net10.0\FastSql.Providers.Xugu.dll
+  FastSql.Providers.SqlServer -> E:\Resource\Fast\sql\src\FastSql.Providers.SqlServer\bin\Release\net10.0\FastSql.Providers.SqlServer.dll
+  FastSql.Providers.OracleBase -> E:\Resource\Fast\sql\src\FastSql.Providers.OracleBase\bin\Release\net10.0\FastSql.Providers.OracleBase.dll
+  FastSql.Providers.Gbase8s -> E:\Resource\Fast\sql\src\FastSql.Providers.Gbase8s\bin\Release\net10.0\FastSql.Providers.Gbase8s.dll
+  FastSql.Providers.PostgreSqlBase -> E:\Resource\Fast\sql\src\FastSql.Providers.PostgreSqlBase\bin\Release\net10.0\FastSql.Providers.PostgreSqlBase.dll
+  FastSql.Providers.TiDb -> E:\Resource\Fast\sql\src\FastSql.Providers.TiDb\bin\Release\net10.0\FastSql.Providers.TiDb.dll
+  FastSql.Providers.MySql -> E:\Resource\Fast\sql\src\FastSql.Providers.MySql\bin\Release\net10.0\FastSql.Providers.MySql.dll
+  FastSql.Providers.OceanBase -> E:\Resource\Fast\sql\src\FastSql.Providers.OceanBase\bin\Release\net10.0\FastSql.Providers.OceanBase.dll
+  FastSql.Providers.Kingbase -> E:\Resource\Fast\sql\src\FastSql.Providers.Kingbase\bin\Release\net10.0\FastSql.Providers.Kingbase.dll
+  FastSql.Providers.Gbase8c -> E:\Resource\Fast\sql\src\FastSql.Providers.Gbase8c\bin\Release\net10.0\FastSql.Providers.Gbase8c.dll
+  FastSql.Providers.Highgo -> E:\Resource\Fast\sql\src\FastSql.Providers.Highgo\bin\Release\net10.0\FastSql.Providers.Highgo.dll
+  FastSql.Providers.OpenGauss -> E:\Resource\Fast\sql\src\FastSql.Providers.OpenGauss\bin\Release\net10.0\FastSql.Providers.OpenGauss.dll
+  FastSql.Providers.Oracle -> E:\Resource\Fast\sql\src\FastSql.Providers.Oracle\bin\Release\net10.0\FastSql.Providers.Oracle.dll
+  FastSql.Providers.Dameng -> E:\Resource\Fast\sql\src\FastSql.Providers.Dameng\bin\Release\net10.0\FastSql.Providers.Dameng.dll
+  FastSql.Providers.PostgreSql -> E:\Resource\Fast\sql\src\FastSql.Providers.PostgreSql\bin\Release\net10.0\FastSql.Providers.PostgreSql.dll
+  FastSql.Providers.GaussDb -> E:\Resource\Fast\sql\src\FastSql.Providers.GaussDb\bin\Release\net10.0\FastSql.Providers.GaussDb.dll
+  FastSql.Providers.ShenTong -> E:\Resource\Fast\sql\src\FastSql.Providers.ShenTong\bin\Release\net10.0\FastSql.Providers.ShenTong.dll
+  FastSql.Benchmarks -> E:\Resource\Fast\sql\benchmarks\FastSql.Benchmarks\bin\Release\net10.0\FastSql.Benchmarks.dll
+  FastSql.Sample -> E:\Resource\Fast\sql\samples\FastSql.Sample\bin\Release\net10.0\FastSql.Sample.dll
+  FastSql.Tests.Common -> E:\Resource\Fast\sql\tests\FastSql.Tests.Common\bin\Debug\net10.0\FastSql.Tests.Common.dll
+  FastSql.Tests.Integration -> E:\Resource\Fast\sql\tests\FastSql.Tests.Integration\bin\Release\net10.0\FastSql.Tests.Integration.dll
+  FastSql.Tests.Dialects -> E:\Resource\Fast\sql\tests\FastSql.Tests.Dialects\bin\Release\net10.0\FastSql.Tests.Dialects.dll
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:19.61
+EXIT=0

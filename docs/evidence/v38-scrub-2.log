@@ -1,0 +1,3 @@
+扫描 obj/logs ∶ docs/evidence 前缀 v32：0 份，脏 0 份，改写 0 份，长期位拒绝改写 0 份，被占用读不到 0 份（未改，加 --fix 才改）
+NOTHING-SCANNED：空集上的 0 不算绿灯
+EXIT=3

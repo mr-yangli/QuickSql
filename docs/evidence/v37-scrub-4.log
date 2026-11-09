@@ -1,0 +1,10 @@
+HIT docs/fastsql-orm-design.md:913 key-equals-password len=9430
+HIT docs/fastsql-orm-design.md:2045 key-equals-password len=3328
+HIT src/FastSql.Providers.Xugu/XuguSchemaReader.cs:37 password-value@fastsql-test.xugu.connection.local.txt len=75
+HIT src/FastSql.Providers.Xugu/XuguSchemaReader.cs:54 password-value@fastsql-test.xugu.connection.local.txt len=93
+HIT src/FastSql.Providers.Xugu/XuguSchemaReader.cs:364 password-value@fastsql-test.xugu.connection.local.txt len=81
+HIT tests/FastSql.Tests.Common/MySql.cs:74 key-equals-password len=86
+HIT tests/FastSql.Tests.Common/PostgreSql.cs:74 key-equals-password len=99
+HIT tests/FastSql.Tests.Dialects/CapabilityLedgerTests.cs:525 password-value@fastsql-test.xugu.connection.local.txt len=73
+secrets=2 collected=5 files=268 root=. hits=8
+EXIT=0

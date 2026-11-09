@@ -1,0 +1,94 @@
+SOURCE=file DATA_SOURCE=61.157.37.243:14432 DATABASE=TestDB USER=root
+OPEN=OK
+== S 段：这一台是谁 ==
+S-01 version=PostgreSQL 18.3 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit (String)
+S-02 server_version_num=180003 (String)
+S-03 encoding=UTF8 (String)
+S-04 datcollate=en_US.utf8 (String)
+S-05 is_superuser=on (String)
+S-06 db_create=True (Boolean)
+S-07 public_create=True (Boolean)
+S-08 search_path="$user", public (String)
+S-09 current_schema=public (String)
+S-10 rowversion_type=0 (Int64)
+S-11 会话函数=ERR PostgresException: 55000: lastval is not yet defined in this session
+
+== B 段：绑定参数的三形（裁判缝里那颗前缀到底剥不剥） ==
+B-01 @p ∶ "@p"=OK 7 (Int32)
+B-02 :p ∶ "p"=OK 7 (Int32)
+B-03 @p ∶ "p"=OK 7 (Int32)
+B-04 :p ∶ ":p"=OK 7 (Int32)
+B-05 String=OK 甲公司 (String)
+B-06 Decimal=OK 12.3456 (Decimal)
+B-07 DateTime2=OK 2026-01-05 08:30:00 (DateTime)
+B-08 Int32=OK 42 (Int32)
+B-09 decimal 不报型=OK 7.8 (Decimal)
+B-10 bool=OK True (Boolean)
+
+== M 段：一次发送里塞 ; 分隔的多条语句（§9.4 那颗能力位没声明的东西） ==
+M-01 select ; select=OK scalar=1 (Int32)
+M-02 DDL ; DDL=OK scalar= (null)
+M-03 建完即查=OK scalar=0 (Int64)
+M-04 INSERT ; SELECT 回读键=OK scalar=9 (Int32)
+M-05 带参数的两句=ERR PostgresException: 42703: column "v" does not exist POSITION: 51
+(M-05 的参数是 @v 而名字带前缀：这一颗同时验"多语句批里参数还能不能绑上"。)
+M-06 带参数的两句（补型）=OK scalar=2
+
+== D 段：正典叶的 DDL 形状（引号 ∶ 大写 ∶ 内联约束） ==
+D-01 drop 靶表（先清场）=OK affected=-1
+D-02 CREATE TABLE 引号形=OK affected=-1
+D-03 CREATE INDEX 引号形=OK affected=-1
+D-04 rowversion 列=ERR PostgresException [42704] : 42704: type "rowversion" does not exist POSITION: 56
+D-05 bytea 代替=OK affected=-1
+
+== C 段：目录读回（Columns/IndexNames/PrimaryKeyNamed 那三句在本家的原文） ==
+C-01 information_schema=rows 8 heads=name|is_nullable|raw_type|udt|scale :: [name=Id (String) ∶ is_nullable=0 (String) ∶ raw_type=integer (String) ∶ udt=int4 (String) ∶ scale=0 (String)] || [name=Name (String) ∶ is_nullable=1 (String) ∶ raw_type=character varying (String) ∶ udt=varchar (String) ∶ scale= (String)] || [name=Note (String) ∶ is_nullable=1 (String) ∶ raw_type=text (String) ∶ udt=text (String) ∶ scale= (String)] || [name=Amount (String) ∶ is_nullable=1 (String) ∶ raw_type=numeric (String) ∶ udt=numeric (String) ∶ scale=4 (String)] || [name=PaidAt (String) ∶ is_nullable=1 (String) ∶ raw_type=timestamp without time zone (String) ∶ udt=timestamp (String) ∶ scale=3 (String)] || [name=Flag (String) ∶ is_nullable=1 (String) ∶ raw_type=boolean (String) ∶ udt=bool (String) ∶ scale= (String)] || [name=Bytes (String) ∶ is_nullable=1 (String) ∶ raw_type=bytea (String) ∶ udt=bytea (String) ∶ scale= (String)] || [name=Gid (String) ∶ is_nullable=1 (String) ∶ raw_type=uuid (String) ∶ udt=uuid (String) ∶ scale= (String)]
+C-02 大写问（对照）=rows 1 heads=count :: [count=0 (Int64)]
+C-03 pg_indexes=rows 2 heads=indexname|indexdef :: [indexname=PK_FastSqlProbeD (String) ∶ indexdef=CREATE UNIQUE INDEX "PK_FastSqlProbeD" ON public."FastSqlProbeD" USING btree ("Id") (String)] || [indexname=IX_FastSqlProbeD_PaidAt (String) ∶ indexdef=CREATE INDEX "IX_FastSqlProbeD_PaidAt" ON public."FastSqlProbeD" USING btree ("PaidAt") (String)]
+C-04 pg_constraint=rows 2 heads=conname|contype|convalidated :: [conname=FastSqlProbeD_Id_not_null (String) ∶ contype=n (Char) ∶ convalidated=True (Boolean)] || [conname=PK_FastSqlProbeD (String) ∶ contype=p (Char) ∶ convalidated=True (Boolean)]
+C-05 pg_attribute=rows 8 heads=attname :: [attname=Id (String)] || [attname=Name (String)] || [attname=Note (String)] || [attname=Amount (String)] || [attname=PaidAt (String)] || [attname=Flag (String)] || [attname=Bytes (String)] || [attname=Gid (String)]
+C-06 drop 二级索引=OK affected=-1
+C-06b drop 后再数=rows 1 heads=count :: [count=1 (Int64)]
+C-07 父表=OK affected=-1
+C-08 子表（无约束）=OK affected=-1
+C-09 事后 ADD CONSTRAINT=OK affected=-1
+C-10 目录里这条外键=rows 1 heads=conname|contype|convalidated :: [conname=FK_FastSqlProbeC_FastSqlProbeP (String) ∶ contype=f (Char) ∶ convalidated=True (Boolean)]
+C-11 插一条没有父的行=ERR PostgresException [23503] : 23503: insert or update on table "FastSqlProbeC" violates foreign key constraint "FK_FastSqlProbeC_FastSqlProbeP" DETAIL: Detail redacted as it may contain sensitive data. Specify 'Include Error Detail' in the connection string to include this information.
+C-12 DROP CONSTRAINT=OK affected=-1
+C-13 ADD … NOT VALID=OK affected=-1
+C-14 NOT VALID 之后的那颗 convalidated=rows 1 heads=convalidated :: [convalidated=False (Boolean)]
+
+== V 段：回包形状（Render ∶ MillisText ∶ MoneyClrType ∶ IntClrType 那四格） ==
+V-01 插一行（不写 Id，写回读键）=OK affected=1
+V-02 零毫秒那一行=OK affected=1
+V-03 逐列回包=rows 2 heads=Id|Name|Amount|PaidAt|Flag|Bytes|Gid :: [Id=1 (Int32) ∶ Name=甲公司 (String) ∶ Amount=12.3400 (Decimal) ∶ PaidAt=2026-01-05 08:30:00 (DateTime) ∶ Flag=True (Boolean) ∶ Bytes=System.Byte[] (Byte[]) ∶ Gid=11111111-2222-3333-4444-555555555555 (Guid)] || [Id=2 (Int32) ∶ Name=乙公司 (String) ∶ Amount=0.0000 (Decimal) ∶ PaidAt=2026-03-09 10:20:30 (DateTime) ∶ Flag=False (Boolean) ∶ Bytes=NULL ∶ Gid=NULL]
+V-04 CAST(… AS text)=rows 2 heads=PaidAt :: [PaidAt=2026-01-05 08:30:00.123 (String)] || [PaidAt=2026-03-09 10:20:30 (String)]
+V-05 长度=rows 2 heads=length :: [length=23 (Int32)] || [length=19 (Int32)]
+V-06 COUNT 的 CLR 型=rows 1 heads=count :: [count=2 (Int64)]
+V-07 中文逐字=rows 2 heads=Name|length|octet_length :: [Name=甲公司 (String) ∶ length=3 (Int32) ∶ octet_length=9 (Int32)] || [Name=乙公司 (String) ∶ length=3 (Int32) ∶ octet_length=9 (Int32)]
+V-08 布尔比较=rows 1 heads=Flag :: [Flag=True (Boolean)]
+V-09 top-vs-limit=rows 1 heads=Id :: [Id=2 (Int32)]
+V-10 OFFSET FETCH 形=rows 1 heads=Id :: [Id=2 (Int32)]
+
+== K 段：键的回填三形（InsertId 那一颗的候选） ==
+K-01 RETURNING ExecuteScalar=OK 3 (Int32)
+K-02 事务里 RETURNING=OK 4（已回滚）
+K-03 serial_sequence=public."FastSqlProbeD_Id_seq" (String)
+K-04 last_insert_id=ERR PostgresException: 42883: function last_insert_id() does not exist POSITION: 8
+
+== T 段：事务/保存点/临时表（夹具与排序路径要的那几形） ==
+T-02 回滚后按标签数=OK 0（应为 0）
+T-03 CREATE TEMP TABLE=OK affected=-1
+T-04 ADD COLUMN=OK affected=-1
+T-05 ADD COLUMN 不带 COLUMN 关键字=OK affected=-1
+T-06 ALTER COLUMN TYPE=OK affected=-1
+T-07 COMMENT ON COLUMN=OK affected=-1
+T-08 注释读回=rows 1 heads=cmt :: [cmt=注释-中文 (String)]
+
+== Z 段：清场 ==
+Z-01 drop 靶表=OK affected=-1
+Z-01b drop 外键靶表=OK affected=-1
+Z-01c drop 父表=OK affected=-1
+Z-02 drop rowversion 替身=OK affected=-1
+Z-03 drop 多语句靶表=OK affected=-1
+Z-04 drop 旧靶表=OK affected=-1

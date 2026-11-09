@@ -1,0 +1,2 @@
+
+CREATE TABLE `QuickSqlOrder` (`Id` INT AUTO_INCREMENT NOT NULL, `CustomerName` VARCHAR(64) NULL, `CustomerId` INT NOT NULL, `Amount` DECIMAL(18,4) NOT NULL, `State` INT NOT NULL, `CreatedAt` DATETIME(3) NOT NULL, `PaidAt` DATETIME(3) NULL, `Note` TEXT NULL, CONSTRAINT `PK_QuickSqlOrder` PRIMARY KEY (`Id`)) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 ; CREATE INDEX `IX_QuickSqlOrder_CreatedAt` ON `QuickSqlOrder` ( `CreatedAt` ASC )

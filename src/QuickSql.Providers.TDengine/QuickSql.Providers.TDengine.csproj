@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.TDengine</RootNamespace>
+    <Description>QuickSql ORM 的 TDengine provider（§9.1 的第 23 颗库种，v0.39 的 0.39.0-beta.34 落笔；与 ClickHouse、Xugu、Gbase8s、SQLite、DuckDb 同一档的单层整层：没有血统基类、没有叶子）。分岔逐格：占位符是位置形 ?（GBase 8s 同款，参数名不进文本；驱动侧参数名必须以 $/@/# 打头走 stmt2 分类绑定，binder 用 DriverName 翻成 @pN）；无事务（驱动 BeginDbTransaction 当场 throw，不声明 Transactions 位）；UPDATE 整格拒（3.x 无传统 UPDATE 语句，同 ts 覆盖的 upsert 语义要活库钉死才敢接）；DELETE 整格拒（官方 DELETE 只认首列时间窗条件，本层不建模时间窗分析）；无 identity、无 RETURNING、无二级索引（契约索引整格拒）；每表第一列必须是 TIMESTAMP 且是主键（校验面在本 provider 的 CodeFirst 里，主键恰一颗、CLR 型映射 TIMESTAMP、且是契约首列）；时间戳主键是唯一键约定，int Id 血统的模型在这一家建不出表。类型面：BOOL 原生、整数有符号/无符号成对、TIMESTAMP 收 DateTime（库精度由建库 PRECISION 参数定）、DECIMAL 是 3.3.6.0 才进场的型（VendorDoc）、无 DATE/TIME 独立型（DateOnly/TimeOnly/TimeSpan 抛）、Guid 落 VARCHAR(36) 文本形（无 UUID 型）、string 落 VARCHAR(n) 且 n 量字节（chars×4，GBase 8s 同一把尺）。编译期不引用任何驱动程序集：驱动程序集名是 TDengine 而不是包名 TDengine.Connector（csproj 未设 AssemblyName，SDK 默认取项目文件名），内建表里刻意不写 factoryType（TDengineFactory 无静态 Instance，走兜底扫描）；连接串 protocol=websocket（纯托管，taosAdapter 默认 6041）不落 taos.dll。本机没有引擎，整层【文档·TDengine】口径 + 未实测台账（逐格账在 §13.5 第十八本）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Core\QuickSql.Core.csproj" />
+  </ItemGroup>
+
+</Project>

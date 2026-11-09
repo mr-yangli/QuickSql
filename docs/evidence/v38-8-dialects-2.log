@@ -1,0 +1,26 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+    FastSql.Tests.Dialects.ScalarExitTests.Only_a_requested_type_the_driver_answers_in_kind_reads_through_an_arm [FAIL]
+      Assert.Equal() Failure: Collections differ
+                 ↓ (pos 0)
+      Expected: [0]
+      Actual:   []
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\ScalarExitTests.cs(130,0): at FastSql.Tests.Dialects.ScalarExitTests.Only_a_requested_type_the_driver_answers_in_kind_reads_through_an_arm()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.ScalarExitTests.The_exit_saves_exactly_the_box_on_the_types_that_have_arms [FAIL]
+      Assert.Equal() Failure: Values differ
+      Expected: 0
+      Actual:   0.29999999999999999
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\ScalarExitTests.cs(318,0): at FastSql.Tests.Dialects.ScalarExitTests.Armed[T](String name, Array values, Double boxFloor, List`1 report)
+        tests\FastSql.Tests.Dialects\ScalarExitTests.cs(280,0): at FastSql.Tests.Dialects.ScalarExitTests.The_exit_saves_exactly_the_box_on_the_types_that_have_arms()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Finished:    FastSql.Tests.Dialects (ID = 'be61f78efa5f4c7e6a4475dc3c1f5cd7491eb3df53b3db634838189f2882e3c8')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 701, Errors: 0, Failed: 2, Skipped: 0, Not Run: 0, Time: 2.526s
+EXIT=1

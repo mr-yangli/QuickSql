@@ -1,0 +1,44 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+PrepareCatalog：xugu 一支不建库（§13.17 的授权只到建表），目标库必须在场。
+EnsureInventoryItem：xugu 一支建不出夹具表 —— xugu 这一家由 provider 自己拒收 rowversion 那一型：库里有那一型也会自增（A-04），但驱动读不回那一列（带它的 SELECT 抛 DataOutOfBindException，RV-08 ∶ A-06），所以 XuguCodeFirst 在 v0.34 第二笔把那句 DDL 拦在发射前（FastSqlException）。全新库因此建不出这张夹具表（跑过旧版夹具的机器上表已经在，走的是存在性分支）—— 缺口记 §14，与 DdlTests 那张探针表同一格；并发那十一条另由 RequireConcurrencyColumn 点名。
+    FastSql.Tests.Integration.TrackingPathTests.A_tracked_instance_with_a_concurrency_token_is_never_merged [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+ReadPathTests.Like_predicates_honor_their_escapes：第三判在本家没跑（Xugu 建不出 InventoryItem —— xugu 这一家由 provider 自己拒收 rowversion 那一型：库里有那一型也会自增（A-04），但驱动读不回那一列（带它的 SELECT 抛 DataOutOfBindException，RV-08 ∶ A-06），所以 XuguCodeFirst 在 v0.34 第二笔把那句 DDL 拦在发射前（FastSqlException）。全新库因此建不出这张夹具表（跑过旧版夹具的机器上表已经在，走的是存在性分支）—— 缺口记 §14，与 DdlTests 那张探针表同一格；并发那十一条另由 RequireConcurrencyColumn 点名。）
+标量出口 ∶ Xugu ∶ Id（Int32）∶ 落臂 ∶ 门 112 B/值 ∶ 出口 64 B/值
+标量出口 ∶ Xugu ∶ Amount（Decimal）∶ 落门 ∶ 门 8152 B/值 ∶ 出口 8152 B/值
+标量出口 ∶ Xugu ∶ CreatedAt（DateTime）∶ 落臂 ∶ 门 120 B/值 ∶ 出口 72 B/值
+标量出口 ∶ Xugu ∶ CustomerName（String）∶ 落臂 ∶ 门 8152 B/值 ∶ 出口 8128 B/值
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_SaveChanges_with_no_subscriber_reports_an_empty_replay [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_delete_refuses_a_row_that_moved_and_still_takes_the_one_that_did_not [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_update_carries_the_snapshot_in_the_where_and_reads_both_tokens_back [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_that_vanished_is_reported_as_gone_rather_than_changed [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_new_row_gets_its_version_from_the_database_and_the_next_save_uses_that_version [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Three_saves_in_a_row_all_succeed_because_each_one_reads_the_new_version_back [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Writing_a_value_into_a_token_column_is_refused_before_anything_goes_out [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_somebody_else_changed_raises_with_both_sides_and_leaves_the_batch_unsettled [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_non_null_snapshot_is_compared_by_value_and_conflicts_when_that_value_moves [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_report_carries_the_replay_of_a_hook_that_rewrote_a_SaveChanges_statement [SKIP]
+      xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；它若被强跑，红点是 ReadBackAsync 的“只回填了 0/N 行”与裁判回读那一列各一处。
+    FastSql.Tests.Integration.CollationTests.The_varchar_side_of_the_instance_matches_its_collation_code_page [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（SERVERPROPERTY / DATABASEPROPERTYEX / COLLATIONPROPERTY / DATALENGTH / varchar↔nvarchar 那一整套量纲问句），当前目标库是 Xugu。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CollationTests.Parameters_reach_the_server_as_unicode_and_their_ansi_cast_follows_the_same_rule [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（CAST(@t AS varchar/nvarchar) 与 DATALENGTH 这一组量纲问句（同上一颗的理由）），当前目标库是 Xugu。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DdlTests.Store_filled_tier_lands_in_the_catalog_through_the_emitted_ddl [SKIP]
+      xugu 一支的这句 DDL 被 provider 拦在发射前（不是库拒的，库里认那一型）：虚谷不建 rowversion 列：库里建得成、会自增，但驱动读不回那一列的值（带它的 SELECT 一取行就抛 System.DataOutOfBindException，RV-08/A-06 两批同一颗红，§14）。这一家请改用应用给值的并发列：[ConcurrencyToken] 而不带 [Column(DbTypes = "rowversion")]，比较式与写侧与另四家逐字同形（XuguConcurrency），缺的只是「由库递增」这一格 —— 那一格等的是 SPI，不是改名。
+  Finished:    FastSql.Tests.Integration (ID = 'abfde517874d980838ec1c62ff07f2b2c439aa75c12292a8989400dea5b81657')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 104, Errors: 0, Failed: 0, Skipped: 14, Not Run: 0, Time: 7.489s
+[EC031]Error in recv result :[E17007 L1 C18] ����ʵ������NULL������CHAR��ת�� 
+EXIT=0

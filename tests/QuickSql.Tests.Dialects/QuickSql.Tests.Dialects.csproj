@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Tests.Dialects</RootNamespace>
+    <Description>方言黄金样本：不连库，比对 AST→文本的产出（§13.1）。用「一调就抛」的桩工厂，所以任何一次驱动调用都是设计约束被破坏的信号。</Description>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <!-- 只为钉住 DI 注册期那两道闸门（<c>AddQuickSqlOrm</c> 的工厂串×静态从库、注册期把 ConnectionSources
+         建一遍）。库侧只引 Abstractions，实现这一颗在这里才有家 —— 判据是"注册口是一个闸门，闸门要有人推一推"，
+         不是"顺带把容器也测一遍"：容器行为归宿主，本仓库不测。 -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Tests.Common\QuickSql.Tests.Common.csproj" />
+  </ItemGroup>
+
+  <!-- 编译期负样本的断言口（§14）：这里把生成器当**普通程序集**引用，而不是像 QuickSql.Tests.Common
+       那样挂成 Analyzer。本类的做法是自己在内存里造一份 CSharpCompilation、用 CSharpGeneratorDriver
+       显式跑一遍 EntityContractGenerator，好把诊断逐条钉住——按 Analyzer 挂法只能在本项目自己编译时
+       跑一次，诊断混进构建输出，测试拿不到「同一段源码在/不在生成器下各是什么结论」。
+       反过来讲：本项目的实体样例仍然没挂生成器，所以负样本能写在这里而不会把构建弄红。 -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <ProjectReference Include="..\..\src\QuickSql.Generators\QuickSql.Generators.csproj" />
+  </ItemGroup>
+
+</Project>

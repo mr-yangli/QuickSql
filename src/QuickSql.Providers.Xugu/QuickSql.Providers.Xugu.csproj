@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.Xugu</RootNamespace>
+    <Description>QuickSql ORM 的虚谷 provider（§9.1 那份清单里"自成一套"那一族的第一层，也是今天唯一一层：没有血统基类、没有叶子，与 SqlServer 同档）。双引号标识符且折向大写（那颗折叠由 COMPATIBLE_MODE 决定，取默认档）、分页是 LIMIT…OFFSET 而 OFFSET 单独出现时补一颗厂商给的上界哨兵（2147483647，与 MySQL 那颗 2^64−1 同形不同义）、bool 落 TINYINT 而不用它原生的 BOOLEAN、Guid 落 CHAR(36) 而不用它原生的 16 字节 GUID、有句尾 RETURNING（三档出处里最薄的一格）、写语句不接受合并档（3∶2 的那一票）、变更守卫三段式（4∶1）。编译期不引用任何驱动程序集 —— 驱动一律由内建表 BuiltinDrivers 在运行期解析（§1.2 原则 3），而 XuguClient 这个程序集名【v0.32 改判：原文写的是「从未在一台机器上解析成功过」，这一句本版翻掉了 —— 它经 QuickSql.Core 的 DriverRegistry 解析成功，五格摆法各走到一次打开连接，出处 obj/logs/v32-matrix-*-open.log】；它从前比另四家多一层失败面（那份 3.3.4.5 驱动要一份原生同伴 xugusql.dll / libxugusql.so，原生同伴不在探测路径上时启动期那颗 TryEnsureLoaded 报不出来 —— 同一批日志里的 bare 那颗反证），本仓库交付的 4.0.0.8 是纯托管的一颗，原生同伴那一层随换版一起没了。本程序集产出的每一条文本仍然没有在一台活库上跑过（§13.5 台账里这一家整行是「未实测」，但每一格都标了它取自厂商文档、取自已发布产物、还是推断）—— 这一句 v0.32 一字不改：那台库本版连上了，跑过的只有 SELECT 1 与两颗 GetSchema，provider 自己发的 SQL 一条都没有。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Core\QuickSql.Core.csproj" />
+  </ItemGroup>
+
+</Project>

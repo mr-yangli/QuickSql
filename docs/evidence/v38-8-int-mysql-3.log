@@ -1,0 +1,43 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+PrepareCatalog：mysql 一支不建库（授权只到那一座 TestDB 里建表），目标库必须在场。实例身份四颗读数（8.4.8 / Community Server - GPL / 无 ANSI_QUOTES / lower_case_table_names=0）记在 obj/logs/v37-my-recon-2.log 的 S 段，连接串本身含口令、不进任何一行输出。
+EnsureInventoryItem：mysql 一支建不出夹具表 —— mysql 这一家没有 rowversion 那一型（S-08 数到 0），而 provider 对人写的型名原样发出（StoreTypeName 短路），建表因此红在 1064（D-03）；同形换 TIMESTAMP(3) 建得成（D-04），所以缺的是那一型而不是那句语法。库给值的入口在本族只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档 —— 缺口记 §14，与 postgresql 那一格并排；而本家的并发档位（MySqlConcurrency = TimestampColumn）设计上是"人给值的那一列"，与夹具声明的 rowversion 不是同一颗，要不要折型或拒收是待裁决。
+    FastSql.Tests.Integration.TrackingPathTests.A_tracked_instance_with_a_concurrency_token_is_never_merged [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+ReadPathTests.Like_predicates_honor_their_escapes：第三判在本家没跑（MySql 建不出 InventoryItem —— mysql 这一家没有 rowversion 那一型（S-08 数到 0），而 provider 对人写的型名原样发出（StoreTypeName 短路），建表因此红在 1064（D-03）；同形换 TIMESTAMP(3) 建得成（D-04），所以缺的是那一型而不是那句语法。库给值的入口在本族只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档 —— 缺口记 §14，与 postgresql 那一格并排；而本家的并发档位（MySqlConcurrency = TimestampColumn）设计上是"人给值的那一列"，与夹具声明的 rowversion 不是同一颗，要不要折型或拒收是待裁决。）
+标量出口 ∶ MySql ∶ Id（Int32）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ MySql ∶ Amount（Decimal）∶ 落臂 ∶ 门 32 B/值 ∶ 出口 32 B/值
+标量出口 ∶ MySql ∶ CreatedAt（DateTime）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 24 B/值
+标量出口 ∶ MySql ∶ CustomerName（String）∶ 落臂 ∶ 门 32 B/值 ∶ 出口 32 B/值
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_SaveChanges_with_no_subscriber_reports_an_empty_replay [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_delete_refuses_a_row_that_moved_and_still_takes_the_one_that_did_not [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_update_carries_the_snapshot_in_the_where_and_reads_both_tokens_back [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_that_vanished_is_reported_as_gone_rather_than_changed [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_new_row_gets_its_version_from_the_database_and_the_next_save_uses_that_version [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Three_saves_in_a_row_all_succeed_because_each_one_reads_the_new_version_back [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Writing_a_value_into_a_token_column_is_refused_before_anything_goes_out [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_somebody_else_changed_raises_with_both_sides_and_leaves_the_batch_unsettled [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_non_null_snapshot_is_compared_by_value_and_conflicts_when_that_value_moves [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_report_carries_the_replay_of_a_hook_that_rewrote_a_SaveChanges_statement [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.CollationTests.The_varchar_side_of_the_instance_matches_its_collation_code_page [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（SERVERPROPERTY / DATABASEPROPERTYEX / COLLATIONPROPERTY / DATALENGTH / varchar↔nvarchar 那一整套量纲问句），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CollationTests.Parameters_reach_the_server_as_unicode_and_their_ansi_cast_follows_the_same_rule [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（CAST(@t AS varchar/nvarchar) 与 DATALENGTH 这一组量纲问句（同上一颗的理由）），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DdlTests.Store_filled_tier_lands_in_the_catalog_through_the_emitted_ddl [SKIP]
+      mysql 这一家没有 rowversion 那一型（按型名数到 0 行，S-08），本用例那句 DDL 建不出探针表（1064，D-03；同形换 TIMESTAMP(3) 建得成，D-04 —— 缺的是那一型而不是那句语法）。题面与第四家同一颗：“那句 DDL 在库里建出了什么”，而本家那句发出去就红在解析前。缺口记 §14，与 postgresql 那一格并排（同一条“CodeFirst 没有拒收闸门”的差异）。
+  Finished:    FastSql.Tests.Integration (ID = 'abfde517874d980838ec1c62ff07f2b2c439aa75c12292a8989400dea5b81657')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 104, Errors: 0, Failed: 0, Skipped: 14, Not Run: 0, Time: 7.455s
+EXIT=0

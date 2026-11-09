@@ -1,0 +1,6 @@
+boundary: .gitignore dirs=5 names=4 suffix=1 unparsed=0 + vendor src/FastSql.Providers.Xugu/Driver/
+EMPTY src/FastSql.Generators/AnalyzerReleases.Shipped.md（零字节件：没有行可言，不判行尾，只报个名）
+mode=worktree（无 git，判据换成整棵自产文本的绝对读数）
+checked 296 file(s) [.cs, .md, .ps1, .props, .slnx, .json, .editorconfig, .csproj, .targets], 0 problem file(s), 0 fixed, 1 empty file(s), 0 locked file(s)
+verdict: 0 颗违规
+EXIT=0

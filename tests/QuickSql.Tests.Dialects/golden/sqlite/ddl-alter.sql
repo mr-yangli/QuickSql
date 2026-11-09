@@ -1,0 +1,2 @@
+
+ALTER TABLE "QuickSqlOrder" ADD COLUMN "Note" TEXT NULL

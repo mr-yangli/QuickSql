@@ -1,0 +1,139 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+PrepareCatalog：mysql 一支不建库（授权只到那一座 TestDB 里建表），目标库必须在场。实例身份四颗读数（8.4.8 / Community Server - GPL / 无 ANSI_QUOTES / lower_case_table_names=0）记在 obj/logs/v37-my-recon-2.log 的 S 段，连接串本身含口令、不进任何一行输出。
+EnsureInventoryItem：mysql 一支建不出夹具表 —— mysql 这一家没有 rowversion 那一型（S-08 数到 0），而 provider 对人写的型名原样发出（StoreTypeName 短路），建表因此红在 1064（D-03）；同形换 TIMESTAMP(3) 建得成（D-04），所以缺的是那一型而不是那句语法。库给值的入口在本族只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档 —— 缺口记 §14，与 postgresql 那一格并排；而本家的并发档位（MySqlConcurrency = TimestampColumn）设计上是"人给值的那一列"，与夹具声明的 rowversion 不是同一颗，要不要折型或拒收是待裁决。
+    FastSql.Tests.Integration.UpdateDeletePathTests.A_string_set_computed_from_the_column_concatenates_and_treats_null_as_empty [FAIL]
+      Assert.Equal() Failure: Strings differ
+                 ↓ (pos 0)
+      Expected: "/尾"
+      Actual:   "NULL"
+                 ↑ (pos 0)
+      Stack Trace:
+        UpdateDeletePathTests.cs(263,0): at FastSql.Tests.Integration.UpdateDeletePathTests.A_string_set_computed_from_the_column_concatenates_and_treats_null_as_empty()
+        --- End of stack trace from previous location ---
+    FastSql.Tests.Integration.OrderingPathTests.A_parent_insert_still_precedes_a_child_update_in_a_later_phase [FAIL]
+      MySqlConnector.MySqlException : You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VARCHAR(20)) AS Id FROM `FastSqlMilestone` WHERE `Title` = 'fastsql-write/order-' at line 1
+      Stack Trace:
+        /_/src/MySqlConnector/Core/ServerSession.cs(1185,0): at MySqlConnector.Core.ServerSession.ReceiveReplyAsync(IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/Core/ResultSet.cs(37,0): at MySqlConnector.Core.ResultSet.ReadResultSetHeaderAsync(IOBehavior ioBehavior)
+        /_/src/MySqlConnector/MySqlDataReader.cs(133,0): at MySqlConnector.MySqlDataReader.ActivateResultSet(CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlDataReader.cs(489,0): at MySqlConnector.MySqlDataReader.InitAsync(CommandListPosition commandListPosition, ICommandPayloadCreator payloadCreator, IDictionary`2 cachedProcedures, IMySqlCommand command, CommandBehavior behavior, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/Core/CommandExecutor.cs(58,0): at MySqlConnector.Core.CommandExecutor.ExecuteReaderAsync(CommandListPosition commandListPosition, ICommandPayloadCreator payloadCreator, CommandBehavior behavior, Activity activity, MySqlConnectorSemanticConventionsKinds conventionsKinds, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlCommand.cs(352,0): at MySqlConnector.MySqlCommand.ExecuteReaderAsync(CommandBehavior behavior, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlCommand.cs(285,0): at MySqlConnector.MySqlCommand.ExecuteDbDataReader(CommandBehavior behavior)
+        Database.cs(549,0): at FastSql.Tests.Integration.Database.Rows(String sql, ValueTuple`2[] args)
+        OrderingPathTests.cs(212,0): at FastSql.Tests.Integration.OrderingPathTests.MilestoneId(Milestone milestone)
+        OrderingPathTests.cs(120,0): at FastSql.Tests.Integration.OrderingPathTests.A_parent_insert_still_precedes_a_child_update_in_a_later_phase()
+        --- End of stack trace from previous location ---
+    FastSql.Tests.Integration.TrackingPathTests.A_tracked_instance_with_a_concurrency_token_is_never_merged [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.TrackingPathTests.Expanding_the_null_check_the_way_the_spec_first_wrote_it_is_a_syntax_error_on_the_target [FAIL]
+      Assert.NotNull() Failure: Value is null
+      Stack Trace:
+        TrackingPathTests.cs(532,0): at FastSql.Tests.Integration.TrackingPathTests.Expanding_the_null_check_the_way_the_spec_first_wrote_it_is_a_syntax_error_on_the_target()
+        --- End of stack trace from previous location ---
+    FastSql.Tests.Integration.TrackingPathTests.A_tracked_read_then_a_one_column_change_writes_only_that_column [FAIL]
+      Assert.StartsWith() Failure: String start does not match
+      String:         "UPDATE `FastSqlOrder` AS `t0` SET `Note` = @p0 WHE"···
+      Expected start: "UPDATE [t0] SET [Note] = @p0 FROM [FastSqlOrder] A"···
+      Stack Trace:
+        TrackingPathTests.cs(195,0): at FastSql.Tests.Integration.TrackingPathTests.A_tracked_read_then_a_one_column_change_writes_only_that_column()
+        --- End of stack trace from previous location ---
+    FastSql.Tests.Integration.TrackingPathTests.Same_shaped_changes_on_two_rows_collapse_into_one_merged_statement [FAIL]
+      Assert.StartsWith() Failure: String start does not match
+      String:         "UPDATE `FastSqlOrder` AS `t0` SET `Amount` = @p0 W"···
+      Expected start: "UPDATE [t0] SET [Amount] = @p0 FROM [FastSqlOrder]"···
+      Stack Trace:
+        TrackingPathTests.cs(319,0): at FastSql.Tests.Integration.TrackingPathTests.Same_shaped_changes_on_two_rows_collapse_into_one_merged_statement()
+        --- End of stack trace from previous location ---
+ReadPathTests.Like_predicates_honor_their_escapes：第三判在本家没跑（MySql 建不出 InventoryItem —— mysql 这一家没有 rowversion 那一型（S-08 数到 0），而 provider 对人写的型名原样发出（StoreTypeName 短路），建表因此红在 1064（D-03）；同形换 TIMESTAMP(3) 建得成（D-04），所以缺的是那一型而不是那句语法。库给值的入口在本族只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档 —— 缺口记 §14，与 postgresql 那一格并排；而本家的并发档位（MySqlConcurrency = TimestampColumn）设计上是"人给值的那一列"，与夹具声明的 rowversion 不是同一颗，要不要折型或拒收是待裁决。）
+    FastSql.Tests.Integration.MaterializationAllocationTests.Values_and_null_semantics_on_the_real_driver_are_the_offline_ones [FAIL]
+      MySqlConnector.MySqlException : You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY' at line 1
+      Stack Trace:
+        /_/src/MySqlConnector/Core/ServerSession.cs(1185,0): at MySqlConnector.Core.ServerSession.ReceiveReplyAsync(IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/Core/ResultSet.cs(37,0): at MySqlConnector.Core.ResultSet.ReadResultSetHeaderAsync(IOBehavior ioBehavior)
+        /_/src/MySqlConnector/MySqlDataReader.cs(133,0): at MySqlConnector.MySqlDataReader.ActivateResultSet(CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlDataReader.cs(489,0): at MySqlConnector.MySqlDataReader.InitAsync(CommandListPosition commandListPosition, ICommandPayloadCreator payloadCreator, IDictionary`2 cachedProcedures, IMySqlCommand command, CommandBehavior behavior, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/Core/CommandExecutor.cs(58,0): at MySqlConnector.Core.CommandExecutor.ExecuteReaderAsync(CommandListPosition commandListPosition, ICommandPayloadCreator payloadCreator, CommandBehavior behavior, Activity activity, MySqlConnectorSemanticConventionsKinds conventionsKinds, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlCommand.cs(352,0): at MySqlConnector.MySqlCommand.ExecuteReaderAsync(CommandBehavior behavior, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlCommand.cs(285,0): at MySqlConnector.MySqlCommand.ExecuteDbDataReader(CommandBehavior behavior)
+        MaterializationAllocationTests.cs(88,0): at FastSql.Tests.Integration.MaterializationAllocationTests.RowOn(String columns, String table)
+        MaterializationAllocationTests.cs(201,0): at FastSql.Tests.Integration.MaterializationAllocationTests.Values_and_null_semantics_on_the_real_driver_are_the_offline_ones()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Integration.MaterializationAllocationTests.A_value_typed_column_still_boxes_because_the_typed_door_is_not_hoisted_yet [FAIL]
+      MySqlConnector.MySqlException : You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY' at line 1
+      Stack Trace:
+        /_/src/MySqlConnector/Core/ServerSession.cs(1185,0): at MySqlConnector.Core.ServerSession.ReceiveReplyAsync(IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/Core/ResultSet.cs(37,0): at MySqlConnector.Core.ResultSet.ReadResultSetHeaderAsync(IOBehavior ioBehavior)
+        /_/src/MySqlConnector/MySqlDataReader.cs(133,0): at MySqlConnector.MySqlDataReader.ActivateResultSet(CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlDataReader.cs(489,0): at MySqlConnector.MySqlDataReader.InitAsync(CommandListPosition commandListPosition, ICommandPayloadCreator payloadCreator, IDictionary`2 cachedProcedures, IMySqlCommand command, CommandBehavior behavior, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/Core/CommandExecutor.cs(58,0): at MySqlConnector.Core.CommandExecutor.ExecuteReaderAsync(CommandListPosition commandListPosition, ICommandPayloadCreator payloadCreator, CommandBehavior behavior, Activity activity, MySqlConnectorSemanticConventionsKinds conventionsKinds, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlCommand.cs(352,0): at MySqlConnector.MySqlCommand.ExecuteReaderAsync(CommandBehavior behavior, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlCommand.cs(285,0): at MySqlConnector.MySqlCommand.ExecuteDbDataReader(CommandBehavior behavior)
+        MaterializationAllocationTests.cs(88,0): at FastSql.Tests.Integration.MaterializationAllocationTests.RowOn(String columns, String table)
+        MaterializationAllocationTests.cs(99,0): at FastSql.Tests.Integration.MaterializationAllocationTests.A_value_typed_column_still_boxes_because_the_typed_door_is_not_hoisted_yet()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_SaveChanges_with_no_subscriber_reports_an_empty_replay [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_delete_refuses_a_row_that_moved_and_still_takes_the_one_that_did_not [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_update_carries_the_snapshot_in_the_where_and_reads_both_tokens_back [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_that_vanished_is_reported_as_gone_rather_than_changed [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_new_row_gets_its_version_from_the_database_and_the_next_save_uses_that_version [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Three_saves_in_a_row_all_succeed_because_each_one_reads_the_new_version_back [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Writing_a_value_into_a_token_column_is_refused_before_anything_goes_out [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_somebody_else_changed_raises_with_both_sides_and_leaves_the_batch_unsettled [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_non_null_snapshot_is_compared_by_value_and_conflicts_when_that_value_moves [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_report_carries_the_replay_of_a_hook_that_rewrote_a_SaveChanges_statement [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.CollationTests.The_varchar_side_of_the_instance_matches_its_collation_code_page [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（SERVERPROPERTY / DATABASEPROPERTYEX / COLLATIONPROPERTY / DATALENGTH / varchar↔nvarchar 那一整套量纲问句），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CollationTests.Parameters_reach_the_server_as_unicode_and_their_ansi_cast_follows_the_same_rule [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（CAST(@t AS varchar/nvarchar) 与 DATALENGTH 这一组量纲问句（同上一颗的理由）），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DdlTests.Store_types_in_the_catalog_are_the_ones_the_provider_declared [FAIL]
+      列 CustomerName 的存储类型不符：目录 name=CustomerName, is_nullable=1, store_type=varchar(64), scale=，契约 VARCHAR(64)
+      Stack Trace:
+        DdlTests.cs(215,0): at FastSql.Tests.Integration.DdlTests.Store_types_in_the_catalog_are_the_ones_the_provider_declared()
+           at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Integration.DdlTests.Store_filled_tier_lands_in_the_catalog_through_the_emitted_ddl [FAIL]
+      MySqlConnector.MySqlException : You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rowversion NULL, `CheckedAt` DATETIME(3) NULL, CONSTRAINT `PK_FastSqlStoreFilled' at line 1
+      Stack Trace:
+        /_/src/MySqlConnector/Core/ServerSession.cs(1185,0): at MySqlConnector.Core.ServerSession.ReceiveReplyAsync(IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/Core/ResultSet.cs(37,0): at MySqlConnector.Core.ResultSet.ReadResultSetHeaderAsync(IOBehavior ioBehavior)
+        /_/src/MySqlConnector/MySqlDataReader.cs(133,0): at MySqlConnector.MySqlDataReader.ActivateResultSet(CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlDataReader.cs(489,0): at MySqlConnector.MySqlDataReader.InitAsync(CommandListPosition commandListPosition, ICommandPayloadCreator payloadCreator, IDictionary`2 cachedProcedures, IMySqlCommand command, CommandBehavior behavior, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/Core/CommandExecutor.cs(58,0): at MySqlConnector.Core.CommandExecutor.ExecuteReaderAsync(CommandListPosition commandListPosition, ICommandPayloadCreator payloadCreator, CommandBehavior behavior, Activity activity, MySqlConnectorSemanticConventionsKinds conventionsKinds, IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlCommand.cs(304,0): at MySqlConnector.MySqlCommand.ExecuteNonQueryAsync(IOBehavior ioBehavior, CancellationToken cancellationToken)
+        /_/src/MySqlConnector/MySqlCommand.cs(108,0): at MySqlConnector.MySqlCommand.ExecuteNonQuery()
+        Database.cs(1818,0): at FastSql.Tests.Integration.Database.Execute(DbConnection connection, DbTransaction transaction, String sql, ValueTuple`2[] args)
+        Database.cs(1810,0): at FastSql.Tests.Integration.Database.Execute(DbConnection connection, String sql, ValueTuple`2[] args)
+        Database.cs(1104,0): at FastSql.Tests.Integration.Database.EnsureTable(DbConnection connection, FastSqlOrm orm, Type clrType)
+        Database.cs(1088,0): at FastSql.Tests.Integration.Database.EnsureTable(Type clrType)
+        DdlTests.cs(105,0): at FastSql.Tests.Integration.DdlTests.Store_filled_tier_lands_in_the_catalog_through_the_emitted_ddl()
+           at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Integration.DdlTests.Declared_index_exists_after_the_fixture_ran_the_emitted_ddl [FAIL]
+      System.InvalidOperationException : mysql 这一家没有“具名主键”这一颗目录对象，PrimaryKeyNamed("PK_FastSqlOrder") 在本家没有对象：建表时写的那颗名字被库<em>静默改掉</em>了 —— ALTER/CREATE 里写 CONSTRAINT `PK_FastSqlProbeT`，information_schema.table_constraints 交回的那一行叫 PRIMARY（constraint_type='PRIMARY KEY'，enforced='YES'，实测·X-03 那一行）。与第七家（压根没有具名约束）不同一档：本家的外键约束<em>带名字</em>（实测·X-06），缺的只有主键那一颗。判据要换成“这张表上有没有一把主键、它管哪几列”，问法是 table_constraints 按 constraint_type 筛 + statistics 按 index_name='PRIMARY' 数列，见 DdlTests 本家那一支。
+      Stack Trace:
+        Database.cs(931,0): at FastSql.Tests.Integration.Database.PrimaryKeyNamed(String name)
+        DdlTests.cs(287,0): at FastSql.Tests.Integration.DdlTests.Declared_index_exists_after_the_fixture_ran_the_emitted_ddl()
+           at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Finished:    FastSql.Tests.Integration (ID = 'abfde517874d980838ec1c62ff07f2b2c439aa75c12292a8989400dea5b81657')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 100, Errors: 0, Failed: 10, Skipped: 13, Not Run: 0, Time: 5.690s

@@ -1,0 +1,2 @@
+
+CREATE TABLE "ProbeClick" ("Id" Int32 NOT NULL, "EventAt" DateTime64(3) NOT NULL, "Title" String NOT NULL, "Note" String NOT NULL, INDEX "QSI_ProbeClick_1" toMinute(EventAt) TYPE bloom_filter GRANULARITY 2, INDEX "QSI_ProbeClick_EventAt_minmax" "EventAt" TYPE minmax GRANULARITY 1, INDEX "QSI_ProbeClick_Title_bloom" "Title" TYPE bloom_filter GRANULARITY 2) ENGINE = MergeTree ORDER BY ("Id") PRIMARY KEY ("Id")

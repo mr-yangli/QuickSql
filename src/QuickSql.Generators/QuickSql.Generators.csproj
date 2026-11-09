@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- §12.7 A：源生成器跑在编译器进程里，只能 netstandard2.0。
+         根 props 的「netstandard2.0 就关掉 trim/AOT 分析器」那条开关救不了这里：
+         Directory.Build.props 先于本文件的 TargetFramework 求值，那时它还是空的，
+         于是 NETSDK1210（IsAotCompatible 在 netstandard2.0 上无意义）会直接变成错误。
+         所以这四个值必须在这里显式压掉，注释里的那条根 props 只对将来的 netstandard2.0 项目有效。 -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+    <RootNamespace>QuickSql.Generators</RootNamespace>
+    <Description>G1 元数据生成器（§12.7 A）：把 §10.2 的解析链搬到编译期，产出实体事实 + 直读直写的 IEntityTypeSchema&lt;T&gt; 与 ContractOnly 校验器。</Description>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <!-- IncludeBuildOutput=false ⇒ lib/ 是空的，而 nuspec 仍按 netstandard2.0 点了一颗依赖组，
+         NU5128 说的就是这一格对不上（本仓开 TreatWarningsAsErrors，它是错误）。生成器没有运行期
+         依赖要声明（那两颗 Roslyn 包是 PrivateAssets=all 的编译期件），所以压掉依赖组而不是补一颗假 lib。 -->
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+  </PropertyGroup>
+
+  <!-- RS2008（分析器必须登记发布跟踪）在 TreatWarningsAsErrors 下是错误。
+       这里登记的是三条诊断，不是三条待发的版本公告：G1 的 ID 一对外发布就改不动了，所以先写清楚。 -->
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- 生成器不引用 Abstractions/Core 程序集：产出的代码里一律写 global:: 全名。
+       不引用就不会把「生成器版本」与「运行时版本」锁成一对，那是 NuGet 上最难解的组合。 -->
+
+  <!-- 上面那条 IncludeBuildOutput=false 让 lib/ 那一格是空的，所以打包必须显式点这一颗：
+       生成器 dll 走 analyzer/dotnet/cs，不然发出去的是一份只有 nuspec 的空包。 -->
+  <ItemGroup>
+    <None Include="$(TargetPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+</Project>

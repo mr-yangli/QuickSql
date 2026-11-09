@@ -1,0 +1,40 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+    FastSql.Tests.Dialects.ScalarExitTests.The_exit_asks_the_driver_once_per_reader_however_many_values_it_reads [FAIL]
+      Assert.Equal() Failure: Values differ
+      Expected: 5
+      Actual:   0
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\ScalarExitTests.cs(157,0): at FastSql.Tests.Dialects.ScalarExitTests.The_exit_asks_the_driver_once_per_reader_however_many_values_it_reads()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.ScalarExitTests.Only_a_requested_type_the_driver_answers_in_kind_reads_through_an_arm [FAIL]
+      Assert.Equal() Failure: Values differ
+      Expected: 1
+      Actual:   0
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\ScalarExitTests.cs(131,0): at FastSql.Tests.Dialects.ScalarExitTests.Only_a_requested_type_the_driver_answers_in_kind_reads_through_an_arm()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.ScalarExitTests.The_gate_fake_driver_reads_right_through_the_exit_and_saves_nothing [FAIL]
+      Assert.Equal() Failure: Values differ
+      Expected: 1.25
+      Actual:   7
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\ScalarExitTests.cs(345,0): at FastSql.Tests.Dialects.ScalarExitTests.The_gate_fake_driver_reads_right_through_the_exit_and_saves_nothing()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.ScalarExitTests.The_exit_only_asks_for_the_null_when_its_arm_cannot_answer_it [FAIL]
+      Assert.False() Failure
+      Expected: False
+      Actual:   True
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\ScalarExitTests.cs(474,0): at FastSql.Tests.Dialects.ScalarExitTests.The_exit_only_asks_for_the_null_when_its_arm_cannot_answer_it()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Finished:    FastSql.Tests.Dialects (ID = 'be61f78efa5f4c7e6a4475dc3c1f5cd7491eb3df53b3db634838189f2882e3c8')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 701, Errors: 0, Failed: 4, Skipped: 0, Not Run: 0, Time: 1.982s
+EXIT=1

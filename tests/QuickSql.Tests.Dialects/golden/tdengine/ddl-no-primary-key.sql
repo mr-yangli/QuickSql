@@ -1,0 +1,2 @@
+
+CREATE TABLE `ProbeLog` (`Ts` TIMESTAMP, `Message` VARCHAR(65517))

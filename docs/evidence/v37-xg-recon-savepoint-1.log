@@ -1,0 +1,22 @@
+C:\Users\HP\AppData\Local\Temp\fastsql-xg-probe\Program.cs(29,52): warning CS8632: 只能在 "#nullable" 注释上下文内的代码中使用可为 null 的引用类型的注释。 [C:\Users\HP\AppData\Local\Temp\fastsql-xg-probe\fastsql-xg-probe.csproj]
+Q-01 factory=XuguClient.XGProviderFactory
+Q-02 transaction=XuguClient.XGTransaction
+  Q-02x Release(1) 声明于 DbTransaction 基类（驱动没覆写）
+  Q-02x Rollback(0) 声明于 XuguClient.XGTransaction
+  Q-02x Rollback(1) 声明于 DbTransaction 基类（驱动没覆写）
+  Q-02x Save(1) 声明于 DbTransaction 基类（驱动没覆写）
+Q-03 tx.Save=ERR NotSupportedException: Specified method is not supported.
+Q-04 tx.Rollback(name)=ERR NotSupportedException: Specified method is not supported.
+Q-05 drop 旧靶表（可能不存在）=ERR Exception: [E34501]:System.CommandExecuteException:sqlexecute err: [E5021] ������ͼFASTSQL_SPPROBE������
+Q-06 建靶表=OK affected=0
+Q-07 保存点前插一行=OK affected=1
+Q-08 文本 SAVEPOINT=OK affected=0
+Q-09 文本 SAVE TRANSACTION=ERR Exception: [E34501]:System.CommandExecuteException:sqlexecute err: [E19132] �﷨���� 	[E19260 L1 C5] �ڴ�����: syntax error, unexpected TRANSACTION, expecting end of file
+Q-10 保存点后插一行=OK affected=1
+Q-11 ROLLBACK TO SAVEPOINT=OK affected=0
+Q-12 回退后同一事务里数=OK rows 1 [CNT=1 (Int64)]
+Q-13 剩下的那一行是谁=OK rows 1 [ID=1 (Int32) ∶ TAG=before (String)]
+Q-14 RELEASE SAVEPOINT=OK affected=0
+Q-15 提交之后库里有几行（1 = 保存点前那一行活下来）=OK rows 1 [CNT=1 (Int64)]
+Q-16 清场=OK affected=1
+Q-17 drop 靶表=OK affected=0

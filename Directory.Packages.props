@@ -1,0 +1,36 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 驱动包只出现在 tests/，src/ 下的 provider 一律不编译期引用（§1.2 原则 3） -->
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.1.0" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="MySqlConnector" Version="2.6.2" />
+
+    <!-- 源生成器主机基线：低于 SDK 自带 Roslyn 才安全 -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
+
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+
+    <!-- §12.8 第二行「物化吞吐 vs Dapper ≥ 90%」的对照组。只在 benchmarks/ 出现：
+         基准要的是"业界公认的快"，不是要引入第二个 ORM —— 依赖方向与 src/ 无关。 -->
+    <PackageVersion Include="Dapper" Version="2.1.35" />
+
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3.assert" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3.runner.visualstudio" Version="4.0.1" />
+
+    <!-- DI 注册入口（AddQuickSqlOrm）的依赖。只引 Abstractions，不引实现 —— src/ 不替宿主选容器。 -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+
+    <!-- samples/ 用的完整 DI 容器（BuildServiceProvider）。只在示例项目出现，不进 src/。 -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

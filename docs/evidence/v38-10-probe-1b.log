@@ -1,0 +1,16 @@
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+    FastSql.Tests.Dialects.SplitTableTests.A_template_reaching_the_emitter_is_refused_there [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\SplitTableTests.cs(313,0): at FastSql.Tests.Dialects.SplitTableTests.A_template_reaching_the_emitter_is_refused_there()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Finished:    FastSql.Tests.Dialects (ID = 'be61f78efa5f4c7e6a4475dc3c1f5cd7491eb3df53b3db634838189f2882e3c8')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 63, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 0.428s
+EXIT=1

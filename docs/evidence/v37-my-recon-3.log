@@ -1,0 +1,225 @@
+SOURCE=file DATA_SOURCE=192.168.0.228:3306 DATABASE=TestDB USER=root
+OPEN=OK
+== S 段：这一台是谁 ==
+S-01 version=rows 1 heads=v sets+0 :: [v=8.4.8 (String)]
+S-02 version_comment=rows 1 heads=vc sets+0 :: [vc=MySQL Community Server - GPL (String)]
+S-03 sql_mode=rows 1 heads=m sets+0 :: [m=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION (String)]
+S-04 charset/collation=rows 1 heads=cs|col|lctn sets+0 :: [cs=utf8mb4 (String) ∶ col=utf8mb4_0900_ai_ci (String) ∶ lctn=0 (UInt64)]
+S-05 当前库与账号=rows 1 heads=db|u|host sets+0 :: [db=TestDB (String) ∶ u=root@% (String) ∶ host=100e73139599 (String)]
+S-06 授权原文=rows 3 heads=Grants for root@% sets+0 :: [Grants for root@%=GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE TABLESPACE, CREATE ROLE, DROP ROLE ON *.* TO `root`@`%` WITH GRANT OPTION (String)] || [Grants for root@%=GRANT ALLOW_NONEXISTENT_DEFINER,APPLICATION_PASSWORD_ADMIN,AUDIT_ABORT_EXEMPT,AUDIT_ADMIN,AUTHENTICATION_POLICY_ADMIN,BACKUP_ADMIN,BINLOG_ADMIN,BINLOG_ENCRYPTION_ADMIN,CLONE_ADMIN,CONNECTION_ADMIN,ENCRYPTION_KEY_ADMIN,FIREWALL_EXEMPT,FLUSH_OPTIMIZER_COSTS,FLUSH_PRIVILEGES,FLUSH_STATUS,FLUSH_TABLES,FLUSH_USER_RESOURCES,GROUP_REPLICATION_ADMIN,GROUP_REPLICATION_STREAM,INNODB_REDO_LOG_ARCHIVE,INNODB_REDO_LOG_ENABLE,OPTIMIZE_LOCAL_TABLE,PASSWORDLESS_USER_ADMIN,PERSIST_RO_VARIABLES_ADMIN,REPLICATION_APPLIER,REPLICATION_SLAVE_ADMIN,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,ROLE_ADMIN,SENSITIVE_VARIABLES_OBSERVER,SERVICE_CONNECTION_ADMIN,SESSION_VARIABLES_ADMIN,SET_ANY_DEFINER,SHOW_ROUTINE,SYSTEM_USER,SYSTEM_VARIABLES_ADMIN,TABLE_ENCRYPTION_ADMIN,TELEMETRY_LOG_ADMIN,TRANSACTION_GTID_TAG,XA_RECOVER_ADMIN ON *.* TO `root`@`%` WITH GRANT OPTION (String)] || [Grants for root@%=GRANT ALL PRIVILEGES ON `TestDB`.* TO `root`@`%` (String)]
+S-07 权限=rows 162 heads=p sets+0 :: [p=SELECT (String)] || [p=SYSTEM_USER (String)] || [p=FIREWALL_EXEMPT (String)] || [p=AUDIT_ABORT_EXEMPT (String)] || [p=SHUTDOWN (String)] || [p=SUPER (String)] || [p=SYSTEM_VARIABLES_ADMIN (String)] || [p=SYSTEM_USER (String)] || [p=SESSION_VARIABLES_ADMIN (String)] || [p=PERSIST_RO_VARIABLES_ADMIN (String)] || [p=FIREWALL_EXEMPT (String)] || [p=CONNECTION_ADMIN (String)] || [p=CLONE_ADMIN (String)] || [p=BACKUP_ADMIN (String)] || [p=AUTHENTICATION_POLICY_ADMIN (String)] || [p=AUDIT_ABORT_EXEMPT (String)] || [p=USAGE (String)] || [p=SYSTEM_USER (String)] || [p=FIREWALL_EXEMPT (String)] || [p=AUDIT_ABORT_EXEMPT (String)] || [p=SELECT (String)] || [p=INSERT (String)] || [p=UPDATE (String)] || [p=DELETE (String)] || [p=CREATE (String)] || [p=DROP (String)] || [p=RELOAD (String)] || [p=SHUTDOWN (String)] || [p=PROCESS (String)] || [p=FILE (String)] || [p=REFERENCES (String)] || [p=INDEX (String)] || [p=ALTER (String)] || [p=SHOW DATABASES (String)] || [p=SUPER (String)] || [p=CREATE TEMPORARY TABLES (String)] || [p=LOCK TABLES (String)] || [p=EXECUTE (String)] || [p=REPLICATION SLAVE (String)] || [p=REPLICATION CLIENT (String)] || [p=CREATE VIEW (String)] || [p=SHOW VIEW (String)] || [p=CREATE ROUTINE (String)] || [p=ALTER ROUTINE (String)] || [p=CREATE USER (String)] || [p=EVENT (String)] || [p=TRIGGER (String)] || [p=CREATE TABLESPACE (String)] || [p=CREATE ROLE (String)] || [p=DROP ROLE (String)] || [p=XA_RECOVER_ADMIN (String)] || [p=TRANSACTION_GTID_TAG (String)] || [p=TELEMETRY_LOG_ADMIN (String)] || [p=TABLE_ENCRYPTION_ADMIN (String)] || [p=SYSTEM_VARIABLES_ADMIN (String)] || [p=SYSTEM_USER (String)] || [p=SHOW_ROUTINE (String)] || [p=SET_ANY_DEFINER (String)] || [p=SESSION_VARIABLES_ADMIN (String)] || [p=SERVICE_CONNECTION_ADMIN (String)] || [p=SENSITIVE_VARIABLES_OBSERVER (String)] || [p=ROLE_ADMIN (String)] || [p=RESOURCE_GROUP_USER (String)] || [p=RESOURCE_GROUP_ADMIN (String)] || [p=REPLICATION_SLAVE_ADMIN (String)] || [p=REPLICATION_APPLIER (String)] || [p=PERSIST_RO_VARIABLES_ADMIN (String)] || [p=PASSWORDLESS_USER_ADMIN (String)] || [p=OPTIMIZE_LOCAL_TABLE (String)] || [p=INNODB_REDO_LOG_ENABLE (String)] || [p=INNODB_REDO_LOG_ARCHIVE (String)] || [p=GROUP_REPLICATION_STREAM (String)] || [p=GROUP_REPLICATION_ADMIN (String)] || [p=FLUSH_USER_RESOURCES (String)] || [p=FLUSH_TABLES (String)] || [p=FLUSH_STATUS (String)] || [p=FLUSH_PRIVILEGES (String)] || [p=FLUSH_OPTIMIZER_COSTS (String)] || [p=FIREWALL_EXEMPT (String)] || [p=ENCRYPTION_KEY_ADMIN (String)] || [p=CONNECTION_ADMIN (String)] || [p=CLONE_ADMIN (String)] || [p=BINLOG_ENCRYPTION_ADMIN (String)] || [p=BINLOG_ADMIN (String)] || [p=BACKUP_ADMIN (String)] || [p=AUTHENTICATION_POLICY_ADMIN (String)] || [p=AUDIT_ADMIN (String)] || [p=AUDIT_ABORT_EXEMPT (String)] || [p=APPLICATION_PASSWORD_ADMIN (String)] || [p=ALLOW_NONEXISTENT_DEFINER (String)] || [p=SELECT (String)] || [p=INSERT (String)] || [p=UPDATE (String)] || [p=DELETE (String)] || [p=CREATE (String)] || [p=DROP (String)] || [p=RELOAD (String)] || [p=SHUTDOWN (String)] || [p=PROCESS (String)] || [p=FILE (String)] || [p=REFERENCES (String)] || [p=INDEX (String)] || [p=ALTER (String)] || [p=SHOW DATABASES (String)] || [p=SUPER (String)] || [p=CREATE TEMPORARY TABLES (String)] || [p=LOCK TABLES (String)] || [p=EXECUTE (String)] || [p=REPLICATION SLAVE (String)] || [p=REPLICATION CLIENT (String)] || [p=CREATE VIEW (String)] || [p=SHOW VIEW (String)] || [p=CREATE ROUTINE (String)] || [p=ALTER ROUTINE (String)] || [p=CREATE USER (String)] || [p=EVENT (String)] || [p=TRIGGER (String)] || [p=CREATE TABLESPACE (String)] || [p=CREATE ROLE (String)] || [p=DROP ROLE (String)] || [p=XA_RECOVER_ADMIN (String)] || [p=TRANSACTION_GTID_TAG (String)] || [p=TELEMETRY_LOG_ADMIN (String)] || [p=TABLE_ENCRYPTION_ADMIN (String)] || [p=SYSTEM_VARIABLES_ADMIN (String)] || [p=SYSTEM_USER (String)] || [p=SHOW_ROUTINE (String)] || [p=SET_ANY_DEFINER (String)] || [p=SESSION_VARIABLES_ADMIN (String)] || [p=SERVICE_CONNECTION_ADMIN (String)] || [p=SENSITIVE_VARIABLES_OBSERVER (String)] || [p=ROLE_ADMIN (String)] || [p=RESOURCE_GROUP_USER (String)] || [p=RESOURCE_GROUP_ADMIN (String)] || [p=REPLICATION_SLAVE_ADMIN (String)] || [p=REPLICATION_APPLIER (String)] || [p=PERSIST_RO_VARIABLES_ADMIN (String)] || [p=PASSWORDLESS_USER_ADMIN (String)] || [p=OPTIMIZE_LOCAL_TABLE (String)] || [p=INNODB_REDO_LOG_ENABLE (String)] || [p=INNODB_REDO_LOG_ARCHIVE (String)] || [p=GROUP_REPLICATION_STREAM (String)] || [p=GROUP_REPLICATION_ADMIN (String)] || [p=FLUSH_USER_RESOURCES (String)] || [p=FLUSH_TABLES (String)] || [p=FLUSH_STATUS (String)] || [p=FLUSH_PRIVILEGES (String)] || [p=FLUSH_OPTIMIZER_COSTS (String)] || [p=FIREWALL_EXEMPT (String)] || [p=ENCRYPTION_KEY_ADMIN (String)] || [p=CONNECTION_ADMIN (String)] || [p=CLONE_ADMIN (String)] || [p=BINLOG_ENCRYPTION_ADMIN (String)] || [p=BINLOG_ADMIN (String)] || [p=BACKUP_ADMIN (String)] || [p=AUTHENTICATION_POLICY_ADMIN (String)] || [p=AUDIT_ADMIN (String)] || [p=AUDIT_ABORT_EXEMPT (String)] || [p=APPLICATION_PASSWORD_ADMIN (String)] || [p=ALLOW_NONEXISTENT_DEFINER (String)] || [p=USAGE (String)] || [p=USAGE (String)]
+S-08 rowversion 型在不在=rows 1 heads=c sets+0 :: [c=0 (Int64)]
+== B 段：绑定的两形（MySQL 只认 ? 还是也认 @name） ==
+B-01 ? 配 name=p=rows 1 heads=p sets+0 :: [p=7 (Int64)]
+B-02 ? 配 name=@p=rows 1 heads=p sets+0 :: [p=7 (Int64)]
+B-03 @p 配 name=@p=rows 1 heads=p sets+0 :: [p=7 (Int64)]
+B-04 @p 配 name=p=rows 1 heads=p sets+0 :: [p=7 (Int64)]
+B-05 :p 配 name=p=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':p AS p' at line 1
+B-06 String=rows 1 heads=p sets+0 :: [p=甲公司 (String)]
+B-07 Decimal=rows 1 heads=p sets+0 :: [p=12.3456 (Decimal)]
+B-08 DateTime=rows 1 heads=p sets+0 :: [p=2026-01-05 08:30:00 (DateTime)]
+B-09 Guid=rows 1 heads=p sets+0 :: [p=11111111-2222-3333-4444-555555555555 (String)]
+B-10 byte[]=rows 1 heads=p sets+0 :: [p=System.Byte[] (Byte[])]
+B-11 bool=rows 1 heads=p sets+0 :: [p=1 (Int64)]
+== M 段：一次发送里塞几条 ==
+M-01 两条 SELECT=rows 1 heads=a sets+1 :: [a=1 (Int64)]
+M-02 建表+插+数=rows 1 heads=Cnt sets+0 :: [Cnt=1 (Int64)]
+== D/C 段：引号、大小写与型名 ==
+D-01 反引号建表=rows 1 heads=Tables_in_TestDB (fastsql_probe_mix) sets+0 :: [Tables_in_TestDB (fastsql_probe_mix)=fastsql_probe_mix (String)]
+D-02 双引号标识符=rows 1 heads=Id sets+0 :: [Id=Id (String)]
+D-03 rowversion 建列=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'rowversion)' at line 1
+D-04 timestamp(3)=OK affected=0
+D-05 带引号混大小写建表=OK affected=0
+C-01 目录按原名问=rows 1 heads=n sets+0 :: [n=FastSqlMix (String)]
+C-02 目录按大写问=rows 0 heads=n sets+0 :: 
+C-03 不带引号建的同名表在不在=rows 0 heads= sets+0 :: 
+C-04 列名原样=rows 2 heads=n|d|nullable sets+0 :: [n=Id (String) ∶ d=int (String) ∶ nullable=NO (String)] || [n=V (String) ∶ d=int (String) ∶ nullable=YES (String)]
+C-05 SHOW CREATE 那一串=rows 1 heads=Table|Create Table sets+0 :: [Table=FastSqlMix (String) ∶ Create Table=CREATE TABLE `FastSqlMix` (
+  `Id` int NOT NULL,
+  `V` int DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci (String)]
+C-06 COMMENT ON COLUMN=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COMMENT ON COLUMN `FastSqlMix`.Id IS '序号'' at line 1
+C-07 列内 COMMENT=OK affected=0
+== V 段：回包 CLR 型 ==
+V-00 灌两行=OK affected=2
+V-01 auto_increment 键=rows 3 heads=Id|V sets+0 :: [Id=1 (Int32) ∶ V=1 (Int32)] || [Id=2 (Int32) ∶ V=10 (Int32)] || [Id=3 (Int32) ∶ V=20 (Int32)]
+V-02 COUNT 的型=rows 1 heads=c sets+0 :: [c=3 (Int64)]
+V-03 decimal/时间/布尔=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'BOOLEAN) AS b' at line 1
+V-04 时间转文本=rows 1 heads=s|len sets+0 :: [s=2026-01-05 08:30:00.123 (String) ∶ len=23 (Int64)]
+V-05 中文长度=rows 1 heads=bytes|chars|oct|first_code sets+0 :: [bytes=9 (Int64) ∶ chars=3 (Int64) ∶ oct=9 (Int64) ∶ first_code=231 (Int64)]
+V-06 char(36) 回包型=rows 1 heads=g sets+0 :: [g=11111111-2222-3333-4444-555555555555 (String)]
+V-07 binary(16) 回包型=rows 1 heads=b sets+0 :: [b=System.Byte[] (Byte[])]
+== K 段：键从哪来 ==
+K-01 不写 Id 插一行=rows 0 heads= sets+0 :: 
+K-02 last_insert_id=rows 1 heads=id sets+0 :: [id=4 (UInt64)]
+K-03 INSERT .. RETURNING=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'RETURNING Id' at line 1
+K-04 upsert ON DUPLICATE=OK affected=2
+K-05 INSERT IGNORE=OK affected=0
+K-06 identity 列上显式插值=rows 1 heads=Id|V sets+0 :: [Id=1 (Int32) ∶ V=5 (Int32)]
+== Z 段：算子与分页形 ==
+Z-01 LIMIT..OFFSET=rows 2 heads=Id sets+0 :: [Id=2 (Int32)] || [Id=3 (Int32)]
+Z-02 OFFSET..FETCH=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY' at line 1
+Z-03 TOP=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '1 Id FROM fastsql_probe_mix' at line 1
+Z-04 IS DISTINCT FROM=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'DISTINCT FROM NULL) AS a' at line 1
+Z-05 null 安全等号 <=>=rows 1 heads=a|b sets+0 :: [a=1 (Int64) ∶ b=0 (Int64)]
+Z-06 窗口函数=rows 4 heads=c sets+0 :: [c=4 (Int64)] || [c=4 (Int64)] || [c=4 (Int64)] || [c=4 (Int64)]
+Z-07 CTE=rows 1 heads=a sets+0 :: [a=1 (Int32)]
+Z-08 JSON 型=rows 1 heads=j sets+0 :: [j={"a": 1} (String)]
+Z-09 守卫三段式需要的三形=rows 1 heads=ne|isnull|eq sets+0 :: [ne=NULL ∶ isnull=1 (Int64) ∶ eq=1 (Int64)]
+Z-10 LIMIT 里的表达式=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '+ 1 OFFSET 0' at line 1
+== T 段：事务、保存点与驱动的 API 形状 ==
+T-01 transaction type=MySqlConnector.MySqlTransaction
+  T-01x Release(1) 声明于 MySqlConnector.MySqlTransaction
+  T-01x Rollback(0) 声明于 MySqlConnector.MySqlTransaction
+  T-01x Rollback(1) 声明于 MySqlConnector.MySqlTransaction
+  T-01x Save(1) 声明于 MySqlConnector.MySqlTransaction
+T-02 事务里插一行=OK affected=1
+T-03 tx.Save=OK
+T-04 文本 SAVEPOINT=OK affected=0
+T-05 保存点后插一行=OK affected=1
+T-06 ROLLBACK TO SAVEPOINT=OK affected=0
+T-07 回退后数（V>=50 的行）=rows 1 heads=c sets+0 :: [c=1 (Int64)]
+T-08 第二次 BeginTransaction=ERR InvalidOperationException: Transactions may not be nested.
+T-09 回滚之后 V>=50 还剩几行=rows 1 heads=c sets+0 :: [c=0 (Int64)]
+T-10 保存点前插一行 V=51=OK affected=1
+T-11 tx.Save(spdf)=不抛
+T-12 保存点后插一行 V=71=OK affected=1
+T-13 tx.Rollback(spdf)=不抛
+T-14 回退到保存点后 V>=71 还有几行（0 才是真回退）=rows 1 heads=c sets+0 :: [c=0 (Int64)]
+T-15 同一颗事务里 V>=51 还剩几行（1 才没把外层带走）=rows 1 heads=c sets+0 :: [c=1 (Int64)]
+T-16 tx.Release(spdf)=不抛
+T-17 交完外层（提交 V=51）=OK affected=1
+T-18 提交之后 V>=51 共几行=rows 1 heads=c sets+0 :: [c=2 (Int64)]
+== U 段：驱动 API 与文本 SAVEPOINT 的交叉矩阵 ==
+U-01 插 V=201=OK affected=1
+U-02 tx.Save(u1)=不抛
+U-03 文本回退到驱动建的名字=OK affected=0
+U-04 插 V=202=OK affected=1
+U-05 现在 V>=201 共几行=rows 1 heads=c sets+0 :: [c=2 (Int64)]
+U-06 插 V=203=OK affected=1
+U-07 文本 SAVEPOINT u2=OK affected=0
+U-08 插 V=204（该被驱动的回退带走）=OK affected=1
+U-09 tx.Rollback(u2)=不抛
+U-10 V=204 还在不在（1=驱动的回退是空操作）=rows 1 heads=c sets+0 :: [c=0 (Int64)]
+U-11 V=203 还在不在（1=那颗事务没被整条带走）=rows 1 heads=c sets+0 :: [c=1 (Int64)]
+U-12 插 V=205=OK affected=1
+U-13 插 V=206=OK affected=1
+U-14 文本回到 u3=OK affected=0
+U-15 提交前插 V=207=OK affected=1
+U-16 提交之后 V>=205 共几行（2=V=205+207，文本回退收下了 V=206）=rows 1 heads=vs|c sets+0 :: [vs=205,207 (String) ∶ c=2 (Int64)]
+== X 段：夹具形状（目录字段、批次取键、约束名） ==
+X-00 删探针表=OK affected=0
+X-01 按 CodeFirst 那一形建表=OK affected=0
+X-02 目录里的列形状（六颗字段）=rows 7 heads=COLUMN_NAME|DATA_TYPE|COLUMN_TYPE|IS_NULLABLE|DATETIME_PRECISION|NUMERIC_SCALE sets+0 :: [COLUMN_NAME=Id (String) ∶ DATA_TYPE=int (String) ∶ COLUMN_TYPE=int (String) ∶ IS_NULLABLE=NO (String) ∶ DATETIME_PRECISION=NULL ∶ NUMERIC_SCALE=0 (UInt64)] || [COLUMN_NAME=Name (String) ∶ DATA_TYPE=text (String) ∶ COLUMN_TYPE=text (String) ∶ IS_NULLABLE=YES (String) ∶ DATETIME_PRECISION=NULL ∶ NUMERIC_SCALE=NULL] || [COLUMN_NAME=Amount (String) ∶ DATA_TYPE=decimal (String) ∶ COLUMN_TYPE=decimal(18,4) (String) ∶ IS_NULLABLE=YES (String) ∶ DATETIME_PRECISION=NULL ∶ NUMERIC_SCALE=4 (UInt64)] || [COLUMN_NAME=CreatedAt (String) ∶ DATA_TYPE=datetime (String) ∶ COLUMN_TYPE=datetime(3) (String) ∶ IS_NULLABLE=YES (String) ∶ DATETIME_PRECISION=3 (UInt32) ∶ NUMERIC_SCALE=NULL] || [COLUMN_NAME=PaidAt (String) ∶ DATA_TYPE=datetime (String) ∶ COLUMN_TYPE=datetime(3) (String) ∶ IS_NULLABLE=YES (String) ∶ DATETIME_PRECISION=3 (UInt32) ∶ NUMERIC_SCALE=NULL] || [COLUMN_NAME=State (String) ∶ DATA_TYPE=int (String) ∶ COLUMN_TYPE=int (String) ∶ IS_NULLABLE=YES (String) ∶ DATETIME_PRECISION=NULL ∶ NUMERIC_SCALE=0 (UInt64)] || [COLUMN_NAME=Note (String) ∶ DATA_TYPE=text (String) ∶ COLUMN_TYPE=text (String) ∶ IS_NULLABLE=YES (String) ∶ DATETIME_PRECISION=NULL ∶ NUMERIC_SCALE=NULL]
+X-03 具名约束在不在目录里=rows 1 heads=CONSTRAINT_NAME|CONSTRAINT_TYPE|ENFORCED sets+0 :: [CONSTRAINT_NAME=PRIMARY (String) ∶ CONSTRAINT_TYPE=PRIMARY KEY (String) ∶ ENFORCED=YES (String)]
+X-04 建一条外键（带名字）=OK affected=0
+X-05 ALTER ADD CONSTRAINT FK=OK affected=0
+X-06 外键进目录后的三颗问法=rows 1 heads=CONSTRAINT_NAME|CONSTRAINT_TYPE sets+0 :: [CONSTRAINT_NAME=FK_FastSqlProbeT_FastSqlProbeP (String) ∶ CONSTRAINT_TYPE=FOREIGN KEY (String)]
+X-07 referential_constraints 里问得出什么=ERR MySqlException: Unknown column 'enforced' in 'field list'
+X-08 建一条二级索引=OK affected=0
+X-09 statistics 里的索引名（含主键那颗吗）=rows 3 heads=INDEX_NAME sets+0 :: [INDEX_NAME=FK_FastSqlProbeT_FastSqlProbeP (String)] || [INDEX_NAME=IX_FastSqlProbeT_PaidAt (String)] || [INDEX_NAME=PRIMARY (String)]
+X-10 批次两形的 ExecuteScalar=1 (UInt64)
+X-11 事务里同一批次=2 (UInt64)
+X-12 事务里分两句问同一颗=2 (UInt64)
+X-13 列名按原名问 vs 按大写问=rows 1 heads=verbatim|upper sets+0 :: [verbatim=1 (Int64) ∶ upper=1 (Int64)]
+X-14 那一台的时间文本形（零毫秒那一档）=rows 1 heads=s|len sets+0 :: [s=2026-03-09 10:20:30.000 (String) ∶ len=23 (Int64)]
+X-15 绑一颗 Guid 进 CHAR(36) 再读回来的字形=rows 1 heads=g sets+0 :: [g=8f14e45f-ea41-4df4-ba42-0823b1700baf (String)]
+X-16 文本列上 = 与 LIKE 的大小写敏感度=rows 1 heads=eq|like_|col sets+0 :: [eq=1 (Int64) ∶ like_=1 (Int64) ∶ col=utf8mb4_0900_ai_ci (String)]
+X-99 清探针表=OK affected=0
+X-99b 清父表=OK affected=0
+== Y 段：目录名字字段的比较规则 ==
+Y-00 建大小写只差的一颗表=OK affected=0
+Y-00b 建大小写只差的一颗表=OK affected=0
+Y-01 tables 那颗字段的排序规则=rows 1 heads=col sets+0 :: [col=utf8mb3_bin (String)]
+Y-02 columns 那颗字段的排序规则=rows 1 heads=col sets+0 :: [col=utf8mb3_tolower_ci (String)]
+Y-03 tables 三形各问一次（原名∶全大写∶全小写）=rows 1 heads=verbatim|upper|lower sets+0 :: [verbatim=1 (Int64) ∶ upper=0 (Int64) ∶ lower=0 (Int64)]
+Y-04 columns 三形各问一次=rows 1 heads=verbatim|upper|lower sets+0 :: [verbatim=1 (Int64) ∶ upper=1 (Int64) ∶ lower=1 (Int64)]
+Y-05 statistics 那颗索引名字段的两形=rows 1 heads=upper|lower sets+0 :: [upper=1 (Int64) ∶ lower=1 (Int64)]
+Y-06 表名混大小写会不会撞车=rows 1 heads=c sets+0 :: [c=1 (Int64)]
+Y-07 同库再建一颗只差大小写的表=OK affected=0
+Y-08 建完之后按两形各数一次=rows 1 heads=verbatim|lower sets+0 :: [verbatim=1 (Int64) ∶ lower=1 (Int64)]
+Y-09 两形各自的列名（读出来比，不靠撞）=rows 3 heads=t|c sets+0 :: [t=FastSqlProbe (String) ∶ c=Id (String)] || [t=FastSqlProbe (String) ∶ c=MiXeDcOl (String)] || [t=fastsqlprobe (String) ∶ c=Id (String)]
+Y-99 清场=OK affected=0
+Y-99b 清场=OK affected=0
+W-00a 建子表=OK affected=0
+W-00b 建父表=OK affected=0
+W-00d 清空两张（上一跑可能留过行）=OK affected=0
+W-00e 清空父表=OK affected=0
+W-00c 加外键=OK affected=0
+W-00 加 FK 之前 statistics 里有几颗索引=rows 2 heads=INDEX_NAME sets+0 :: [INDEX_NAME=FK_FastSqlProbeW_FastSqlProbeV (String)] || [INDEX_NAME=PRIMARY (String)]
+W-01 table_constraints 那颗名字字段的排序规则=rows 1 heads=col sets+0 :: [col=utf8mb3_tolower_ci (String)]
+W-02 referential_constraints 那颗名字字段的排序规则=rows 1 heads=col sets+0 :: [col=utf8mb3_tolower_ci (String)]
+W-03 constraint_name 三形各问一次（原名∶全大写∶全小写）=rows 1 heads=verbatim|upper|lower sets+0 :: [verbatim=1 (Int64) ∶ upper=1 (Int64) ∶ lower=1 (Int64)]
+W-03b 原名问的时候不带 constraint_type 会数到几颗=rows 1 heads=c sets+0 :: [c=1 (Int64)]
+W-04 按原名问别表的约束会不会串=rows 1 heads=c sets+0 :: [c=0 (Int64)]
+W-05 ALTER TABLE … DROP FOREIGN KEY 按原名=OK affected=0
+W-06 删完目录里还剩几颗=rows 1 heads=c sets+0 :: [c=0 (Int64)]
+W-07 删完之后 statistics 里那颗自动索引还在不在=rows 2 heads=INDEX_NAME sets+0 :: [INDEX_NAME=FK_FastSqlProbeW_FastSqlProbeV (String)] || [INDEX_NAME=PRIMARY (String)]
+W-08 重新加回（幂等路径的后半）=OK affected=0
+W-09 按小写名 DROP（W-03 若交 CI 这一条也该收）=OK affected=0
+W-10a 再加回（给下一颗对照用）=OK affected=0
+W-10 按全大写名 DROP=OK affected=0
+W-11a 再加回（给负样本用）=OK affected=0
+W-11 不存在的名字 DROP（红相是什么）=ERR MySqlException: Can't DROP 'FK_不存在的名字'; check that column/key exists
+W-12 加回后再数一次目录=rows 1 heads=nm|col sets+0 :: [nm=FK_FastSqlProbeW_FastSqlProbeV (String) ∶ col=utf8mb3_tolower_ci (String)]
+W-13 父表放一行=OK affected=1
+W-14 子表插有父的一行（正样本）=OK affected=1
+W-15 子表插没有父的一行（库里挡不挡）=ERR MySqlException: Cannot add or update a child row: a foreign key constraint fails (`TestDB`.`FastSqlProbeW`, CONSTRAINT `FK_FastSqlProbeW_FastSqlProbeV` FOREIGN KEY (`State`) REFERENCES `FastSqlProbeV` (`Id`))
+W-16 子表实际落了几行=rows 1 heads=c sets+0 :: [c=1 (Int64)]
+W-17 会话级开关 FOREIGN_KEY_CHECKS 的原值=rows 1 heads=fk sets+0 :: [fk=1 (Int64)]
+W-18 再建一张子表（给同名约束用）=OK affected=0
+W-19 在另一张表上挂同名的外键（收=名字不唯一）=ERR MySqlException: Duplicate foreign key constraint name 'FK_FastSqlProbeW_FastSqlProbeV'
+W-20 不带 table_name 按那颗名字能数到几颗=rows 1 heads=c sets+0 :: [c=1 (Int64)]
+W-21 带 table_name 的两形各数到几颗=rows 1 heads=w|x sets+0 :: [w=1 (Int64) ∶ x=0 (Int64)]
+W-99 清场（先脱 FK 再删两张）=OK affected=0
+W-99b 清场=OK affected=0
+W-99c 清场=OK affected=0
+W-99d 清场=OK affected=0
+== P 段：裁判文本（集成册那十颗红各自要换的那一句） ==
+P-00 清靶表=OK affected=0
+P-01 建靶表（夹具形状）=OK affected=0
+P-02 灌三行（第三行 Title 留 NULL）=OK affected=3
+P-03 CAST(.. AS CHAR(20)) 裁判形（要的是文本不是装箱数）=rows 1 heads=Id sets+0 :: [Id=1 (String)]
+P-04 CAST(.. AS VARCHAR(20)) 原形（红相逐字）=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'VARCHAR(20)) AS Id FROM `FastSqlProbeR` WHERE `Title` = '甲'' at line 1
+P-05 分页逐字形 LIMIT 3 OFFSET 0（带 ORDER BY，取前三行的首列）=rows 3 heads=Id|Title sets+0 :: [Id=1 (Int32) ∶ Title=甲 (String)] || [Id=2 (Int32) ∶ Title=乙 (String)] || [Id=3 (Int32) ∶ Title=NULL]
+P-06 分页原形 OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY（红相逐字）=ERR MySqlException: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY' at line 1
+P-07 现模板 CONCAT(Title,'/尾') 三行（缺陷读数）=rows 3 heads=v sets+0 :: [v=甲/尾 (String)] || [v=乙/尾 (String)] || [v=NULL]
+P-08 CONCAT(NULL,'/尾') 字面量形=rows 1 heads=v sets+0 :: [v=NULL]
+P-09 候选甲 CONCAT_WS('', Title, '/尾') 三行=rows 3 heads=v sets+0 :: [v=甲/尾 (String)] || [v=乙/尾 (String)] || [v=/尾 (String)]
+P-10 候选乙 CONCAT(IFNULL(Title,''), '/尾') 三行=rows 3 heads=v sets+0 :: [v=甲/尾 (String)] || [v=乙/尾 (String)] || [v=/尾 (String)]
+P-11 候选甲的嵌套形（两层 CONCAT_WS 相套，Title 为 NULL 那一行）=rows 1 heads=v sets+0 :: [v=/中/尾 (String)]
+P-11b 候选乙的嵌套形（同一行对照组）=rows 1 heads=v sets+0 :: [v=/中/尾 (String)]
+P-12 两颗候选在两个实参全 NULL 时给什么（C# 里 null+null 是空串）=rows 1 heads=a|b sets+0 :: [a= (String) ∶ b= (String)]
+P-12b 同一问句的字面量形（两颗 NULL 实参）=rows 1 heads=a|b|a_is_null sets+0 :: [a= (String) ∶ b= (String) ∶ a_is_null=0 (Int64)]
+P-13 数值实参进 CONCAT_WS（回包字形）=rows 3 heads=v sets+0 :: [v=1.5000/尾 (String)] || [v=2.5000/尾 (String)] || [v=3.5000/尾 (String)]
+P-13b 数值实参进 CONCAT(IFNULL(..,''))（对照组）=rows 3 heads=v sets+0 :: [v=1.5000/尾 (String)] || [v=2.5000/尾 (String)] || [v=3.5000/尾 (String)]
+P-14 空串实参不被跳过（ CONCAT_WS('', '', '/尾') ）=rows 1 heads=v|w sets+0 :: [v=/尾 (String) ∶ w=甲/尾 (String)]
+P-15 || 在默认 sql_mode 下是什么（逻辑 OR 还是拼接）=rows 1 heads=s|i|empty_ sets+0 :: [s=0 (Int64) ∶ i=1 (Int64) ∶ empty_=0 (Int64)]
+P-16 GREATEST/LEAST 带一颗 NULL（NULL 传染那一档）=rows 1 heads=g|l|g2 sets+0 :: [g=NULL ∶ l=NULL ∶ g2=5 (Int64)]
+P-17 三段守卫形 + 绑定 NULL 参数（非空那一行，该给 1）=rows 1 heads=Differs sets+0 :: [Differs=1 (Int64)]
+P-17b 三段守卫形 + 绑定 NULL 参数（NULL 那一行，同样该给 1）=rows 1 heads=Differs sets+0 :: [Differs=0 (Int64)]
+P-18 布尔当值形 + 绑定 NULL 参数（非空 vs NULL 两行）=rows 1 heads=Differs sets+0 :: [Differs=1 (Int64)]
+P-18b 同一句问 NULL 那一行=rows 1 heads=Differs sets+0 :: [Differs=0 (Int64)]
+P-19 裸布尔表达式当值（四颗，与第七家【实测·3112】同一问句的本家版）=rows 1 heads=a|b|c|d sets+0 :: [a=1 (Int64) ∶ b=0 (Int64) ∶ c=1 (Int64) ∶ d=0 (Int64)]
+P-20 provider 那一形真执行（别名 UPDATE，第一行，字面量值）=OK affected=1
+P-20b 同一句带绑定参数（改第三行的 Title）=rows 0 heads= sets+0 :: 
+P-21 改完之后三行的 Title=rows 3 heads=Id|Title sets+0 :: [Id=1 (Int32) ∶ Title=改过的 (String)] || [Id=2 (Int32) ∶ Title=乙 (String)] || [Id=3 (Int32) ∶ Title=补上的 (String)]
+P-22 目录里三列的 COLUMN_TYPE 原文（小写?带量纲?）=rows 4 heads=n|d|ct sets+0 :: [n=Id (String) ∶ d=int (String) ∶ ct=int (String)] || [n=Title (String) ∶ d=varchar (String) ∶ ct=varchar(64) (String)] || [n=Amount (String) ∶ d=decimal (String) ∶ ct=decimal(18,4) (String)] || [n=PaidAt (String) ∶ d=datetime (String) ∶ ct=datetime(3) (String)]
+P-22b 缝里 Columns() 本家那一句逐字（四颗字段，含时刻列的 scale）=rows 4 heads=name|is_nullable|store_type|scale sets+0 :: [name=Id (String) ∶ is_nullable=0 (String) ∶ store_type=int (String) ∶ scale= (String)] || [name=Title (String) ∶ is_nullable=1 (String) ∶ store_type=varchar(64) (String) ∶ scale= (String)] || [name=Amount (String) ∶ is_nullable=1 (String) ∶ store_type=decimal(18,4) (String) ∶ scale=4 (String)] || [name=PaidAt (String) ∶ is_nullable=1 (String) ∶ store_type=datetime(3) (String) ∶ scale=3 (String)]
+P-23 table_constraints 里本表的两颗约束=rows 1 heads=nm|ty|en sets+0 :: [nm=PRIMARY (String) ∶ ty=PRIMARY KEY (String) ∶ en=YES (String)]
+P-24 主键管哪几列（statistics 按 index_name='PRIMARY' 数列）=rows 1 heads=col|seq sets+0 :: [col=Id (String) ∶ seq=1 (UInt32)]
+P-24b 同一问句走 key_column_usage（第二颗问法）=rows 1 heads=col|seq sets+0 :: [col=Id (String) ∶ seq=1 (UInt32)]
+P-25 二级索引那份名单里主键那颗叫什么=rows 1 heads=nm sets+0 :: [nm=PRIMARY (String)]
+P-26 候选甲进 UPDATE SET（NULL 那一行）=OK affected=1
+P-26b 改完之后第三行的 Title（该是 /尾 而不是 NULL）=rows 1 heads=Title sets+0 :: [Title=补上的/尾 (String)]
+P-27 候选乙进 UPDATE SET（同一行，先退回 NULL）=OK affected=1
+P-27b 候选乙进 UPDATE SET=OK affected=1
+P-27c 改完之后第三行的 Title（与 P-26b 同一个数才算两候选同解）=rows 1 heads=Title sets+0 :: [Title=/尾 (String)]
+P-99 清靶表=OK affected=0
+== 清场 ==
+Z-99 删靶表=OK affected=0
+Z-99b 删靶表=OK affected=0
+Z-99c 删靶表=OK affected=0
+Z-99d 删靶表=OK affected=0
+Z-99e 删靶表=OK affected=0

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.ClickHouse</RootNamespace>
+    <Description>QuickSql ORM 的 ClickHouse provider（§9.1 的第 22 颗库种，v0.39 的 0.39.0-beta.24 落笔；与 Xugu、Gbase8s、SQLite 同一档的第四颗单层整层：没有血统基类、没有叶子）。分岔逐格：布尔型 Bool 是原生型（声明 Boolean_Type，恒真/恒假谓词落 true/false 字面量、判定等式落 = true/= false）；分页 LIMIT/OFFSET 两子句独立可缺省；UPDATE 与 DELETE 不在写路径上（UPDATE 的官方形状是 ALTER TABLE … UPDATE 变更档，DELETE 的官方 lightweight DELETE 同属变异档，本层整格拒发）；主键统一走列外形 ENGINE = MergeTree ORDER BY (…) PRIMARY KEY (…)（无主键落 ORDER BY tuple()）；CREATE INDEX 没有语句级格（契约里带索引的实体在建表那一步整格拒）；可空列发 Nullable(T) 且不带任何 NULL/NOT NULL 修饰（官方页写明对已是 Nullable 的型再上修饰会当场抛）、非可空列发 type NOT NULL；Guid 落原生 UUID（16 字节，声明 Guid_Raw16）。编译期不引用任何驱动程序集：ClickHouse.Client 是官方 ADO.NET 驱动的程序集名，内建表里刻意不写 factoryType（走兜底扫描，判据与 duckdb 行相同）；本机没有引擎，整层【文档·ClickHouse】口径 + 未实测台账（逐格账在 §13.5 第十七本）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Core\QuickSql.Core.csproj" />
+  </ItemGroup>
+
+</Project>

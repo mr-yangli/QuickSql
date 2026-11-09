@@ -1,0 +1,32 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+标量出口 ∶ RawReader（替身）∶ 每型的装箱口 ∶ 出口
+  int：装箱口 24 B/值，出口 0 B/值
+  long：装箱口 24 B/值，出口 0 B/值
+  short：装箱口 24 B/值，出口 0 B/值
+  byte：装箱口 24 B/值，出口 0 B/值
+  bool：装箱口 24 B/值，出口 0 B/值
+  char：装箱口 24 B/值，出口 0 B/值
+  float：装箱口 24 B/值，出口 0 B/值
+  double：装箱口 24 B/值，出口 0 B/值
+  DateTime：装箱口 24 B/值，出口 0 B/值
+  decimal：装箱口 32 B/值，出口 0 B/值
+  Guid：装箱口 32 B/值，出口 0 B/值
+  int?：装箱口 24 B/值，出口 0 B/值
+  long?：装箱口 24 B/值，出口 0 B/值
+  short?：装箱口 24 B/值，出口 0 B/值
+  byte?：装箱口 24 B/值，出口 0 B/值
+  bool?：装箱口 24 B/值，出口 0 B/值
+  char?：装箱口 24 B/值，出口 0 B/值
+  float?：装箱口 24 B/值，出口 0 B/值
+  double?：装箱口 24 B/值，出口 0 B/值
+  DateTime?：装箱口 24 B/值，出口 0 B/值
+  decimal?：装箱口 32 B/值，出口 0 B/值
+  Guid?：装箱口 32 B/值，出口 0 B/值
+  string：装箱口 0 B/值，出口 0 B/值（引用本来就不装箱）
+  Finished:    FastSql.Tests.Dialects (ID = 'be61f78efa5f4c7e6a4475dc3c1f5cd7491eb3df53b3db634838189f2882e3c8')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 771, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 2.613s
+EXIT=0

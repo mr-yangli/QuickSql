@@ -1,0 +1,151 @@
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "SqlServer") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "MySql") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "Oracle") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "PostgreSql") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "Kingbase") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "OpenGauss") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "GaussDb") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "Highgo") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "Dameng") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "ShenTong") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "Xugu") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "Gbase8s") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "Gbase8c") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "TiDb") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "OceanBase") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(family: "Sqlite") [FAIL]
+      Assert.IsType() Failure: Value is null
+      Expected: typeof(FastSql.FastSqlException)
+      Actual:   null
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(20,0): at FastSql.Tests.Dialects.Checks.Raised[T](Func`1 evaluate)
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(81,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(String family)
+           at InvokeStub_TableNamingEmissionTests.Every_family_refuses_a_template_at_the_naming_hook(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Finished:    FastSql.Tests.Dialects (ID = 'be61f78efa5f4c7e6a4475dc3c1f5cd7491eb3df53b3db634838189f2882e3c8')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 34, Errors: 0, Failed: 16, Skipped: 0, Not Run: 0, Time: 0.464s
+EXIT=1

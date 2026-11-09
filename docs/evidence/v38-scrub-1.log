@@ -1,0 +1,3 @@
+  LOCKED docs\evidence\v38-scrub-1.log
+扫描 obj/logs ∶ docs/evidence 前缀 vNN-：159 份，脏 0 份，改写 0 份，长期位拒绝改写 0 份，被占用读不到 1 份（未改，加 --fix 才改）
+EXIT=0

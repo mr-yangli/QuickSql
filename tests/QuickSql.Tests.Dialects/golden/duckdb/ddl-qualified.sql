@@ -1,0 +1,2 @@
+
+CREATE SEQUENCE 'QuickSqlOrder_Id_seq' ; CREATE TABLE "app"."QuickSqlOrder" ("Id" INTEGER DEFAULT nextval('QuickSqlOrder_Id_seq') NOT NULL, "CustomerName" VARCHAR(64) NULL, "CustomerId" INTEGER NOT NULL, "Amount" NUMERIC(18,4) NOT NULL, "State" INTEGER NOT NULL, "CreatedAt" TIMESTAMP NOT NULL, "PaidAt" TIMESTAMP NULL, "Note" TEXT NULL, CONSTRAINT "PK_QuickSqlOrder" PRIMARY KEY ("Id")) ; CREATE INDEX "IX_QuickSqlOrder_CreatedAt" ON "app"."QuickSqlOrder" ( "CreatedAt" ASC )

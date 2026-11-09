@@ -1,0 +1,69 @@
+v0.37 第九笔 收尾复验场（2026-09-29，五族测试之后的文档侧复核）
+$ node tools/bandcount.mjs v37
+v37-gate-1.log             83% 内
+v37-gate-2.log             87% 内
+v37-gate-3.log             86% 内
+
+可解析 3 / 共 3 份门禁日志
+
+逐百分比直方图（升序）：
+83%×1  86%×1  87%×1
+
+带内（83~89）合计 3；越上界（≥90）0；越下界（≤82）0
+带内逐段（与文档那串对照）：
+1+1+1 = 3
+
+逐版本：
+  v37 n=3 内=3 上=0 下=0
+EXIT=0
+
+$ node tools/v32-cellscan.mjs 2060 2133 4
+ODD 行 2090 格数 3（期望 4）：| （v0.34 第一笔改判上一行：便宜的先做了，贵的等裁决） | 上一行那句"先做哪一个归你定"被整批授权（「都要」）收走，本版自决做了*
+ODD=1（区间 2060..2133，格数按 4 判）
+EXIT=0
+
+$ node tools/v32-cellscan.mjs 1640 1700 5
+CELLS-OK（区间 1640..1700，格数按 5 判）
+EXIT=0
+
+$ node tools/v32-scrub.mjs
+扫描 obj/logs/v32-*.log 0 份，含明文口令的 0 份（未改，加 --fix 才改）
+复查全部 obj/logs：仍含未打码口令的 0 份
+EXIT=0
+
+$ node obj/balance-v37.mjs 8 907 916 1917 1964 2016 2107 2125..2133
+   8 balanced len=179978
+ 907 balanced len=5718
+ 916 balanced len=3232
+1917 balanced len=724
+1964 balanced len=1649
+2016 balanced len=1081
+2107 balanced len=2175
+2125 balanced len=928
+2126 balanced len=1252
+2127 balanced len=792
+2128 balanced len=1246
+2129 balanced len=936
+2130 balanced len=2406
+2131 balanced len=1279
+2132 balanced len=1405
+2133 balanced len=1198
+EXIT=0
+
+$ node obj/lone-star-v37.mjs 2133
+行 2133 落单星号 0 处
+EXIT=0
+
+$ node obj/evidence-v37.mjs
+distinct=379 exist=36 gone=343
+v37 distinct=65 exist=36 gone=29
+gone@v37: v37-build-3.log v37-pg-leaf-1.log v37-ledger-2.log v37-carriage-2.log v37-gate-4.log v37-build-5.log v37-build-6.log v37-oracle-leaf-1.log v37-dialects-classes-3.txt v37-ledger-3.log v37-parity-3.log v37-carriage-3.log v37-gate-6.log v37-oracle-leaf-2.log v37-ledger-4.log v37-dialects-classes-2.txt v37-parity-2.log v37-build-2.log v37-dialects-classes.txt v37-sqlite-int-1.log v37-sqlite-int-4.log v37-sqlite-classes-1.txt v37-sqlite-dialects-1.log v37-sqlite-dialects-2.log v37-sqlite-build-2.log v37-sqlite-gate-1.log v37-sqlite-gate-2.log v37-shared-dialects-1.log v37-shared-1.log
+on disk but never cited: v37-dialects-11.log v37-dialects-12.log v37-dialects-13.log v37-dialects-4.log v37-dialects-5.log v37-dialects-6.log v37-final-1.log v37-integration-xugu-1.log v37-mssql-int-2.log v37-mssql-int-3.log v37-mssql-int-4.log v37-my-int-2.log v37-my-int-3.log v37-my-recon-1.log v37-my-recon-4.log v37-pg-int-2.log v37-pg-int-3.log v37-scrub-1.log v37-scrub-8.log v37-sqlite-int-2.log v37-sqlite-int-3.log v37-xugu-int-2.log v37-xugu-int-3.log v37-xugu-int-4.log
+EXIT=0
+
+$ node obj/cite-v37.mjs（只列本笔新写的那几行）
+MISSING 行 2107 v31-flake-probe.txt
+MISSING 行 2107 v32-dialect-20.log
+EXIT=0
+
+合计：8 场，非零退出 0 场

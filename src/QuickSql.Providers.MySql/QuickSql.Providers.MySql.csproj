@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.MySql</RootNamespace>
+    <Description>QuickSql ORM 的 MySQL provider：MySQL 血统上的一层薄壳（§9.1 那一份清单里 MySQL 本尊那一行）。今天它一个字都不覆写，产出与 MySqlProviderBase 逐字同形：反引号、LIMIT…OFFSET（OFFSET 单独出现时补一颗"无上限"哨兵）、TINYINT(1) 装布尔、DATETIME(3)、CHAR(36) 装 Guid、写语句不接受合并档（SupportsJoinedWrites 取 false 的一家有两家：这一家与 Oracle 血统，两家的理由不同一条，见 MySqlDialect 类注释第三条与 §12.5 第四道闸门。那句"两家"到 v0.31 是三家——第五家虚谷也落这一边，这一格今天可重数为 3 家 false ∶ 2 家 true，而三家三种理由）、没有 RETURNING。而它们<em>没有</em>在一台活库上跑过（§13.5 台账里这一家整行是「未实测」，驱动名 MySqlConnector 从未解析成功过）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Providers.MySqlBase\QuickSql.Providers.MySqlBase.csproj" />
+  </ItemGroup>
+
+</Project>

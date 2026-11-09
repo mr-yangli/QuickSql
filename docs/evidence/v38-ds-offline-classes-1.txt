@@ -1,0 +1,61 @@
+离线册（FastSql.Tests.Dialects）逐类清单，第一列 = 该类跑完的条数（不是方法数：数据驱动的 Theory 按用例展开）。
+取数法：对 51 个类各跑一场 `-class <全限定名>`（类名单来自 runner 自己的 `-list classes`），
+读回各自的 TEST EXECUTION SUMMARY 行；
+整批那一场是 obj/logs/v38-ds-offline-3.log（Total: 923, Errors: 0, Failed: 0, Skipped: 0）。
+
+  17  BulkLayerTests  红 0 ∶ 跳 0 ∶ 错 0
+  49  CapabilityLedgerTests  红 0 ∶ 跳 0 ∶ 错 0
+   7  ChangeGuardTests  红 0 ∶ 跳 0 ∶ 错 0
+  11  ConcurrencyTokenTests  红 0 ∶ 跳 0 ∶ 错 0
+  30  DamengDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  50  DataSourceTests  红 0 ∶ 跳 0 ∶ 错 0
+  16  DerivedTableTests  红 0 ∶ 跳 0 ∶ 错 0
+  19  DialectParityTests  红 0 ∶ 跳 0 ∶ 错 0
+   2  DriverPathTests  红 0 ∶ 跳 0 ∶ 错 0
+  10  DtoShapeTests  红 0 ∶ 跳 0 ∶ 错 0
+  21  FilterTests  红 0 ∶ 跳 0 ∶ 错 0
+  11  GaussDbDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  12  Gbase8cDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  37  Gbase8sDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  14  GeneratorDiagnosticTests  红 0 ∶ 跳 0 ∶ 错 0
+  19  GroupByTests  红 0 ∶ 跳 0 ∶ 错 0
+  21  GuardrailTests  红 0 ∶ 跳 0 ∶ 错 0
+  11  HighgoDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  24  KingbaseDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+   8  MaterializerCacheTests  红 0 ∶ 跳 0 ∶ 错 0
+  35  MetadataEquivalenceTests  红 0 ∶ 跳 0 ∶ 错 0
+  32  MySqlDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  12  OceanBaseDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  10  OpenGaussDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  13  OracleDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+   3  ParameterNameCarriageTests  红 0 ∶ 跳 0 ∶ 错 0
+  13  PostgreSqlDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+   3  ProviderRegistrationTests  红 0 ∶ 跳 0 ∶ 错 0
+  18  RawAdoTests  红 0 ∶ 跳 0 ∶ 错 0
+   7  RelationshipTests  红 0 ∶ 跳 0 ∶ 错 0
+   8  ScalarExitTests  红 0 ∶ 跳 0 ∶ 错 0
+   3  SchemaSyncTests  红 0 ∶ 跳 0 ∶ 错 0
+   8  SharedContextTests  红 0 ∶ 跳 0 ∶ 错 0
+  11  ShenTongDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  63  SplitTableTests  红 0 ∶ 跳 0 ∶ 错 0
+  10  SqlServerCudBuildingTests  红 0 ∶ 跳 0 ∶ 错 0
+   4  SqlServerDdlTests  红 0 ∶ 跳 0 ∶ 错 0
+  23  SqlServerInsertTests  红 0 ∶ 跳 0 ∶ 错 0
+  20  SqlServerJoinTests  红 0 ∶ 跳 0 ∶ 错 0
+  10  SqlServerPagingTests  红 0 ∶ 跳 0 ∶ 错 0
+  10  SqlServerSelectTests  红 0 ∶ 跳 0 ∶ 错 0
+  25  SqlServerUpdateTests  红 0 ∶ 跳 0 ∶ 错 0
+  14  SqlServerValueTests  红 0 ∶ 跳 0 ∶ 错 0
+  42  SqliteDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  34  TableNamingEmissionTests  红 0 ∶ 跳 0 ∶ 错 0
+   8  TempKeyTests  红 0 ∶ 跳 0 ∶ 错 0
+  11  TiDbDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  29  TrackingTests  红 0 ∶ 跳 0 ∶ 错 0
+   6  TypedReadTests  红 0 ∶ 跳 0 ∶ 错 0
+  39  XuguDialectTests  红 0 ∶ 跳 0 ∶ 错 0
+  10  ZeroBoxingTests  红 0 ∶ 跳 0 ∶ 错 0
+
+合计 923 条 ∶ 51 类 ∶ 错 0 ∶ 红 0 ∶ 跳 0（逐类相加）∶ 各类用时相加 15.24s
+与整批那一场：Total 923 ∶ Errors 0 ∶ Failed 0 ∶ Skipped 0 —— 相同项 逐字相同
+没有汇总行的类：0 个
+

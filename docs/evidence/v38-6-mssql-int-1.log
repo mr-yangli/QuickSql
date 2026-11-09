@@ -1,0 +1,11 @@
+SOURCE=file
+DATA_SOURCE=192.168.0.102,1433 DATABASE=LightDB
+PROBE=13.0.5108.50 | SP2 | Enterprise Edition (64-bit) | LightDB | Chinese_PRC_CI_AS | 936
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+  Finished:    FastSql.Tests.Integration (ID = '9b47a451cf8507058e3dbcb4afb056f58df5cad1dd8ef9432ee3e5a7fafe11d2')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 101, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 3.770s
+EXIT=0

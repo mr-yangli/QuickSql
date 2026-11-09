@@ -1,0 +1,98 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+PrepareCatalog：mysql 一支不建库（授权只到那一座 TestDB 里建表），目标库必须在场。实例身份四颗读数（8.4.8 / Community Server - GPL / 无 ANSI_QUOTES / lower_case_table_names=0）记在 obj/logs/v37-my-recon-2.log 的 S 段，连接串本身含口令、不进任何一行输出。
+EnsureInventoryItem：mysql 一支建不出夹具表 —— mysql 这一家没有 rowversion 那一型（S-08 数到 0），而 provider 对人写的型名原样发出（StoreTypeName 短路），建表因此红在 1064（D-03）；同形换 TIMESTAMP(3) 建得成（D-04），所以缺的是那一型而不是那句语法。库给值的入口在本族只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档 —— 缺口记 §14，与 postgresql 那一格并排；而本家的并发档位（MySqlConcurrency = TimestampColumn）设计上是"人给值的那一列"，与夹具声明的 rowversion 不是同一颗，要不要折型或拒收是待裁决。
+    FastSql.Tests.Integration.CollationTests.The_varchar_side_of_the_instance_matches_its_collation_code_page [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（SERVERPROPERTY / DATABASEPROPERTYEX / COLLATIONPROPERTY / DATALENGTH / varchar↔nvarchar 那一整套量纲问句），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CollationTests.Parameters_reach_the_server_as_unicode_and_their_ansi_cast_follows_the_same_rule [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（CAST(@t AS varchar/nvarchar) 与 DATALENGTH 这一组量纲问句（同上一颗的理由）），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+[bulk-timing] rows=2000 copy_ms=49 l3_ms=64
+ReadPathTests.Like_predicates_honor_their_escapes：第三判在本家没跑（MySql 建不出 InventoryItem —— mysql 这一家没有 rowversion 那一型（S-08 数到 0），而 provider 对人写的型名原样发出（StoreTypeName 短路），建表因此红在 1064（D-03）；同形换 TIMESTAMP(3) 建得成（D-04），所以缺的是那一型而不是那句语法。库给值的入口在本族只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档 —— 缺口记 §14，与 postgresql 那一格并排；而本家的并发档位（MySqlConcurrency = TimestampColumn）设计上是"人给值的那一列"，与夹具声明的 rowversion 不是同一颗，要不要折型或拒收是待裁决。）
+    FastSql.Tests.Integration.CascadePathTests.Detaching_an_unsaved_child_writes_no_row_at_all [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CascadePathTests.Cascade_insert_lands_the_parents_key_into_each_child_row [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CascadePathTests.NoCascade_on_the_navigation_leaves_the_children_out_of_the_database [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CascadePathTests.Cascade_delete_removes_the_children_before_the_parent [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CascadePathTests.Each_child_gets_its_own_parents_key_rather_than_the_last_one [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CascadePathTests.Loading_a_collection_already_in_the_session_stitches_the_tracked_instance [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CascadePathTests.A_declared_foreign_key_member_carries_the_parent_key [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CascadePathTests.Removing_a_parent_is_refused_until_its_children_are_in_the_session [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CascadePathTests.A_detached_child_takes_its_own_rows_out_of_the_database [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CascadePathTests.Detaching_a_child_from_a_loaded_collection_deletes_only_that_row [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（裁判 SQL 是 [dbo] 三段式 T-SQL），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DdlTests.Store_filled_tier_lands_in_the_catalog_through_the_emitted_ddl [SKIP]
+      mysql 这一家没有 rowversion 那一型（按型名数到 0 行，S-08），本用例那句 DDL 建不出探针表（1064，D-03；同形换 TIMESTAMP(3) 建得成，D-04 —— 缺的是那一型而不是那句语法）。题面与第四家同一颗：“那句 DDL 在库里建出了什么”，而本家那句发出去就红在解析前。缺口记 §14，与 postgresql 那一格并排（同一条“CodeFirst 没有拒收闸门”的差异）。
+标量出口 ∶ MySql ∶ Id（Int32）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ MySql ∶ Amount（Decimal）∶ 落臂 ∶ 门 32 B/值 ∶ 出口 32 B/值
+标量出口 ∶ MySql ∶ CreatedAt（DateTime）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 24 B/值
+标量出口 ∶ MySql ∶ CustomerName（String）∶ 落臂 ∶ 门 32 B/值 ∶ 出口 32 B/值
+    FastSql.Tests.Integration.DataSourcePathTests.A_session_that_wrote_reads_its_own_row_back_while_an_explicit_replica_stays_stale [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（主从两座的陈旧差是手写的替身，不是量出来的延迟），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DataSourcePathTests.A_session_released_asynchronously_does_not_leave_the_flow_marked_as_written [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（同一座主库与它的替身从库，差别只在会话怎么关），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DataSourcePathTests.A_statement_for_another_cluster_is_refused_inside_an_open_transaction [SKIP]
+      第二座库在这一家要么要一台没批过的实例、要么要一条本层没有的配置通路（本跑 MySql）：多集群那几条今天只能在 SQL Server（同实例两座真库）与 SQLite（两颗文件）上量。
+    FastSql.Tests.Integration.DataSourcePathTests.A_cross_cluster_batch_is_refused_and_leaves_neither_database_touched [SKIP]
+      第二座库在这一家要么要一台没批过的实例、要么要一条本层没有的配置通路（本跑 MySql）：多集群那几条今天只能在 SQL Server（同实例两座真库）与 SQLite（两颗文件）上量。
+    FastSql.Tests.Integration.DataSourcePathTests.A_transaction_on_a_second_cluster_is_refused_while_the_first_is_open [SKIP]
+      第二座库在这一家要么要一台没批过的实例、要么要一条本层没有的配置通路（本跑 MySql）：多集群那几条今天只能在 SQL Server（同实例两座真库）与 SQLite（两颗文件）上量。
+    FastSql.Tests.Integration.DataSourcePathTests.Replica_choice_inside_a_transaction_is_refused_on_a_live_connection [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（事务占住的那一条是刚打开的真连接），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DataSourcePathTests.Two_replicas_are_visited_in_the_order_configured [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（两颗从库文件、每颗装着自己那一份内容），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DataSourcePathTests.A_default_read_lands_on_the_replica_and_sees_only_what_replication_got [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（主库与从库是两颗自建文件库（没有任何一台授权实例配了复制）），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DataSourcePathTests.Each_cluster_gets_its_own_tables_and_its_own_rows [SKIP]
+      第二座库在这一家要么要一台没批过的实例、要么要一条本层没有的配置通路（本跑 MySql）：多集群那几条今天只能在 SQL Server（同实例两座真库）与 SQLite（两颗文件）上量。
+    FastSql.Tests.Integration.BulkWritePathTests.A_named_merged_request_on_a_family_that_has_not_adopted_degrades_and_names_the_provider [SKIP]
+      MySql 表过态（SupportsMergedStatements=true），点名 Merged 在这一家拿得到，没有降级可判 —— 那一格由上面 Auto 那条判。
+[bulk-write-timing] rows=200 merged_ms=37 single_ms=107 in_list_ms=8 posture=MySql
+    FastSql.Tests.Integration.BulkWritePathTests.Never_seals_the_fallback_and_writes_nothing [SKIP]
+      MySql 表过态（SupportsMergedStatements=true），Never 在这一家不咬 —— 它只在拿不到的那一格咬人。
+    FastSql.Tests.Integration.ScratchSqliteReconTests.ReconAsync [SKIP]
+      只有 sqlite 一支要量
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_SaveChanges_with_no_subscriber_reports_an_empty_replay [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Writing_a_value_into_a_token_column_is_refused_before_anything_goes_out [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_update_carries_the_snapshot_in_the_where_and_reads_both_tokens_back [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_that_vanished_is_reported_as_gone_rather_than_changed [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_somebody_else_changed_raises_with_both_sides_and_leaves_the_batch_unsettled [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_report_carries_the_replay_of_a_hook_that_rewrote_a_SaveChanges_statement [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_delete_refuses_a_row_that_moved_and_still_takes_the_one_that_did_not [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Three_saves_in_a_row_all_succeed_because_each_one_reads_the_new_version_back [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_new_row_gets_its_version_from_the_database_and_the_next_save_uses_that_version [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_non_null_snapshot_is_compared_by_value_and_conflicts_when_that_value_moves [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.TrackingPathTests.A_tracked_instance_with_a_concurrency_token_is_never_merged [SKIP]
+      mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。本条用例判的是“库给那一格换了值”，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），没有逐次换二进制令牌的那一档。本家的并发档位设计上是“人给值的那一列”（MySqlConcurrency = TimestampColumn），与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。
+    FastSql.Tests.Integration.SplitTablePathTests.A_batch_spanning_three_months_lands_one_row_per_shard [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（逐片数行数那颗 [dbo].[表] 方括号形），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.SplitTablePathTests.A_hash_batch_spreads_over_buckets_and_a_bucket_read_sees_only_its_own_rows [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（逐桶数行数那颗 [dbo].[表] 方括号形），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.SplitTablePathTests.An_update_pinned_to_one_shard_changes_that_shard_only [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（改中一片而另一片不动，只能逐片数出来），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.SplitTablePathTests.The_template_is_not_a_table_in_the_live_database [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（这一句问的是 sys.tables 里名字带 { 的那几行，方括号是目录名不是引号形），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.SplitTablePathTests.Pruning_to_one_month_hides_the_rows_that_live_in_the_other_two [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（剪枝那一句要靠'二月这张表里就一行'来收尾），当前目标库是 MySql。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+  Finished:    FastSql.Tests.Integration (ID = '9b47a451cf8507058e3dbcb4afb056f58df5cad1dd8ef9432ee3e5a7fafe11d2')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 165, Errors: 0, Failed: 0, Skipped: 41, Not Run: 0, Time: 15.061s

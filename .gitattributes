@@ -1,0 +1,5 @@
+# 行尾钉死，理由与 sql/.gitattributes 那一份逐字相同（这里只补它没覆盖到的另三棵子树）：
+# 仓库现状是全部文本文件用 LF，而 core.autocrlf=true 会在下一次 checkout 把它们改成 CRLF。
+# 不写这一条，git 会在 add 时对每个 LF 文件发 "LF will be replaced by CRLF" 的警告，
+# 而 excel/word/pdf 的基线里也有按字节比对的文本件。
+* text=auto eol=lf

@@ -1,0 +1,23 @@
+=== instance fields ===
+  <Tables>k__BackingField                        IReadOnlyList`1              8 B
+  <Joins>k__BackingField                         IReadOnlyList`1              8 B
+  <Predicates>k__BackingField                    IReadOnlyList`1              8 B
+  <Ordering>k__BackingField                      IReadOnlyList`1              8 B
+  <Plan>k__BackingField                          ProjectionPlan               8 B
+  <GroupBy>k__BackingField                       IReadOnlyList`1              8 B
+  <Having>k__BackingField                        SqlExpression                8 B
+  <Offset>k__BackingField                        Nullable`1                   8 B
+  <Limit>k__BackingField                         Nullable`1                   8 B
+  <Distinct>k__BackingField                      Boolean                      4 B
+  <CacheKey>k__BackingField                      String                       8 B
+  <CacheTtl>k__BackingField                      Nullable`1                   8 B
+  <Includes>k__BackingField                      IReadOnlyList`1              8 B
+  <IncludeManys>k__BackingField                  IReadOnlyList`1              8 B
+  <SplitQuery>k__BackingField                    Boolean                      4 B
+字段 15 颗：引用 80 B ∶ 值类型 32 B ∶ 头 16 B ∶ 合计 128 B（8 字节对齐前）
+
+=== measured ===
+反射 <Clone>$ 一次 = 136 B（含反射调用的入参空数组；无参调用给的是 Array.Empty，不另计）
+对照：GC 保活一只 = 0 B（同一条字段只是复制引用）
+new QueryModel() 一次 = 136 B（含 ctor.Invoke 的对象数组开销 0 B：无参走的是空数组）
+EXIT=0

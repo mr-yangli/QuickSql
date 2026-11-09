@@ -1,0 +1,32 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+    FastSql.Tests.Dialects.SqliteDialectTests.The_constant_predicates_are_the_base_class_text_and_this_is_the_first_time_they_were_measured [FAIL]
+      产出的 SQL 里没有 @p0 = 1 AND "t0"."Amount" > @p1：
+      SELECT "t0"."Id", "t0"."CustomerName", "t0"."CustomerId", "t0"."Amount", "t0"."State", "t0"."CreatedAt", "t0"."PaidAt", "t0"."Note" FROM "FastSqlOrder" AS "t0" WHERE @p0 = 1 AND "t0"."Amount" > CAST(@p1 AS NUMERIC)
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(10,0): at FastSql.Tests.Dialects.Checks.Has(String needle, String sql)
+        tests\FastSql.Tests.Dialects\SqliteDialectTests.cs(284,0): at FastSql.Tests.Dialects.SqliteDialectTests.The_constant_predicates_are_the_base_class_text_and_this_is_the_first_time_they_were_measured()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.SqliteDialectTests.The_concurrency_predicate_is_a_plain_equality_and_the_version_column_is_text_here [FAIL]
+      产出的 SQL 里没有 WHERE "t0"."Amount" = @p1：
+      UPDATE "FastSqlOrder" AS "t0" SET "Amount" = @p0 WHERE "t0"."Amount" = CAST(@p1 AS NUMERIC)
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(10,0): at FastSql.Tests.Dialects.Checks.Has(String needle, String sql)
+        tests\FastSql.Tests.Dialects\SqliteDialectTests.cs(467,0): at FastSql.Tests.Dialects.SqliteDialectTests.The_concurrency_predicate_is_a_plain_equality_and_the_version_column_is_text_here()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.SqliteDialectTests.The_prefix_is_one_of_four_legal_ones_and_is_chosen_by_the_shared_layer_not_by_the_library [FAIL]
+      产出的 SQL 里没有 "t0"."Amount" > @p0 AND "t0"."CustomerId" <> @p1：
+      SELECT "t0"."Id", "t0"."CustomerName", "t0"."CustomerId", "t0"."Amount", "t0"."State", "t0"."CreatedAt", "t0"."PaidAt", "t0"."Note" FROM "FastSqlOrder" AS "t0" WHERE "t0"."Amount" > CAST(@p0 AS NUMERIC) AND "t0"."CustomerId" <> @p1
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(10,0): at FastSql.Tests.Dialects.Checks.Has(String needle, String sql)
+        tests\FastSql.Tests.Dialects\SqliteDialectTests.cs(218,0): at FastSql.Tests.Dialects.SqliteDialectTests.The_prefix_is_one_of_four_legal_ones_and_is_chosen_by_the_shared_layer_not_by_the_library()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Finished:    FastSql.Tests.Dialects (ID = 'be61f78efa5f4c7e6a4475dc3c1f5cd7491eb3df53b3db634838189f2882e3c8')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 692, Errors: 0, Failed: 3, Skipped: 0, Not Run: 0, Time: 2.546s
+EXIT=1

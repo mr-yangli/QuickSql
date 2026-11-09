@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.SqlServer</RootNamespace>
+    <Description>QuickSql ORM 的 SQL Server provider：T-SQL 方言、NVARCHAR 默认映射、OUTPUT inserted 主键回填、2100 参数预算。编译期不引用 Microsoft.Data.SqlClient —— 驱动一律由内建表 BuiltinDrivers 在运行期解析（§1.2 原则 3）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Core\QuickSql.Core.csproj" />
+  </ItemGroup>
+
+</Project>

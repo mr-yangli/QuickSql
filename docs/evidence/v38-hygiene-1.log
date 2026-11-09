@@ -1,0 +1,5 @@
+boundary: .gitignore dirs=5 names=4 suffix=1 unparsed=0 + vendor src/FastSql.Providers.Xugu/Driver/
+BAD tests/FastSql.Tests.Integration/Database.cs :: CRLF x2060
+mode=worktree（无 git，判据换成整棵自产文本的绝对读数）
+checked 253 file(s) [.cs], 1 problem file(s), 0 fixed, 0 empty file(s), 0 locked file(s)
+EXIT=4

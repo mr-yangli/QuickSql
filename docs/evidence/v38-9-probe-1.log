@@ -1,0 +1,36 @@
+DRIVER ASM VERSION: 7.0.0.0
+BULKCOPY TYPE: Microsoft.Data.SqlClient.SqlBulkCopy
+-- public ctors (parameter shapes) --
+  Microsoft.Data.SqlClient.SqlConnection
+  Microsoft.Data.SqlClient.SqlConnection, Microsoft.Data.SqlClient.SqlBulkCopyOptions, Microsoft.Data.SqlClient.SqlTransaction
+  System.String
+  System.String, Microsoft.Data.SqlClient.SqlBulkCopyOptions
+-- WriteToServerAsync overloads --
+  System.Data.Common.DbDataReader
+  System.Data.Common.DbDataReader, System.Threading.CancellationToken
+  System.Data.DataRow[]
+  System.Data.DataRow[], System.Threading.CancellationToken
+  System.Data.DataTable
+  System.Data.DataTable, System.Data.DataRowState
+  System.Data.DataTable, System.Data.DataRowState, System.Threading.CancellationToken
+  System.Data.DataTable, System.Threading.CancellationToken
+  System.Data.IDataReader
+  System.Data.IDataReader, System.Threading.CancellationToken
+-- properties whose name mentions Timeout, plus the four members TryResolve asks for --
+  BulkCopyTimeout: Int32 settable=True
+  ColumnMappings: SqlBulkCopyColumnMappingCollection settable=False
+  DestinationTableName: String settable=True
+  RowsCopied: Int32 settable=False
+  probe GetProperty("BulkTimeout") -> NULL
+  probe GetProperty("BulkCopyTimeout") -> System.Int32
+-- SqlBulkCopyColumnMappingCollection.Add overloads --
+  Microsoft.Data.SqlClient.SqlBulkCopyColumnMapping
+  System.Int32, System.Int32
+  System.Int32, System.String
+  System.String, System.Int32
+  System.String, System.String
+-- options enum fields TryResolve reads by name --
+  Default = 0
+  CheckConstraints = 2
+  FireTriggers = 16
+EXIT=0

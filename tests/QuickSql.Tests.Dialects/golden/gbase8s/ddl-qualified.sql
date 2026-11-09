@@ -1,0 +1,2 @@
+
+CREATE TABLE "app"."QuickSqlOrder" ("Id" SERIAL NOT NULL, "CustomerName" VARCHAR(256) NULL, "CustomerId" INTEGER NOT NULL, "Amount" DECIMAL(18,4) NOT NULL, "State" INTEGER NOT NULL, "CreatedAt" DATETIME YEAR TO FRACTION(3) NOT NULL, "PaidAt" DATETIME YEAR TO FRACTION(3) NULL, "Note" CLOB NULL, PRIMARY KEY ("Id") CONSTRAINT "PK_QuickSqlOrder") ; CREATE INDEX "IX_QuickSqlOrder_CreatedAt" ON "app"."QuickSqlOrder" ( "CreatedAt" )

@@ -1,0 +1,13 @@
+SOURCE=file
+DATA_SOURCE=192.168.0.102,1433 DATABASE=LightDB
+PROBE=13.0.5108.50 | SP2 | Enterprise Edition (64-bit) | LightDB | Chinese_PRC_CI_AS | 936
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+PrepareCatalog：sqlite 一支不建库 —— 连接串里那颗文件就是库，Open() 那一刻由驱动造出来（4701 那一形）。目标：Data Source=C:\Users\HP\AppData\Local\Temp\fastsql-sqlite-integration.db
+EnsureProjectForeignKey：sqlite 一支整段跳过 —— 本家没有 ALTER ADD CONSTRAINT（4509/4510），而 CodeFirst 不发 FOREIGN KEY（§14），所以这里没有可建的裁判。外键挡不挡语句另有读数：默认就挡（4513/4514/4518）。
+  Finished:    FastSql.Tests.Integration (ID = '9b47a451cf8507058e3dbcb4afb056f58df5cad1dd8ef9432ee3e5a7fafe11d2')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 9, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.979s
+EXIT=0

@@ -1,0 +1,2 @@
+
+ALTER TABLE "QuickSqlOrder" ADD ("Note" CLOB NULL) ; ALTER TABLE "QuickSqlOrder" MODIFY ("Amount" DECIMAL(18,4) NOT NULL)

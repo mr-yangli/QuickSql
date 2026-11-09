@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.TiDb</RootNamespace>
+    <Description>QuickSql ORM 的 TiDB provider：MySQL 血统上的第二层薄壳，也是 §9.1 清单里"缺的只是一层壳与它的清单行"那一格的兑现（§9.1 的 TiDB 那一行）。今天它一个字都不覆写，产出与 MySqlProviderBase / MySql 那层壳逐字同形：反引号、LIMIT…OFFSET（OFFSET 单独出现时补 2^64-1 哨兵，与 TiDB 的分岔在性能层不在文本层）、AUTO_INCREMENT、TINYINT(1) 装布尔、DATETIME(3)、CHAR(36) 装 Guid、建表尾部的 ENGINE = InnoDB DEFAULT CHARSET = utf8mb4（TiDB 对这颗表选项的接受度是【推断】，没有真库见证）。它与本家唯一一颗"名字不同"的东西是 DbKind.TiDb 与清单里那颗 key：驱动仍按 MySqlConnector 解析（清单里同一 assembly 的第二行），而这个名字连同 mysql 那一行一起，从未在一台机器上解析成功过（§13.5 台账里这一家整行「未实测」，且本机没有任何一台 TiDB 实例，官方镜像在 §13.1 第 4 项点名过而未起）。自增的批量预分配（AUTO_ID_CACHE 一类系统变量）与多行 VALUES 不连续是<b>语义级</b>分岔，全部记在类注释与 §14，不进文本层。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Providers.MySqlBase\QuickSql.Providers.MySqlBase.csproj" />
+  </ItemGroup>
+
+</Project>

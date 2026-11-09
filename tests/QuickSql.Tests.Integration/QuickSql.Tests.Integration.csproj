@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Tests.Integration</RootNamespace>
+    <Description>真库集成测试：驱动反射加载、CodeFirst 的 DDL 真的建表、读路径真的跑一次往返（§13 第 4 项）。打在哪台实例上由那两个来源定：环境变量 QUICKSQL_TEST_CONNECTION 优先，其次仓库根那份凭据文件，两处都没有就抛。连不上库的用例显式 skip，不伪装成绿。</Description>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+
+    <!-- 驱动包只出现在 tests/：src/ 下的 provider 编译期不认识它（§1.2 原则 3），
+         这里引用它正是"信创现场把 DLL 丢进 drivers/"的那一面。 -->
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+
+    <!-- 第七家（本笔）：SQLite 没有厂商 DLL 要摆，公开包 restore 得到，所以它是这一行里第二颗、
+         也是第一颗"不需要 drivers/ 那条拷贝规则"的驱动引用。它只服务 QUICKSQL_TEST_PROVIDER=sqlite
+         那一跑；SQL Server 与虚谷那两跑不认识它。 -->
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+
+    <!-- PG 血统的第一颗本尊（2026-09-29 现场）：清单里 "postgresql" 那一行填的就是这颗 assembly，
+         而它此前十六版「从未解析成功过」。只服务 QUICKSQL_TEST_PROVIDER=postgresql 那一跑；
+         另四跑不认识它。理由与上面 Microsoft.Data.Sqlite 那一段同格：这颗包在 tests/ 出现，
+         正是"现场把 Npgsql.dll 丢进 drivers/"那一手的仓库内复刻。 -->
+    <PackageReference Include="Npgsql" />
+
+    <!-- MySQL 血统的第一颗本尊（2026-09-29 现场）：清单里 "mysql" 那一行填的就是这颗 assembly，
+         而它此前十七版「从未解析成功过」。只服务 QUICKSQL_TEST_PROVIDER=mysql 那一跑；另五跑不认识它。
+         理由与上面 Npgsql 那一段同格：这颗包在 tests/ 出现，正是"现场把 MySqlConnector.dll 丢进 drivers/"
+         那一手的仓库内复刻；而它还是"那一行不写 factoryType"那条兜底路径的第一次真跑。 -->
+    <PackageReference Include="MySqlConnector" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Tests.Common\QuickSql.Tests.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 虚谷那一份驱动：把厂商交付物（src/QuickSql.Providers.Xugu/Driver/，本仓库只存字节、编译期不引用）
+         Link 到输出目录的 drivers/ 下 —— 这正是"信创现场把 DLL 丢进 drivers/"那一手的仓库内复刻，
+         让 §9.5 的运行期解析链在集成层也真跑一次，而不是靠某台机器上手工拷过的一份副本。
+         只有 QUICKSQL_TEST_PROVIDER=xugu 那一跑会用到它；SQL Server 那一跑不认识 drivers/ 里这颗，
+         所以这一句不会把默认路径变成"依赖第五家的产物"。
+         【本版改判，厂商 4.0.0.8】v0.32–v0.33 那三行"按平台拷原生同伴"（windows/xugusql.dll、
+         linux-x86_64 与 linux-aarch64 各一颗 libxugusql.so）连同选档那颗 XuguHostPlatform 一并删了，
+         厂商交付物从此只有托管这一颗：实测 drivers/ 里只摆 XuguClient.dll 时 Open 照样成功、
+         没有 DllNotFoundException。所以 v0.32 bare 那颗反证（"只有托管那一份时到 Open 才炸"）
+         从今天起是 3.3.4.5 的事实，不再是本仓库交付物的事实。 -->
+    <None Include="..\..\src\QuickSql.Providers.Xugu\Driver\XuguClient.dll" Link="drivers\XuguClient.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 这一层的每一个类都打同一台活库、同一批表，而 xunit 默认按类并行 —— 于是"读别人正在改的行"和
+         "回滚自己写的那一行"会互相挑成死锁牺牲品。四场并行红了两场，而两次红的是同一对：ReadPathTests
+         一条 + WritePathTests.Leaving_the_block_without_committing_rolls_the_row_back，异常都是那句
+         TdsParser 死锁牺牲品（v0.14 同症红的是 UpdateDeletePathTests）—— 所以坏的不是某条用例，是调度。
+         这里没加等待、没加重试、没 skip 任何一条：并行对这一层没有价值（类之间没有任何共享状态要保护），
+         它制造的恰恰是断言依赖的那种"稳定状态"的反面。A/B 实测：true 三场里一场红 2 条（另两场恰好全绿），
+         false 三场全绿；代价（192.168.0.102 侧，串行有落盘的七场）1.38~1.40 s → 2.48~3.82 s，LocalDB 串行两场 1.43~1.55 s。
+         场次、实例归属、以及本版把两边记反一次的订正，都记在规格 §13.4 末段。
+         注意这个文件必须复制到输出目录才生效（xunit 从进程基目录读它），少了下面那一句它就是个装饰。 -->
+    <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

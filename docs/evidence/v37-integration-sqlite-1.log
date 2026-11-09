@@ -1,0 +1,40 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+PrepareCatalog：sqlite 一支不建库 —— 连接串里那颗文件就是库，Open() 那一刻由驱动造出来（4701 那一形）。目标：Data Source=C:\Users\HP\AppData\Local\Temp\fastsql-sqlite-integration.db
+EnsureProjectForeignKey：sqlite 一支整段跳过 —— 本家没有 ALTER ADD CONSTRAINT（4509/4510），而 CodeFirst 不发 FOREIGN KEY（§14），所以这里没有可建的裁判。外键挡不挡语句另有读数：默认就挡（4513/4514/4518）。
+    FastSql.Tests.Integration.WritePathTests.RequiresNew_suspends_ambient_and_creates_independent_transaction [SKIP]
+      sqlite 本家没有'两个同时打开的写事务'这一格：单写者模型下 RequiresNew 的 BEGIN 当场 SQLITE_BUSY。缺的那一格要么按本家可表达的形状另写裁判（WAL/busy_timeout 的可行变体），要么记 §14 欠账——不是把这一句删掉。
+    FastSql.Tests.Integration.CollationTests.The_varchar_side_of_the_instance_matches_its_collation_code_page [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（SERVERPROPERTY / DATABASEPROPERTYEX / COLLATIONPROPERTY / DATALENGTH / varchar↔nvarchar 那一整套量纲问句），当前目标库是 Sqlite。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.CollationTests.Parameters_reach_the_server_as_unicode_and_their_ansi_cast_follows_the_same_rule [SKIP]
+      这条用例的裁判 SQL 是写给 SqlServer 的（CAST(@t AS varchar/nvarchar) 与 DATALENGTH 这一组量纲问句（同上一颗的理由）），当前目标库是 Sqlite。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.OrderingPathTests.The_constraint_that_judges_the_order_is_actually_in_place [SKIP]
+      sqlite 这一家没有本夹具的外键裁判：往已有的表上加约束是语法错（4509/4510），而 CodeFirst 不发 FOREIGN KEY 表级子句（§14），所以 EnsureProjectForeignKey 在本家整段跳过（它那段注释是原文）。本条用例判的就是“库挡不挡”，裁判不在场时它只会红在“没抛”。这一族的外键语义本身有读数：建表时带上就挡，且默认就开（4508/4512/4513/4514）。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_SaveChanges_with_no_subscriber_reports_an_empty_replay [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Writing_a_value_into_a_token_column_is_refused_before_anything_goes_out [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_update_carries_the_snapshot_in_the_where_and_reads_both_tokens_back [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_that_vanished_is_reported_as_gone_rather_than_changed [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_row_somebody_else_changed_raises_with_both_sides_and_leaves_the_batch_unsettled [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.ConcurrencyPathTests.The_report_carries_the_replay_of_a_hook_that_rewrote_a_SaveChanges_statement [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_delete_refuses_a_row_that_moved_and_still_takes_the_one_that_did_not [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.ConcurrencyPathTests.Three_saves_in_a_row_all_succeed_because_each_one_reads_the_new_version_back [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_new_row_gets_its_version_from_the_database_and_the_next_save_uses_that_version [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.ConcurrencyPathTests.A_non_null_snapshot_is_compared_by_value_and_conflicts_when_that_value_moves [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+    FastSql.Tests.Integration.TrackingPathTests.A_tracked_instance_with_a_concurrency_token_is_never_merged [SKIP]
+      sqlite 这一家没有“值归库给”那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 AUTOINCREMENT（2802/2810），所以 [Column(DbTypes = "rowversion")] 建的是一列普通可空列。第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而“别人改过”永不成立（并发谓词本身是通的，3302/3303）。本文件的十条用例判的都是“库给那一格换了值”，在本家没有对象。
+  Finished:    FastSql.Tests.Integration (ID = '9b47a451cf8507058e3dbcb4afb056f58df5cad1dd8ef9432ee3e5a7fafe11d2')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 100, Errors: 0, Failed: 0, Skipped: 15, Not Run: 0, Time: 1.878s
+EXIT=0

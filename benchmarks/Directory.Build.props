@@ -1,0 +1,18 @@
+<Project>
+
+  <!-- 与 tests/Directory.Build.props 同一个坑：本文件的 Import 会顶掉仓库根那一份，必须显式接回来。
+       根那份的开关条件是 `'$(OutputType)' != 'Exe'`，而 Directory.Build.props 早于 csproj 体求值 ——
+       求值那一刻 OutputType 还是空的，基准项目照样会被点上 IsAotCompatible=true。 -->
+  <Import Project="..\Directory.Build.props" />
+
+  <!-- 基准项目自己不参与裁剪/AOT 闸门（闸门量的是 src/ 下的库项目，口径见 §12.7）。
+       这条要写下来，别让"基准项目豁免"变成无声的先例：BenchmarkDotNet 生成的代码在本仓库的
+       TreatWarningsAsErrors 下会把无关警告变成构建错误。 -->
+  <PropertyGroup>
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+  </PropertyGroup>
+
+</Project>

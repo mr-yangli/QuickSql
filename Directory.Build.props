@@ -1,0 +1,56 @@
+<Project>
+
+  <!-- 由原 QuickNet 单仓拆出为独立仓：作者/许可/仓库地址内联自原根 Directory.Build.props，
+       仓库地址指向本家独立仓（GitHub: mr-yangli）。 -->
+  <PropertyGroup>
+    <Authors>YANGLI</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/mr-yangli/QuickSql</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/mr-yangli/QuickSql.git</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <Deterministic>true</Deterministic>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <!-- NuGet 打包元数据里"本 subtree 独有"的那三颗：一颗版本跟着规格册的 v0.39 口径，发的是预发布档
+       （预发布档不进消费方默认解析）、README 挂哪一份册子、Tags 说什么。作者与许可在根上。
+       每重打一次包升一颗 beta：同版本号不同内容的两颗包，消费方全局缓存里那颗会压住新打的 —— 还原照样绿，
+       拿到的却是旧二进制（2026-10-10 在应用侧实测过这一格）。
+       这一组只喂 dotnet pack，编译期行为一个字不改；非库工程（tests / benchmarks / samples）各自在
+       csproj 或本目录的 props 里标 IsPackable=false，所以 dotnet pack Quick.slnx 出的是 22 颗库包。 -->
+  <PropertyGroup>
+    <Version>10.0.0</Version>
+    <PackageReadmeFile>quicksql-orm-usage.md</PackageReadmeFile>
+    <PackageTags>orm;sql;linq;ado.net;source-generator</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)docs/quicksql-orm-usage.md" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+
+  <!-- §12.7：库项目自始就开 trim/AOT 分析器，警告即错误。 -->
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true' and '$(OutputType)' != 'Exe'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+</Project>

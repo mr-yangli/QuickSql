@@ -1,0 +1,14 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+    FastSql.Tests.Dialects.ScalarExitTests.Only_a_requested_type_the_driver_answers_in_kind_reads_through_an_arm [FAIL]
+      类型相等，但没有「一次调用一个值」的臂：值不对（要 System.Byte[]，出口交回 System.Byte[]）
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\ScalarExitTests.cs(152,0): at FastSql.Tests.Dialects.ScalarExitTests.Only_a_requested_type_the_driver_answers_in_kind_reads_through_an_arm()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Finished:    FastSql.Tests.Dialects (ID = 'be61f78efa5f4c7e6a4475dc3c1f5cd7491eb3df53b3db634838189f2882e3c8')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 701, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 1.869s
+EXIT=1

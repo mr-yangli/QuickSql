@@ -1,0 +1,8 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+  Finished:    FastSql.Tests.Dialects (ID = '21dc8f57a18fe69b8fad23c97effd9db1cf20e7f007c92c439b635dfa171d817')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 49, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.235s
+EXIT=0

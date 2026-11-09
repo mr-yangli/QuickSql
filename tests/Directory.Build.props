@@ -1,0 +1,27 @@
+<Project>
+
+  <!-- 本目录的 props 会顶掉仓库根那一份（SDK 只向上找第一个），所以必须显式接回来：
+       TargetFramework、LangVersion、TreatWarningsAsErrors 都在根上。
+
+       **顺序不能反过来。** 根那份的开关条件是 `'$(IsTestProject)' != 'true' and '$(OutputType)' != 'Exe'`，
+       而 Directory.Build.props 早于 csproj 体被导入 —— 求值那一刻 `IsTestProject` 还是空的，于是测试项目
+       也会被点上 `IsAotCompatible=true`。盖在它后面才盖得住（先 Import 再覆写）。 -->
+  <Import Project="..\Directory.Build.props" />
+
+  <!-- 测试侧不跑裁剪/AOT 分析器（口径见 §12.7）：闸门量的是 src/ 下的库项目，在测试里再跑一遍
+       只会把"写测试"变成"给测试写标注演习"，而且量不到任何真东西。
+       读路径带着 RUC/RDC（§15「标注传染面」）是 src/ 那一侧的事实，该不该红由它决定；
+       G1 预翻译落地后 §14 的「0 反射」闸门重新量 src/，与本目录无关。 -->
+  <PropertyGroup>
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
+    <IsPackable>false</IsPackable>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+
+    <!-- xunit.v3 走 Microsoft.Testing.Platform，而 .NET 10 SDK 的 dotnet test 已不再支持 VSTest 目标：
+         不开这个开关，`dotnet test` 直接报 error 而不是跑不起来。开了才有 CI 里那句熟悉的话。 -->
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+</Project>

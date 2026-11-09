@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>QuickSql.Sample</RootNamespace>
+    <Description>QuickSql ORM 示例：DI 注册、建库、同步表、增删改查、主从明细增删改查、SQL Server 上的结构同步那一档。</Description>
+    <!-- 示例项目不需要 AOT/trimming 安全；Set<T>() 带 RUC/RDC 标注，属性上不能放这些标注 -->
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <IsTrimmable>false</IsTrimmable>
+  </PropertyGroup>
+
+  <!-- §14 那一段真打 SQL Server：没有连接串时整段跳过，但引用必须在，否则那一段连编译都进不去 -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuickSql.Core\QuickSql.Core.csproj" />
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Sqlite\QuickSql.Providers.Sqlite.csproj" />
+    <ProjectReference Include="..\..\src\QuickSql.Providers.SqlServer\QuickSql.Providers.SqlServer.csproj" />
+  </ItemGroup>
+
+  <!-- G1 生成器：编译期按 [Table] 实体产出契约与校验。只挂进编译器，不作为运行时引用 -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuickSql.Generators\QuickSql.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+
+    <!-- 驱动包只出现在 tests/ 与 samples/：src/ 下的 provider 编译期不认识它（§1.2 原则 3）。
+         §14 那一段要走的是内建表 BuiltinDrivers 里 "sqlserver" 那一行的运行期解析，所以这一颗必须拷进输出目录，
+         而<em>不是</em>直接 new SqlClientFactory()——那样会把要示范的那条链绕过去。 -->
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+  </ItemGroup>
+
+</Project>

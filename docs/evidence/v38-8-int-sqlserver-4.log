@@ -1,0 +1,12 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+标量出口 ∶ SqlServer ∶ Id（Int32）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ Amount（Decimal）∶ 落臂 ∶ 门 32 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ CreatedAt（DateTime）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ CustomerName（String）∶ 落臂 ∶ 门 0 B/值 ∶ 出口 0 B/值
+  Finished:    FastSql.Tests.Integration (ID = 'abfde517874d980838ec1c62ff07f2b2c439aa75c12292a8989400dea5b81657')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 104, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 3.824s
+EXIT=0

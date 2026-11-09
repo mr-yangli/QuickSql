@@ -1,0 +1,2 @@
+
+INSERT INTO "QuickSqlOrder" ("CustomerName", "CustomerId", "Amount", "State", "CreatedAt", "PaidAt", "Note", "Id") VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7), (@p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15) ON CONFLICT ("Id") DO UPDATE SET "CustomerName" = excluded."CustomerName", "CustomerId" = excluded."CustomerId", "Amount" = excluded."Amount", "State" = excluded."State", "CreatedAt" = excluded."CreatedAt", "PaidAt" = excluded."PaidAt", "Note" = excluded."Note"

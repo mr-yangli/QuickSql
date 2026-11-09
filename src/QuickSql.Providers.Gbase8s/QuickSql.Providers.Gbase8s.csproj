@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.Gbase8s</RootNamespace>
+    <Description>QuickSql ORM 的 GBase 8s provider（§9.1 那份清单里"独立血统"那一族的第二层，与 SqlServer、Xugu 同档：没有血统基类、没有叶子）。Informix 血统，因此它也是本仓库第一颗<em>整层没有一个可覆写的父类</em>的非 T-SQL provider。分岔逐格：分页是句首限定词 FIRST n / SKIP m（既不是 LIMIT 也不是 ROWNUM 也不是 OFFSET…FETCH，所以 §9.4 那句"三套实现"从三套变四套，而 DbCapabilities 里那三位分页位一颗都声明不了 —— 枚举里没有第四颗）；参数占位符只有位置形 ?，文本里第一次没有名字（ToLogSql 那一档因此在本家恒等，省下的三条路全在契约上，归用户）；标识符双引号、不带引号折向小写而本家一律加引号所以不折；宽度量纲恒字节（§10.4 五家以来第一颗恒 Byte，DDL 里的 n 由字符数乘最坏 4 字节算出来）；自增写在类型名上（SERIAL / SERIAL8）而不是列尾句上，且只有起点没有步长；<c>CREATE SCHEMA</c> 有，但它的形是 <c>CREATE SCHEMA AUTHORIZATION user</c> —— 那一格"模式"在库里就是<em>所有者</em>而不是一棵独立的命名空间树，所以本家发不出别家那种"给应用建一个模式"的语句（初稿写成"没有 CREATE SCHEMA"，被 IBM 手册驳回，改判记 §13.5）；也没有 COMMENT ON（SQL 语句清单里压根没有这一条），列注释那一档今天走 Core 的"跳过并 WARN"退路，于是五家交集第一次掉一位；RETURNING 只在 ESQL/SPL 里配 INTO 宿主变量，CLI 收不到结果集，键回读走"语句之后 DBINFO('sqlca.sqlerrd1')"那一档（与 v0.34 立的 SupportsPostStatementKeyRead 同形，而它的出处是手册而不是活库）；变更守卫三段式（无 IS DISTINCT FROM）。编译期不引用任何驱动程序集：GBase.DataDB 这个程序集名只来自 §9.1 那一行第四列，从未在一台机器上解析成功过，清单里刻意不写 factoryType（理由与达梦那一行逐字相同）。<b>本程序集产出的每一条文本都没有在一台活库上跑过，而且这一次连"跑过 SELECT 1"都没有</b>：本机没有任何一台 GBase 8s。它的出处档位也比另五家薄一层——全部来自 IBM Informix 手册（GBase 8s 自己的手册本次一页都没有），所以每一格标的是【文档·IBM】而不是【文档·厂商】，逐格账与三句限制写在 §13.5 与 §9.1 那一行。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Core\QuickSql.Core.csproj" />
+  </ItemGroup>
+
+</Project>

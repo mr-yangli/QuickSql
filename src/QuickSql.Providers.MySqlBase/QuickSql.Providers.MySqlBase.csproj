@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.MySqlBase</RootNamespace>
+    <Description>QuickSql ORM 的 MySQL 系方言血统（§4 的能力继承链）：MySQL/MariaDB/TiDB 共用的 SQL 文本层。标识符反引号且一律加引号、bool 落 TINYINT(1)、没有可作为结果集发出的 RETURNING、分页是 LIMIT…OFFSET 而 OFFSET 不能单独出现、写语句不接受额外的表源。编译期不引用任何驱动程序集 —— 驱动一律由内建表 BuiltinDrivers 在运行期解析（§1.2 原则 3）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Core\QuickSql.Core.csproj" />
+  </ItemGroup>
+
+</Project>

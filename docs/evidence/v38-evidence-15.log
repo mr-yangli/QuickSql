@@ -1,0 +1,33 @@
+scope=whole doc distinct=414 exist=71 gone=343 secrets_loaded=3
+  v12: cited=  4 exist=  0 gone=  4  in docs/evidence=0
+  v13: cited=  1 exist=  0 gone=  1  in docs/evidence=0
+  v14: cited= 11 exist=  0 gone= 11  in docs/evidence=0
+  v15: cited=  5 exist=  0 gone=  5  in docs/evidence=0
+  v16: cited=  4 exist=  0 gone=  4  in docs/evidence=0
+  v17: cited=  5 exist=  0 gone=  5  in docs/evidence=0
+  v18: cited= 14 exist=  0 gone= 14  in docs/evidence=0
+  v19: cited= 11 exist=  0 gone= 11  in docs/evidence=0
+  v20: cited= 11 exist=  0 gone= 11  in docs/evidence=0
+  v21: cited= 12 exist=  0 gone= 12  in docs/evidence=0
+  v22: cited= 18 exist=  0 gone= 18  in docs/evidence=0
+  v23: cited= 12 exist=  0 gone= 12  in docs/evidence=0
+  v24: cited= 13 exist=  0 gone= 13  in docs/evidence=0
+  v25: cited=  6 exist=  0 gone=  6  in docs/evidence=0
+  v26: cited= 10 exist=  0 gone= 10  in docs/evidence=0
+  v27: cited= 10 exist=  0 gone= 10  in docs/evidence=0
+  v28: cited= 11 exist=  0 gone= 11  in docs/evidence=0
+  v29: cited= 12 exist=  0 gone= 12  in docs/evidence=0
+  v30: cited= 16 exist=  0 gone= 16  in docs/evidence=0
+  v31: cited= 16 exist=  0 gone= 16  in docs/evidence=0
+  v32: cited= 54 exist=  0 gone= 54  in docs/evidence=0
+  v33: cited= 14 exist=  0 gone= 14  in docs/evidence=0
+  v34: cited= 14 exist=  0 gone= 14  in docs/evidence=0
+  v35: cited=  8 exist=  0 gone=  8  in docs/evidence=0
+  v36: cited= 22 exist=  0 gone= 22  in docs/evidence=0
+  v37: cited= 68 exist= 39 gone= 29  in docs/evidence=39
+  v38: cited= 32 exist= 32 gone=  0  in docs/evidence=32
+  resolved under: docs/evidence=71
+  同名跨目录而字节不同的：0 颗
+LOCKED docs\evidence\v38-evidence-15.log :: 正被写它的那一支握着，这一场读不到
+scan: files=95 leaks=0 locked=1
+EXIT=0

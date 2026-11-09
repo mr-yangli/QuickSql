@@ -1,0 +1,17 @@
+# 构建产物与本地状态
+bin/
+obj/
+.vs/
+.scratch/
+TestResults/
+BenchmarkDotNet.Artifacts/
+*.user
+*.suo
+
+# 真库连接串（含口令）——只允许被测试读，永不进版本库
+*.connection.local.txt
+
+# SQLite 的运行期产物：示例与集成夹具每次跑都重生成（连串是相对路径，落在当时的 cwd，所以按扩展名挡）
+*.db
+*.db-shm
+*.db-wal

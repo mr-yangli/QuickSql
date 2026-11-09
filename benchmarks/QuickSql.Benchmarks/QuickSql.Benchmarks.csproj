@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>QuickSql.Benchmarks</RootNamespace>
+    <Description>§12.8 的基准套件与门禁自检。两种跑法：不带参数 = BenchmarkDotNet 出数字；--gate = 拿门禁阈值判红绿并以退出码反馈。不是发布物。</Description>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <!-- §12.8 第二行的对照组。见 Directory.Packages.props 里那句"不是引入第二个 ORM"。 -->
+    <PackageReference Include="Dapper" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuickSql.Core\QuickSql.Core.csproj" />
+    <ProjectReference Include="..\..\src\QuickSql.Providers.SqlServer\QuickSql.Providers.SqlServer.csproj" />
+  </ItemGroup>
+
+  <!-- G1 在这里是真的：基准实体带 [Table]，编译期就生成 schema，
+       于是 MetadataLookup / MaterializeWide 量到的是生成路径而不是反射兜底。 -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuickSql.Generators\QuickSql.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

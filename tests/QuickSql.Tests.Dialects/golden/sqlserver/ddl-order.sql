@@ -1,0 +1,2 @@
+
+CREATE TABLE [dbo].[QuickSqlOrder] ([Id] INT IDENTITY(1,1) NOT NULL, [CustomerName] NVARCHAR(64) NULL, [CustomerId] INT NOT NULL, [Amount] DECIMAL(18,4) NOT NULL, [State] INT NOT NULL, [CreatedAt] DATETIME2(3) NOT NULL, [PaidAt] DATETIME2(3) NULL, [Note] NVARCHAR(MAX) NULL, CONSTRAINT [PK_QuickSqlOrder] PRIMARY KEY CLUSTERED ([Id])) ; CREATE INDEX [IX_QuickSqlOrder_CreatedAt] ON [dbo].[QuickSqlOrder] ( [CreatedAt] ASC )

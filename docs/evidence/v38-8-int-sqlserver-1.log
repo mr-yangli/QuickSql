@@ -1,0 +1,28 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+    FastSql.Tests.Integration.MaterializationAllocationTests.The_scalar_exit_on_the_real_driver_never_costs_more_than_the_door [FAIL]
+      Microsoft.Data.SqlClient.SqlException : 列名 'Id' 不明确。
+      Stack Trace:
+           at Microsoft.Data.SqlClient.SqlConnection.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+           at Microsoft.Data.SqlClient.Connection.SqlConnectionInternal.OnError(SqlException exception, Boolean breakConnection, Action`1 wrapCloseInAction)
+           at Microsoft.Data.SqlClient.TdsParser.ThrowExceptionAndWarning(TdsParserStateObject stateObj, SqlCommand command, Boolean callerHasConnectionLock, Boolean asyncClose)
+           at Microsoft.Data.SqlClient.TdsParser.TryRun(RunBehavior runBehavior, SqlCommand cmdHandler, SqlDataReader dataStream, BulkCopySimpleResultSet bulkCopyHandler, TdsParserStateObject stateObj, Boolean& dataReady)
+           at Microsoft.Data.SqlClient.SqlDataReader.TryConsumeMetaData()
+           at Microsoft.Data.SqlClient.SqlDataReader.get_MetaData()
+           at Microsoft.Data.SqlClient.SqlCommand.FinishExecuteReader(SqlDataReader ds, RunBehavior runBehavior, String resetOptionsString, Boolean isInternal, Boolean forDescribeParameterEncryption, Boolean shouldCacheForAlwaysEncrypted)
+           at Microsoft.Data.SqlClient.SqlCommand.RunExecuteReaderTds(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, Boolean isAsync, Int32 timeout, Task& task, Boolean asyncWrite, Boolean isRetry, SqlDataReader ds, Boolean describeParameterEncryptionRequest)
+           at Microsoft.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, TaskCompletionSource`1 completion, Int32 timeout, Task& executeTask, Boolean& usedCache, Boolean asyncWrite, Boolean isRetry, String method)
+           at Microsoft.Data.SqlClient.SqlCommand.RunExecuteReader(CommandBehavior cmdBehavior, RunBehavior runBehavior, Boolean returnStream, String method)
+           at Microsoft.Data.SqlClient.SqlCommand.ExecuteReader(CommandBehavior behavior)
+           at Microsoft.Data.SqlClient.SqlCommand.ExecuteDbDataReader(CommandBehavior behavior)
+        tests\FastSql.Tests.Integration\MaterializationAllocationTests.cs(122,0): at FastSql.Tests.Integration.MaterializationAllocationTests.RowOn(String columns, String table)
+        tests\FastSql.Tests.Integration\MaterializationAllocationTests.cs(461,0): at FastSql.Tests.Integration.MaterializationAllocationTests.Exit[T](String column, String name, Target[] zeroOn, Double boxFloor)
+        tests\FastSql.Tests.Integration\MaterializationAllocationTests.cs(451,0): at FastSql.Tests.Integration.MaterializationAllocationTests.The_scalar_exit_on_the_real_driver_never_costs_more_than_the_door()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Finished:    FastSql.Tests.Integration (ID = 'abfde517874d980838ec1c62ff07f2b2c439aa75c12292a8989400dea5b81657')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 104, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 4.203s
+EXIT=1

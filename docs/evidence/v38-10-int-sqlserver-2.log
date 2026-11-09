@@ -1,0 +1,16 @@
+SOURCE=file
+DATA_SOURCE=192.168.0.102,1433 DATABASE=LightDB
+PROBE=13.0.5108.50 | SP2 | Enterprise Edition (64-bit) | LightDB | Chinese_PRC_CI_AS | 936
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+[bulk-timing] rows=2000 copy_ms=58 l3_ms=1608
+标量出口 ∶ SqlServer ∶ Id（Int32）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ Amount（Decimal）∶ 落臂 ∶ 门 32 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ CreatedAt（DateTime）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ CustomerName（String）∶ 落臂 ∶ 门 0 B/值 ∶ 出口 0 B/值
+  Finished:    FastSql.Tests.Integration (ID = '9b47a451cf8507058e3dbcb4afb056f58df5cad1dd8ef9432ee3e5a7fafe11d2')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 122, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 10.768s
+EXIT=0

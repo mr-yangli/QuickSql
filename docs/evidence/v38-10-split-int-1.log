@@ -1,0 +1,5 @@
+SOURCE=file
+DATA_SOURCE=192.168.0.102,1433 DATABASE=LightDB
+PROBE=13.0.5108.50 | SP2 | Enterprise Edition (64-bit) | LightDB | Chinese_PRC_CI_AS | 936
+error: unknown option: -class,FastSql.Tests.Integration.SplitTablePathTests
+EXIT=3

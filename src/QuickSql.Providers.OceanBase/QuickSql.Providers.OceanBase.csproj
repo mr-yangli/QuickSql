@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.OceanBase</RootNamespace>
+    <Description>QuickSql ORM 的 OceanBase（MySQL 模式）provider：MySQL 血统上的第三层薄壳，也是 v0.35 第三笔给双模那一家裁下的"先定"方向（先 MySQL 模叶子、Oracle 模与金仓兼容模式同档后置）的落地。今天它一个字都不覆写，产出与 MySqlProviderBase / MySql 壳 / TiDb 壳逐字同形：反引号、LIMIT…OFFSET（含 2^64-1 哨兵）、AUTO_INCREMENT、TINYINT(1) 装布尔、DATETIME(3)、CHAR(36) 装 Guid、建表尾部的 ENGINE = InnoDB DEFAULT CHARSET = utf8mb4（OceanBase MySQL 模式对这颗尾巴的接受度是【推断，未实测】）。它与前两颗叶子唯一一处"名字不同"的东西是 DbKind.OceanBase 与清单里那颗 key：驱动仍按 MySqlConnector 解析（清单里同一 assembly 的第三行）。这一家真正的分岔不在文本层而在连接层——"模式在连接上决定"（§9.1 那一行），本类存在即主张"这条连接是 MySQL 模"，而 SPI 里没有一颗能把这件事问出来的槽位（§14 那格参数名单里的第二个实例，第一颗是金仓的 Oracle 兼容模式）；Oracle 模的那颗叶子不开，直到那颗槽位有裁决。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Providers.MySqlBase\QuickSql.Providers.MySqlBase.csproj" />
+  </ItemGroup>
+
+</Project>

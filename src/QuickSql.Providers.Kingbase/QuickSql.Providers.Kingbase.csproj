@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.Kingbase</RootNamespace>
+    <Description>QuickSql ORM 的金仓 KES V8 provider：PG 系血统上的一层薄壳（§9.1）。今天它相对基类没有覆写任何东西 —— 这不是省略，是"金仓与 PG 的文本在这一档确实同形"这一判断的落地形态，而它一旦被现场推翻（最可能是 Oracle 兼容模式开关），覆写点就在这一层。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Providers.PostgreSqlBase\QuickSql.Providers.PostgreSqlBase.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,22 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 10.0.12)
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+[bulk-timing] rows=2000 copy_ms=63 l3_ms=1679
+标量出口 ∶ SqlServer ∶ Id（Int32）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ Amount（Decimal）∶ 落臂 ∶ 门 32 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ CreatedAt（DateTime）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ CustomerName（String）∶ 落臂 ∶ 门 0 B/值 ∶ 出口 0 B/值
+    FastSql.Tests.Integration.DataSourcePathTests.A_session_that_wrote_reads_its_own_row_back_while_an_explicit_replica_stays_stale [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（主从两座的陈旧差是手写的替身，不是量出来的延迟），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DataSourcePathTests.A_session_released_asynchronously_does_not_leave_the_flow_marked_as_written [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（同一座主库与它的替身从库，差别只在会话怎么关），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DataSourcePathTests.Replica_choice_inside_a_transaction_is_refused_on_a_live_connection [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（事务占住的那一条是刚打开的真连接），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DataSourcePathTests.Two_replicas_are_visited_in_the_order_configured [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（两颗从库文件、每颗装着自己那一份内容），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    FastSql.Tests.Integration.DataSourcePathTests.A_default_read_lands_on_the_replica_and_sees_only_what_replication_got [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（主库与从库是两颗自建文件库（没有任何一台授权实例配了复制）），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+  Finished:    FastSql.Tests.Integration (ID = '9b47a451cf8507058e3dbcb4afb056f58df5cad1dd8ef9432ee3e5a7fafe11d2')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 131, Errors: 0, Failed: 0, Skipped: 5, Not Run: 0, Time: 11.646s

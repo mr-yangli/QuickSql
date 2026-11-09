@@ -1,0 +1,47 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QuickSql.Abstractions/QuickSql.Abstractions.csproj" />
+    <Project Path="src/QuickSql.Core/QuickSql.Core.csproj" />
+    <Project Path="src/QuickSql.Generators/QuickSql.Generators.csproj" />
+    <!-- 方言族：SqlServer（单层） -->
+    <Project Path="src/QuickSql.Providers.SqlServer/QuickSql.Providers.SqlServer.csproj" />
+    <!-- 方言族：PostgreSQL（血统 + 五叶 + 本尊） -->
+    <Project Path="src/QuickSql.Providers.PostgreSqlBase/QuickSql.Providers.PostgreSqlBase.csproj" />
+    <Project Path="src/QuickSql.Providers.Kingbase/QuickSql.Providers.Kingbase.csproj" />
+    <Project Path="src/QuickSql.Providers.OpenGauss/QuickSql.Providers.OpenGauss.csproj" />
+    <Project Path="src/QuickSql.Providers.GaussDb/QuickSql.Providers.GaussDb.csproj" />
+    <Project Path="src/QuickSql.Providers.Highgo/QuickSql.Providers.Highgo.csproj" />
+    <Project Path="src/QuickSql.Providers.Gbase8c/QuickSql.Providers.Gbase8c.csproj" />
+    <!-- PG 血统的正典叶（v0.37 第二笔）：这一族第一颗"本尊"，而 §9.1 那张表里 PG 与 MySQL 两个本尊都没有行。 -->
+    <Project Path="src/QuickSql.Providers.PostgreSql/QuickSql.Providers.PostgreSql.csproj" />
+    <!-- 方言族：Oracle（血统 + 两叶 + 本尊） -->
+    <Project Path="src/QuickSql.Providers.OracleBase/QuickSql.Providers.OracleBase.csproj" />
+    <Project Path="src/QuickSql.Providers.Dameng/QuickSql.Providers.Dameng.csproj" />
+    <Project Path="src/QuickSql.Providers.ShenTong/QuickSql.Providers.ShenTong.csproj" />
+    <!-- Oracle 血统的正典叶（v0.37 第三笔）：这一族第二颗"本尊"，而它到场兑现的是自家基类注释里挂了四版的那颗住户。 -->
+    <Project Path="src/QuickSql.Providers.Oracle/QuickSql.Providers.Oracle.csproj" />
+    <!-- 方言族：MySQL（血统 + 三叶 + 本尊） -->
+    <Project Path="src/QuickSql.Providers.MySqlBase/QuickSql.Providers.MySqlBase.csproj" />
+    <Project Path="src/QuickSql.Providers.MySql/QuickSql.Providers.MySql.csproj" />
+    <Project Path="src/QuickSql.Providers.TiDb/QuickSql.Providers.TiDb.csproj" />
+    <Project Path="src/QuickSql.Providers.OceanBase/QuickSql.Providers.OceanBase.csproj" />
+    <!-- 方言族：单层（虚谷 / GBase 8s / SQLite） -->
+    <Project Path="src/QuickSql.Providers.Xugu/QuickSql.Providers.Xugu.csproj" />
+    <Project Path="src/QuickSql.Providers.Gbase8s/QuickSql.Providers.Gbase8s.csproj" />
+    <!-- 第七家（本笔）：第四颗单层整层，而它是这一串里第一颗断言逐格向活库问过的——本机一个文件就是一座库。 -->
+    <Project Path="src/QuickSql.Providers.Sqlite/QuickSql.Providers.Sqlite.csproj" />
+    <Project Path="src/QuickSql.Providers.DuckDb/QuickSql.Providers.DuckDb.csproj" />
+    <Project Path="src/QuickSql.Providers.ClickHouse/QuickSql.Providers.ClickHouse.csproj" />
+    <Project Path="src/QuickSql.Providers.TDengine/QuickSql.Providers.TDengine.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/QuickSql.Tests.Dialects/QuickSql.Tests.Dialects.csproj" />
+    <Project Path="tests/QuickSql.Tests.Integration/QuickSql.Tests.Integration.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/QuickSql.Sample/QuickSql.Sample.csproj" />
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/QuickSql.Benchmarks/QuickSql.Benchmarks.csproj" />
+  </Folder>
+</Solution>

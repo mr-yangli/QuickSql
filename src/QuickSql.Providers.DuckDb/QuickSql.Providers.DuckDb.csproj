@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.Providers.DuckDb</RootNamespace>
+    <Description>QuickSql ORM 的 DuckDB provider：PG 血统上的第七颗叶子，也是这一族第一颗真的改了血统产出的叶子（§9.1 的 DuckDB 那一行）。方言紧随 PG（厂商文档明写 PG 兼容层），而分岔逐格有出处：DOUBLE / TIMESTAMP / TIMESTAMPTZ / TIME 四格类型换名；身份列换形态（官方形状是句外 CREATE SEQUENCE '…' + DEFAULT nextval('…')，CREATE TABLE 没有 IDENTITY 子句）；"建库"整格不存在（内嵌单文件引擎，与 SQLite 同档）。标识符双引号照血统的 IdentifierPolicy.PostgreSQL 复用，而"大小写不敏感、保留原样"是血统能力位没建的那半格偏差，记 §14。整层【文档·DuckDB】口径，驱动 assembly 名 DuckDB.NET.Data 从未解析成功，本机没有引擎，逐格未实测（§13.5 台账）。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QuickSql.Providers.PostgreSqlBase\QuickSql.Providers.PostgreSqlBase.csproj" />
+  </ItemGroup>
+
+</Project>

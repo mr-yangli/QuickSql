@@ -1,0 +1,157 @@
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "SqlServer") [FAIL]
+      SqlServer 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT [t0].[Id], [t0].[TenantId], [t0].[Name] FROM [FastSqlTenantRow_0] AS [t0] UNION ALL SELECT [t0].[Id], [t0].[TenantId], [t0].[Name] FROM [FastSqlTenantRow_1] AS [t0]) AS [t0]
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "MySql") [FAIL]
+      MySql 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT `t0`.`Id`, `t0`.`TenantId`, `t0`.`Name` FROM `FastSqlTenantRow_0` AS `t0` UNION ALL SELECT `t0`.`Id`, `t0`.`TenantId`, `t0`.`Name` FROM `FastSqlTenantRow_1` AS `t0`) AS `t0`
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "Oracle") [FAIL]
+      Oracle 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "T0"."ID", "T0"."TENANTID", "T0"."NAME" FROM "FASTSQLTENANTROW_0" "T0" UNION ALL SELECT "T0"."ID", "T0"."TENANTID", "T0"."NAME" FROM "FASTSQLTENANTROW_1" "T0") "T0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "PostgreSql") [FAIL]
+      PostgreSql 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_0" AS "t0" UNION ALL SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_1" AS "t0") AS "t0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "Kingbase") [FAIL]
+      Kingbase 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_0" AS "t0" UNION ALL SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_1" AS "t0") AS "t0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "OpenGauss") [FAIL]
+      OpenGauss 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_0" AS "t0" UNION ALL SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_1" AS "t0") AS "t0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "GaussDb") [FAIL]
+      GaussDb 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_0" AS "t0" UNION ALL SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_1" AS "t0") AS "t0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "Highgo") [FAIL]
+      Highgo 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_0" AS "t0" UNION ALL SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_1" AS "t0") AS "t0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "Dameng") [FAIL]
+      Dameng 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "T0"."ID", "T0"."TENANTID", "T0"."NAME" FROM "FASTSQLTENANTROW_0" "T0" UNION ALL SELECT "T0"."ID", "T0"."TENANTID", "T0"."NAME" FROM "FASTSQLTENANTROW_1" "T0") "T0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "ShenTong") [FAIL]
+      ShenTong 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "T0"."ID", "T0"."TENANTID", "T0"."NAME" FROM "FASTSQLTENANTROW_0" "T0" UNION ALL SELECT "T0"."ID", "T0"."TENANTID", "T0"."NAME" FROM "FASTSQLTENANTROW_1" "T0") "T0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "Xugu") [FAIL]
+      Xugu 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "T0"."ID", "T0"."TENANTID", "T0"."NAME" FROM "FASTSQLTENANTROW_0" "T0" UNION ALL SELECT "T0"."ID", "T0"."TENANTID", "T0"."NAME" FROM "FASTSQLTENANTROW_1" "T0") "T0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "Gbase8s") [FAIL]
+      Gbase8s 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_0" "t0" UNION ALL SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_1" "t0") "t0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "Gbase8c") [FAIL]
+      Gbase8c 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_0" AS "t0" UNION ALL SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_1" AS "t0") AS "t0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "TiDb") [FAIL]
+      TiDb 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT `t0`.`Id`, `t0`.`TenantId`, `t0`.`Name` FROM `FastSqlTenantRow_0` AS `t0` UNION ALL SELECT `t0`.`Id`, `t0`.`TenantId`, `t0`.`Name` FROM `FastSqlTenantRow_1` AS `t0`) AS `t0`
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "OceanBase") [FAIL]
+      OceanBase 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT `t0`.`Id`, `t0`.`TenantId`, `t0`.`Name` FROM `FastSqlTenantRow_0` AS `t0` UNION ALL SELECT `t0`.`Id`, `t0`.`TenantId`, `t0`.`Name` FROM `FastSqlTenantRow_1` AS `t0`) AS `t0`
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+    FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(family: "Sqlite") [FAIL]
+      Sqlite 的 读·桶 里没有换算好的片名后缀 _00：
+      SELECT * FROM (SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_0" AS "t0" UNION ALL SELECT "t0"."Id", "t0"."TenantId", "t0"."Name" FROM "FastSqlTenantRow_1" AS "t0") AS "t0"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\TableNamingEmissionTests.cs(103,0): at FastSql.Tests.Dialects.TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(String family)
+           at InvokeStub_TableNamingEmissionTests.Nothing_a_family_emits_ever_carries_a_placeholder(Object, Span`1)
+           at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)
+  Finished:    FastSql.Tests.Dialects (ID = '21dc8f57a18fe69b8fad23c97effd9db1cf20e7f007c92c439b635dfa171d817')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 34, Errors: 0, Failed: 16, Skipped: 0, Not Run: 0, Time: 0.392s
+  Discovering: FastSql.Tests.Dialects
+  Discovered:  FastSql.Tests.Dialects
+  Starting:    FastSql.Tests.Dialects
+    FastSql.Tests.Dialects.SplitTableTests.A_delete_names_its_shard_the_same_way_and_refuses_without_one [FAIL]
+      产出的 SQL 里没有 DELETE FROM [t0] FROM [FastSqlTenantRow_02] AS [t0]：
+      DELETE FROM [t0] FROM [FastSqlTenantRow_2] AS [t0] WHERE [t0].[Id] = @p0
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\Checks.cs(10,0): at FastSql.Tests.Dialects.Checks.Has(String needle, String sql)
+        tests\FastSql.Tests.Dialects\SplitTableTests.cs(693,0): at FastSql.Tests.Dialects.SplitTableTests.A_delete_names_its_shard_the_same_way_and_refuses_without_one()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.SplitTableTests.The_hash_script_lists_exactly_the_buckets_requested [FAIL]
+      Assert.Contains() Failure: Sub-string not found
+      String:    "CREATE TABLE [dbo].[FastSqlTenantRow_1] ([Id] UNIQ"···
+      Not found: "[FastSqlTenantRow_01]"
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\SplitTableTests.cs(779,0): at FastSql.Tests.Dialects.SplitTableTests.The_hash_script_lists_exactly_the_buckets_requested()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.SplitTableTests.Hash_shards_are_read_in_the_bucket_order_given [FAIL]
+      桶序没有落进分支序：
+      SELECT * FROM (SELECT [t0].[Id], [t0].[TenantId], [t0].[Name] FROM [FastSqlTenantRow_3] AS [t0] UNION ALL SELECT [t0].[Id], [t0].[TenantId], [t0].[Name] FROM [FastSqlTenantRow_0] AS [t0]) AS [t0]
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\SplitTableTests.cs(427,0): at FastSql.Tests.Dialects.SplitTableTests.Hash_shards_are_read_in_the_bucket_order_given()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+    FastSql.Tests.Dialects.SplitTableTests.Bucket_list_dedupes_and_keeps_the_order_given [FAIL]
+      Assert.Equal() Failure: Collections differ at index 0
+                       ↓ (pos 6)
+      Expected: "BAD_T_05"
+      Actual:   "BAD_T_5"
+                       ↑ (pos 6)
+      Stack Trace:
+        tests\FastSql.Tests.Dialects\SplitTableTests.cs(141,0): at FastSql.Tests.Dialects.SplitTableTests.Bucket_list_dedupes_and_keeps_the_order_given()
+           at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+           at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Finished:    FastSql.Tests.Dialects (ID = '21dc8f57a18fe69b8fad23c97effd9db1cf20e7f007c92c439b635dfa171d817')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Dialects  Total: 63, Errors: 0, Failed: 4, Skipped: 0, Not Run: 0, Time: 0.418s

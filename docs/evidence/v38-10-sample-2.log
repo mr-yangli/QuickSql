@@ -1,0 +1,137 @@
+表结构同步完成：新建 3 张表
+  - Customers
+  - Orders
+  - OrderItems
+
+═══ 3. DbContext 跟踪路径 ═══
+
+新增客户：Id=1, Name=张三
+查询客户：Id=1, Name=张三, City=上海
+修改客户：Id=1, City=北京
+删除客户后查询：找到 0 条
+
+═══ 4. 主从明细（DbContext） ═══
+
+客户：Id=2
+订单：Id=1, Amount=299.50
+  明细1：Id=1, OrderId=1, Sku=SKU-001
+  明细2：Id=2, OrderId=1, Sku=SKU-002
+订单 1：2 行明细
+  - SKU-001 × 2 @ 99.75
+  - SKU-002 × 1 @ 100.00
+修改明细后：Sku=SKU-001, Quantity=5
+删除明细后：剩余 1 行
+删除主从后：订单 0 条，明细 0 条
+
+═══ 5. 原始 ORM 非跟踪路径 ═══
+
+Insert 插入：Id=3, Name=王五
+Select 查询：找到 1 条，Name=王五
+Update 链：影响 1 行
+更新后：City=杭州
+Delete 链：影响 1 行
+
+═══ 6. 事务 ═══
+
+  事务内插入：Name=赵六
+事务结果：Success=True
+回滚后查询[临时]：找到 0 条（应为 0）
+
+═══ 7. 子查询 ═══
+
+种子数据：3 客户、5 订单、5 明细
+Count 直接调用：共 5 笔订单
+Count 子查询（总订单 > 3 时列出所有客户）：李四, 赵六, 陈七, 周八, 吴九
+Contains 子查询（有 ≥500 订单的客户）：周八
+Sum：总订单金额 = 1700
+Max：最高单笔 = 600
+Min：最低单笔 = 100
+Average：平均单笔 = 340
+Sum 子查询（总订单金额 > 1000 时列出客户）：李四, 赵六, 陈七, 周八, 吴九
+Max 子查询（最高单笔 > 500 时列出客户）：李四, 赵六, 陈七, 周八, 吴九
+
+═══ 8. 分组查询 ═══
+
+按客户分组（CustomerId / 笔数 / 合计 / 最大 / 最小 / 平均）：
+  客户 5：3 笔，合计 600，最大 300，最小 100，平均 200
+  客户 6：2 笔，合计 1100，最大 600，最小 500，平均 550
+只投影聚合（g => g.Count()）：[3, 2]
+Having 只留 2 笔以上的客户：客户5(3笔/600)
+按 (订单, 货号) 复合键分组的 DTO 投影：
+  订单 2 / SKU-A：1 件，金额 100
+  订单 3 / SKU-A：1 件，金额 200
+  订单 4 / SKU-A：1 件，金额 300
+  订单 5 / SKU-B：2 件，金额 500
+  订单 6 / SKU-B：2 件，金额 600
+前两组（按合计金额降序）产出的 SQL：
+  SELECT "t0"."CustomerId", SUM("t0"."Amount") AS "Total" FROM "Orders" AS "t0" WHERE "t0"."Amount" > CAST('0' AS NUMERIC) GROUP BY "t0"."CustomerId" ORDER BY SUM("t0"."Amount") DESC LIMIT 2
+  客户 6：合计 1100
+  客户 5：合计 600
+Explain() 模型文本里的分组那几行（摘录）：
+    WHERE (t0.Amount >= §(200:Decimal))
+    GROUP BY t0.CustomerId
+    HAVING (COUNT({0})(*) > §(1:Int32))
+同一条查询产出的 SQL：  SELECT "t0"."CustomerId", COUNT(*) AS "Orders", SUM("t0"."Amount") AS "Total" FROM "Orders" AS "t0" WHERE "t0"."Amount" >= CAST('200' AS NUMERIC) GROUP BY "t0"."CustomerId" HAVING COUNT(*) > 1
+先 WHERE 再 GROUP BY 再 HAVING：客户5(2笔/500), 客户6(2笔/1100)
+
+═══ 9. 原生 SQL ═══
+
+手写 GROUP BY 的报表行：
+  周八（客户 6）：2 笔，合计 1100
+  陈七（客户 5）：2 笔，合计 500
+ExecuteScalarAsync：金额 ≥100 的订单共 4 笔
+FirstAsync<decimal>：客户 5 的最大单笔 = 300
+StreamAsync<string>（上海的客户名）：吴九 陈七 
+ExecuteNonQueryAsync：改了 3 行，链式口读回 3 行 Note=原生口
+ExecuteBatchAsync 三句：读回 [第一句, 第二句]，探针表已清掉
+低层口装 record：CustomerTop { CustomerId = 6, Total = 1100 }
+
+═══ 10. 派生表与 WithSql ═══
+
+分组交回 2 组，派生表外层数出 2 组
+  同一条链自己端出去（SELECT "t0"."CustomerId", COUNT(*) AS "Orders" FROM "Orders" AS "t0" GROUP BY "t0"."CustomerId" ORDER BY COUNT(*) DESC），而它 count 的那一句把 ORDER BY 剥掉了 —— 内层没有分页时序就不参与（§5.12）。
+分组分页：第 1 页 2 行，总组数 2（这一格点名了 CountMethod.CountStar；Auto 在首页只多取一行判 HasNext，Total 就是 null）
+去重后的客户数 2（不去重是 5 行订单）
+Skip(1).Take(2) 之后 CountAsync = 2，全表 = 5（分页那两颗粒留在内层：SELECT "t0"."Id", "t0"."CustomerId", "t0"."Amount", "t0"."CreatedAt", "t0"."Note" FROM "Orders" AS "t0" ORDER BY "t0"."Id" ASC LIMIT 2 OFFSET 1）
+WithSql 外层由库写：SELECT "t0"."Id", "t0"."CustomerId", "t0"."Amount", "t0"."CreatedAt", "t0"."Note" FROM (SELECT * FROM Orders WHERE CustomerId = 5) AS "t0" WHERE "t0"."Amount" >= CAST('200' AS NUMERIC) ORDER BY "t0"."Id" ASC
+  读回 2 行，其中最大单笔 300
+派生表套原生源：SELECT "t0"."Id", "t0"."Name", "t0"."City" FROM "Customers" AS "t0" WHERE (SELECT COUNT(*) FROM (SELECT * FROM Orders WHERE CustomerId = 5) AS "t1004" WHERE "t1004"."Amount" >= CAST('200' AS NUMERIC)) > 0
+
+═══ 11. 批量高速层 ═══
+
+Auto 取到的层：MultiValue ∶ 500 行 / 23 次往返 / 每块 22 行
+  为什么：500 行 × 4 列，参数预算 100 → 每块 22 行（23 块），L3 多值语句。
+请求 CopyChannel 实际走了 MultiValue（Degraded=True），留痕 1 次：CopyChannel → MultiValue
+  Never 拦下了：请求了 Sqlite 的装载通道而它不可用：Sqlite 没有可用的装载通道（IBulkStrategy.ResolveCopyChannel() 交回 null：这一家没接，或这一支驱动里没有装载类）。FallbackPolicy.Never 不允许退回文本层。
+  行数出口拒了：ExecuteAffrowsAsync 走不了 CopyChannel：那一档要的是「走了哪一层、几次往返、为什么」，而它的返回值只是一颗行数。装载通道请用 ExecuteBulkAsync；只压每块行数或按请求逐条请用 WithBulk(MultiValue/SingleRow, rowsPerRoundTrip: …)。
+压到每块 20 行：25 次往返、每块 20 行
+库里读回 1000 行 Note=bulk-layer
+
+═══ 12. 分表 ═══
+
+模板名：AccessLog_{year}{month} ∶ 分片键 OccurredAt（Month）
+整库同步把这两张跳过了：AccessLog_{year}{month}（Month 档，分片键列 OccurredAt）、TicketRow_{shard}（Hash 档，分片键列 TenantId）（新建 0 张）
+三个月的片：AccessLog_202601、AccessLog_202602、AccessLog_202603（本次新建 3 张、已在 0 张）
+  片上没有索引：IX_AccessLog_Status 一条都没随片建（索引名在同一模式的 N 张片上会撞，规格 §16.4 已裁）
+  同一范围第二趟：新建 0 张、已在 3 张
+六行 × 三个目标表：6 行受影响，3 句语句
+  → AccessLog_202601（2 行，入参下标 0、1）：INSERT INTO "AccessLog_202601" ("Id", "Path", "Status", "OccurredAt") VALUES (@p0, @p1, @p2, @p3), (@p4, @p5, @p6, @p7)
+  → AccessLog_202602（2 行，入参下标 2、3）：INSERT INTO "AccessLog_202602" ("Id", "Path", "Status", "OccurredAt") VALUES (@p0, @p1, @p2, @p3), (@p4, @p5, @p6, @p7)
+  → AccessLog_202603（2 行，入参下标 4、5）：INSERT INTO "AccessLog_202603" ("Id", "Path", "Status", "OccurredAt") VALUES (@p0, @p1, @p2, @p3), (@p4, @p5, @p6, @p7)
+全范围读的语句：SELECT * FROM (SELECT "t0"."Id", "t0"."Path", "t0"."Status", "t0"."OccurredAt" FROM "AccessLog_202601" AS "t0" UNION ALL SELECT "t0"."Id", "t0"."Path", "t0"."Status", "t0"."OccurredAt" FROM "AccessLog_202602" AS "t0" UNION ALL SELECT "t0"."Id", "t0"."Path", "t0"."Status", "t0"."OccurredAt" FROM "AccessLog_202603" AS "t0") AS "t0"
+  三张片合并读回 6 行
+剪枝到二月：2 行 —— /c、/d（一月与三月的行不在这张表里，所以根本不会被问）
+跨片翻页第一页：2 行、Total=(不算总数)、HasNext=True
+  跨 3 片数总数被拒：分表实体跨 3 片不做聚合/分组（COUNT、SUM、GROUP BY、HAVING）：那要先定…
+钉住二月那一片的改：UPDATE "AccessLog_202602" AS "t0" SET "Status" = @p0 WHERE "t0"."Status" = @p1
+  改到 1 行，二月那片现在读回 200、299
+四个桶（第五个实参是重复的）：TicketRow_00、TicketRow_01、TicketRow_02、TicketRow_03
+八个租户 × 四个桶：4 句语句、8 行受影响，各片行数 = TicketRow_01=2、TicketRow_02=2、TicketRow_03=2、TicketRow_00=2
+  桶 1 里是租户 1、5（1 与 5 同桶，因为 5 mod 4 = 1）
+  逐桶读：SplitTables(0) → 4、8
+  逐桶读：SplitTables(1) → 1、5
+  逐桶读：SplitTables(2) → 2、6
+  逐桶读：SplitTables(3) → 3、7
+
+═══ 示例完成 ═══
+EXIT=0

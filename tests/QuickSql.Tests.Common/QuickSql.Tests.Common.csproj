@@ -1,0 +1,105 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql.TestInfra</RootNamespace>
+    <Description>测试共享设施：实体样例、组装根助手与"没有驱动也能生成 SQL"的桩工厂。不是发布物。</Description>
+
+    <!-- 裁剪/AOT 分析器的口径在 tests/Directory.Build.props 里统一说明，本文件不再各自声明一遍。 -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuickSql.Core\QuickSql.Core.csproj" />
+    <ProjectReference Include="..\..\src\QuickSql.Providers.SqlServer\QuickSql.Providers.SqlServer.csproj" />
+    <!-- 第二个方言族：离线侧的对拍与黄金样本要同时构造两家 provider，血统基类与金仓那层空壳都要能拿到。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.PostgreSqlBase\QuickSql.Providers.PostgreSqlBase.csproj" />
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Kingbase\QuickSql.Providers.Kingbase.csproj" />
+    <!-- PG 血统的第二颗叶子（v0.36 第二笔）：同一格理由的第八次重复。它多出的新形状是对拍链的中间那颗换了人——
+         PG 血统没有"本尊"，三段链读作 leaf == 邻家叶子（金仓） == 血统基类，所以构造得动三家才量得动它。
+         【v0.37 第二笔自纠】那句"没有本尊"今天作废：本族有了自己的正典叶 <c>QuickSql.Providers.PostgreSql</c>，
+         而它落在链的<em>末</em>端而不是那行的<em>中间</em>——三段链长成七段（本尊 == 五叶 == 血统）。
+         原句留着，因为它记的是当时"要量得动同形就得借邻家叶子"这件事实。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.OpenGauss\QuickSql.Providers.OpenGauss.csproj" />
+    <!-- PG 血统的第三颗叶子（v0.36 第三笔，GaussDB）：同一格理由的第九次重复。它多出的新形状是
+         PG 血统的第一次「两颗分叉叶子互读」——leaf == openGauss 叶 == 金仓叶 == 血统四段链，
+         要量得动四段就得同时构造四方（先例是 OceanBase 那册的互读格，MySQL 血统 v0.35 第四笔）。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.GaussDb\QuickSql.Providers.GaussDb.csproj" />
+    <!-- PG 血统的第四颗叶子（v0.36 第四笔，瀚高 HighGo）：同一格理由的第十次重复。它多出的新形状是
+         血统内两两互读的补满——四颗叶子 C(4,2)=6 条边此前只有四条见证，本册交出瀚高↔两颗分叉叶
+         两条，六条至此各有至少一颗（要量得动六条就得同时构造四方）。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Highgo\QuickSql.Providers.Highgo.csproj" />
+    <!-- PG 血统的第五颗叶子（v0.36 第六笔，GBase 8c）：同一格理由的第十二次重复。它多出的新形状是
+         两两互读一次补四条边——血统四叶的六条边上一册收满，第五颗叶子到场要把 C(5,2)=10 补满，
+         本册一次交出 8c↔另四叶的四条（要量得动十条就得同时构造五方）。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Gbase8c\QuickSql.Providers.Gbase8c.csproj" />
+    <!-- PG 血统的正典叶（v0.37 第二笔）：同一格理由的第十四次重复，而它多出的新形状不是"又多一方"：
+         它是这一族第一颗本尊，所以"要量得动同形就得借邻家叶子当链的中间那颗"这条前提在本家第一次不需要——
+         链的两端现在都是本族自己的库种（本尊 ∶ 血统），而"借来的那一段"仍在原地（openGauss 行那句自纠记着）。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.PostgreSql\QuickSql.Providers.PostgreSql.csproj" />
+    <!-- PG 血统的第七颗叶子（DuckDB 落笔）：同一格理由的第十七次重复，而它多出的新形状不是"又多一方"：
+         它是这一族第一颗与血统<b>不同形</b>的叶子（前六颗的逐字同形链，到这里第一次由磁盘基线取代对拍），
+         所以它进不了那串"leaf == 邻叶 == 血统"的链，方言册走 golden/duckdb/ 的磁盘基线（它也照单层那几行的
+         判据不进 <c>DialectParityTests</c>：它对血统不是"另两家共差几格"，是"同一份血统代码在两格上换读法"，
+         分岔的格点写在 <c>DuckDbTypes</c>/<c>DuckDbCodeFirst</c> 的类注释里）
+         —— 要同时量得动"血统与叶子这一格分岔"，本册要能同时构造叶子与那颗血统探针。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.DuckDb\QuickSql.Providers.DuckDb.csproj" />
+    <!-- 第三个方言族：对拍要三家同链各跑一遍，所以血统基类与达梦那层壳都要能构造。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.OracleBase\QuickSql.Providers.OracleBase.csproj" />
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Dameng\QuickSql.Providers.Dameng.csproj" />
+    <!-- Oracle 血统的第二颗叶子（v0.36 第五笔，神通 ShenTong）：同一格理由的第十一次重复。它多出的新形状是
+         本仓库第一次<em>同族两叶异形</em>的对读——leaf == 血统逐字同形（缝开着而没走过去），
+         而同族的达梦叶与它差的恰好是缝所 carry 的 IDENTITY 一句；要量得动这两条，血统探针、本家与邻家要同时构造三方。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.ShenTong\QuickSql.Providers.ShenTong.csproj" />
+    <!-- Oracle 血统的正典叶（v0.37 第三笔）：同一格理由的第十五次重复，而它多出的新形状不是"又多一方"——
+         这一族的空壳基线此前由一颗借 DbKind.Oracle 的探针量（DamengDialectTests 里那颗 OracleFamilyProbe），
+         本尊到场让影子第一次有本体可比：要量得动"探针 == 本尊 == 神通 == 血统逐字同形、而达梦差缝里那一句"，
+         血统探针、本尊与另两颗叶子得同时构造四方。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Oracle\QuickSql.Providers.Oracle.csproj" />
+    <!-- 第四个方言族：同一格理由的第四次重复——对拍要四家同链各跑一遍，所以血统基类与 MySQL 那层壳都要能构造。
+         这一族还多一样：它是「基类不声明 CaseSensitive_Identifiers」那一格的落点，而量这一格要同时数基类
+         与叶子两份产出（<c>MySqlDialectTests</c> 里 Provider 与 Family 各一枚）。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.MySqlBase\QuickSql.Providers.MySqlBase.csproj" />
+    <ProjectReference Include="..\..\src\QuickSql.Providers.MySql\QuickSql.Providers.MySql.csproj" />
+    <!-- MySQL 血统的第二颗叶子（v0.35 第三笔）：同一格理由的第六次重复。它对拍的价值恰好是"零覆写"这一格本身——
+         叶与血统基类与 MySQL 本尊三方逐字同形，要量得出来得同时构造三家（TiDbDialectTests 的全family断言）。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.TiDb\QuickSql.Providers.TiDb.csproj" />
+    <!-- MySQL 血统的第三颗叶子（v0.35 第四笔）：同一格理由的第七次重复。它与 TiDb 那行同判据（四方逐字同形要同时构造四方），
+         多的一格是"双模"那份悬空只能靠类注释与 §14 记账，测试层表达不了它——这里的构造本身就是那句"假设连接在 MySQL 模"。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.OceanBase\QuickSql.Providers.OceanBase.csproj" />
+    <!-- 第五个方言族：同一格理由的第五次重复。这一家只有一层（没有血统基类），所以只引一个项目，
+         而它对拍的价值恰好不在"又多一处对读"：它的标识符字形与第三家逐字同形，于是"折大写的两家用同一份策略"
+         这件事第一次有了两份产出可指（<c>XuguDialectTests</c> 里那几句 Assert.Equal 就是它）。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Xugu\QuickSql.Providers.Xugu.csproj" />
+    <!-- 第六个方言族：同一格理由的第十三次重复，且与上一行同档——只有一层（没有血统基类），所以只引一个项目。
+         它对拍的价值与虚谷那行是同一条而方向相反：虚谷带来"第三家的字形"，这一家带来<em>第一颗与本仓库另一族
+         逐字相同的策略值</em>（IdentifierPolicy.Gbase8s == PostgreSQL，双引号 + CaseSensitive + 不折），
+         于是"两族共用同一份寻址形状"第一次有了两份产出可指；而它的新形状全在寻址<em>之外</em>
+         （句头分页、位置式 <c>?</c>、别名不带 AS），所以这里量的是寻址那一格，不是整条链。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Gbase8s\QuickSql.Providers.Gbase8s.csproj" />
+    <!-- 第七个方言族：同一格理由的第十六次重复，与另三颗单层的（SqlServer／虚谷／GBase 8s）同档，只引一个项目。
+         它多出的新形状不在"又多一处对读"而在<em>对读之外</em>：这一族的产出与另六家无一族同形，所以它不进对拍链，
+         本册量的是四颗异形格——缺上限那颗分页记号第一次不是量级（<c>LIMIT -1</c>）、写语句两侧答案不同
+         （<c>UPDATE … FROM</c> 收而 <c>DELETE … FROM/USING</c> 各报一次语法错）、变更守卫第一颗恒真
+         （<c>BLOB</c> 到 1 MB 都比得动）、<c>TryEmitColumnComment</c> 第一颗交回 <c>false</c>。
+         它另有一格别家没有：本机不需要授权实例就能连上一台真库（一个文件就是一座库），所以这一层类注释里每格断言
+         后面挂的是探针读数而不是文档口径，出处目录 <c>obj/sqlite-probe*/</c>（编号排到 44）。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Sqlite\QuickSql.Providers.Sqlite.csproj" />
+    <!-- 第八个方言族（ClickHouse 落笔）：同一格理由的第十八次重复，与 DuckDB 那行同档——只有一层，
+         只引一个项目；且同为【文档口径行】，classes 里没有运行时构造它的那一册（驱动从未解析成功）。
+         它多出的新形状在对拍之外：UPDATE/DELETE 两整格拒发（本仓库第一颗）、建表遇契约索引整格拒、
+         可空不写在 DDL 修饰那一格而在型包裹（Nullable(T)，没有第三形）——
+         所以方言册量的是这三格加 6 位能力掩码，代价是本册要能同时构造它与在线册那套离线探针。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.ClickHouse\QuickSql.Providers.ClickHouse.csproj" />
+    <!-- 第十九个方言族（TDengine 落笔）：单层族第三颗【文档口径行】，时序库这档的第一颗——
+         与 ClickHouse 那行同档理由，多出的新形状在拒面之外还有一道键形状校验面
+         （每表第一列必须是 TIMESTAMP 且是主键，int Id 血统的模型在这一家建不出表）。 -->
+    <ProjectReference Include="..\..\src\QuickSql.Providers.TDengine\QuickSql.Providers.TDengine.csproj" />
+  </ItemGroup>
+
+  <!-- G1 的接线本体在这里：测试实体带 [Table]，编译期就会生成 schema/validator/事实。
+       OutputItemType=Analyzer + ReferenceOutputAssembly=false 表示「只挂进编译器，不作为引用」——
+       写成普通引用的话，测试项目会同时看到生成器的内部类型，那正是 §12.7 不想看到的耦合。 -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuickSql.Generators\QuickSql.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

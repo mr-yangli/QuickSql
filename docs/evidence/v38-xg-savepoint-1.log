@@ -1,0 +1,9 @@
+  Discovering: FastSql.Tests.Integration
+  Discovered:  FastSql.Tests.Integration
+  Starting:    FastSql.Tests.Integration
+PrepareCatalog：xugu 一支不建库（§13.17 的授权只到建表），目标库必须在场。
+EnsureInventoryItem：xugu 一支建不出夹具表 —— xugu 这一家由 provider 自己拒收 rowversion 那一型：库里有那一型也会自增（A-04），但驱动读不回那一列（带它的 SELECT 抛 DataOutOfBindException，RV-08 ∶ A-06），所以 XuguCodeFirst 在 v0.34 第二笔把那句 DDL 拦在发射前（FastSqlException）。全新库因此建不出这张夹具表（跑过旧版夹具的机器上表已经在，走的是存在性分支）—— 缺口记 §14，与 DdlTests 那张探针表同一格；并发那十一条另由 RequireConcurrencyColumn 点名。
+  Finished:    FastSql.Tests.Integration (ID = 'abfde517874d980838ec1c62ff07f2b2c439aa75c12292a8989400dea5b81657')
+=== TEST EXECUTION SUMMARY ===
+   FastSql.Tests.Integration  Total: 1, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.368s
+EXIT=0

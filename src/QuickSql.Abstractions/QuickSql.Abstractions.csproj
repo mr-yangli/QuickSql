@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>QuickSql</RootNamespace>
+    <Description>QuickSql ORM 的抽象层：驱动 SPI、查询模型、SQL AST、列契约与钩子契约。不含任何驱动引用。</Description>
+  </PropertyGroup>
+
+</Project>
