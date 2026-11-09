@@ -209,8 +209,7 @@ public sealed class SqlServerSchemaReader : ISchemaReader
 
     /// <summary>形状对得上吗——比的是归一后的存储类型文本，而归一只有本家做得起。
     /// 发射侧一律大写而目录一律小写；DATETIME2(3) 发出去而目录把标度单存一格；
-    /// 手工建的表上 DECIMAL 读回 numeric；rowversion 在目录里干脆就叫 binary(8)。
-    /// 这四折全在这一个私有归一口里，所以建侧与读侧不可能各自折成两个样子。</summary>
+    /// 手工建的表上 DECIMAL 读回 numeric。这三折全在这一个私有归一口里，所以建侧与读侧不可能各自折成两个样子。</summary>
     public bool? ColumnShapeMatches(ColumnContract expected, SchemaColumn actual) =>
         string.Equals(
             Normalize(SqlServerTypes.Instance.GetStoreType(expected)),
@@ -221,10 +220,6 @@ public sealed class SqlServerSchemaReader : ISchemaReader
     static string Normalize(string storeType)
     {
         var lower = storeType.Trim().ToLowerInvariant();
-
-        // rowversion 在 sys.types 里落回 binary(8)：那是同一个型的两个名字，不是两种形状。
-        if (lower is "rowversion" or "timestamp")
-            return "binary(8)";
 
         return lower.Replace("numeric", "decimal", StringComparison.Ordinal);
     }

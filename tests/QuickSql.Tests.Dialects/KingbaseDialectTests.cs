@@ -491,9 +491,9 @@ public sealed class KingbaseDialectTests
     [Fact]
     public void Binary_refuses_to_inline_at_all_because_its_text_form_depends_on_a_session_setting()
     {
-        var contract = orm().Schemas.Contract<InventoryItem>();
-        var sku = contract.Columns.Single(c => c.MemberName == nameof(InventoryItem.Sku));
-        var version = contract.Columns.Single(c => c.MemberName == nameof(InventoryItem.RowVersion));
+        var contract = orm().Schemas.Contract<BadToken>();
+        var sku = contract.Columns.Single(c => c.MemberName == nameof(BadToken.Name));
+        var version = contract.Columns.Single(c => c.MemberName == nameof(BadToken.Stamp));
 
         var insert = new InsertStatement
         {

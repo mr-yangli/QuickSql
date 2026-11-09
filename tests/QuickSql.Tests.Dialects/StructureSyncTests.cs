@@ -108,7 +108,6 @@ public sealed class StructureSyncTests
     [InlineData("datetime2(7)", "DATETIME2(7)")]
     [InlineData("nvarchar(max)", "NVARCHAR(MAX)")]
     [InlineData("varbinary(max)", "VARBINARY(MAX)")]
-    [InlineData("binary(8)", "rowversion")]
     [InlineData("numeric(18,4)", "DECIMAL(18,4)")]
     public void Catalog_spelling_and_emitted_spelling_are_the_same_shape(string fromCatalog, string emitted)
         => Assert.True(Reader.ColumnShapeMatches(Declared(emitted), Col("C", fromCatalog)));

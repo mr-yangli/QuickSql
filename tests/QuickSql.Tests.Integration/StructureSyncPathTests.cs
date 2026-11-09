@@ -77,6 +77,7 @@ public sealed class StructureSyncPathTests
             Database.Target.SqlServer => "[dbo].[QuickSqlShapeProbe]",
             Database.Target.PostgreSql => "\"public\".\"QuickSqlShapeProbe\"",
             Database.Target.MySql => "`QuickSqlShapeProbe`",
+            Database.Target.OceanBase => "`QuickSqlShapeProbe`",
             var other => throw new InvalidOperationException($"{other} 这一家本册没有 arrange，问表名没有对象"),
         };
 
@@ -84,7 +85,7 @@ public sealed class StructureSyncPathTests
     /// "改了小数长度"这一问，而"改了"之后还得<em>读得回来</em>才判得出同步没同步——后者正是这两笔
     /// 给 PG 家与 MySQL 家补上的那四档。其余四家今天缺的是后者，不是前者。</summary>
     static void SkipUnlessArrangedHere()
-        => Assert.SkipWhen(Database.Family is not (Database.Target.SqlServer or Database.Target.PostgreSql or Database.Target.MySql),
+        => Assert.SkipWhen(Database.Family is not (Database.Target.SqlServer or Database.Target.PostgreSql or Database.Target.MySql or Database.Target.OceanBase),
             "本用例的靶子表是按各家自己的裸 SQL 摆的旧形状（T-SQL 的 IDENTITY ∶ sp_addextendedproperty ∶ datetime2(3)，" +
             "PG 家的 GENERATED AS IDENTITY ∶ COMMENT ON ∶ timestamp(3)，MySQL 家的 AUTO_INCREMENT ∶ 列定义里的 COMMENT ∶ datetime(3)，" +
             "三处都没有跨家写法可折），而摆完之后还要读侧四档接上才判得出差别：今天这三家接齐了，" +
@@ -113,6 +114,7 @@ public sealed class StructureSyncPathTests
 
                 return;
             case Database.Target.MySql:
+            case Database.Target.OceanBase:
                 BuildOldShapeMySql(extraIndex);
 
                 return;
@@ -264,6 +266,14 @@ public sealed class StructureSyncPathTests
                     "SELECT '<table>' AS target, t.table_comment AS remark FROM information_schema.tables t " +
                     "WHERE t.table_schema = DATABASE() AND t.table_name = 'QuickSqlShapeProbe' AND t.table_comment <> ''")
                 .ToDictionary(r => r["target"], r => r["remark"], StringComparer.Ordinal),
+            // OceanBase（MySQL 模）的目录与 MySQL 同一形：column_comment ∶ table_comment 两颗字段。
+            Database.Target.OceanBase => Database.Rows(
+                    "SELECT c.column_name AS target, c.column_comment AS remark FROM information_schema.columns c " +
+                    "WHERE c.table_schema = DATABASE() AND c.table_name = 'QuickSqlShapeProbe' AND c.column_comment <> '' " +
+                    "UNION ALL " +
+                    "SELECT '<table>' AS target, t.table_comment AS remark FROM information_schema.tables t " +
+                    "WHERE t.table_schema = DATABASE() AND t.table_name = 'QuickSqlShapeProbe' AND t.table_comment <> ''")
+                .ToDictionary(r => r["target"], r => r["remark"], StringComparer.Ordinal),
             Database.Target.PostgreSql => Database.Rows(
                     "SELECT CASE WHEN d.objsubid = 0 THEN '<table>' ELSE a.attname END AS target, d.description AS remark " +
                     "FROM pg_description d " +
@@ -295,12 +305,12 @@ public sealed class StructureSyncPathTests
     /// 所以下面那一支两句都问一遍——渲染与结构化字段同数才算数。</summary>
     static string DeclaredChars(string name)
     {
-        Assert.SkipUnless(Database.Family is Database.Target.PostgreSql or Database.Target.MySql,
-            "只有这两家问得出这颗字符宽度（T-SQL 那一颗是字节数，走 Column 的 max_length）");
+        Assert.SkipUnless(Database.Family is Database.Target.PostgreSql or Database.Target.MySql or Database.Target.OceanBase,
+            "只有这三家问得出这颗字符宽度（T-SQL 那一颗是字节数，走 Column 的 max_length）");
 
         // 两句的差只在那一颗模式谓词上：PG 家按名字筛，而 MySQL 家的"模式"是连接带来的那颗
         // DATABASE()（契约里没写模式时两家都落到各自那个默认库，与两家 EmitTable 同一条判据）。
-        return Database.Family == Database.Target.MySql
+        return Database.MySqlFamily
             ? Database.Rows(
                     "SELECT c.character_maximum_length AS width FROM information_schema.columns c " +
                     "WHERE c.table_schema = DATABASE() AND c.table_name = 'QuickSqlShapeProbe' AND c.column_name = @col",
@@ -323,6 +333,9 @@ public sealed class StructureSyncPathTests
                 SELECT "Title", "Amount", "Legacy" FROM {Table} ORDER BY "Id"
                 """).Single(),
             Database.Target.MySql => Database.Rows($"""
+                SELECT `Title` AS Title, `Amount` AS Amount, `Legacy` AS Legacy FROM {Table} ORDER BY `Id`
+                """).Single(),
+            Database.Target.OceanBase => Database.Rows($"""
                 SELECT `Title` AS Title, `Amount` AS Amount, `Legacy` AS Legacy FROM {Table} ORDER BY `Id`
                 """).Single(),
             _ => Database.Rows($"SELECT [Title], [Amount], [Legacy] FROM {Table} ORDER BY [Id]").Single(),
@@ -406,7 +419,7 @@ public sealed class StructureSyncPathTests
     /// 而这一档的题面恰恰是各家那几颗字段。</para></summary>
     static void CatalogSaysTheNewShape()
     {
-        if (Database.Family == Database.Target.MySql)
+        if (Database.MySqlFamily)
         {
             Assert.Equal("varchar(32)", Column("Title")["store_type"]);
             Assert.Equal("32", DeclaredChars("Title"));
@@ -462,7 +475,7 @@ public sealed class StructureSyncPathTests
         Assert.Empty(result.CreatedTables);
 
         // 一句没发 = 目录里还是那个旧形状，而不是"发了但没改成"。
-        if (Database.Family == Database.Target.MySql)
+        if (Database.MySqlFamily)
         {
             Assert.Equal("varchar(64)", Column("Title")["store_type"]);
             Assert.Equal("64", DeclaredChars("Title"));

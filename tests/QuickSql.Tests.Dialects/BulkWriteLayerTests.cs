@@ -440,12 +440,12 @@ public sealed class BulkWriteLayerTests
     [Fact]
     public void The_whole_row_update_leaves_the_key_the_store_and_the_concurrency_columns_out_of_SET()
     {
-        // InventoryItem：Id 自增主键、Sku 与 Quantity 是可写列、RowVersion 是库里给值的并发列、
-        // CheckedAt 是可空并发列。三不出在这里一次判完（判据与 UpdateEngine.ColumnOf 逐字同源）。
+        // InventoryItem：Id 自增主键、Sku 与 Quantity 是可写列、Version 是整型并发列（ORM 在 SET 里 +1）、
+        // CheckedAt 是应用给值的并发列（随行写出去）。三不出在这里一次判完（判据与 UpdateEngine.ColumnOf 逐字同源）。
         var items = new[]
         {
-            new InventoryItem { Id = 1, Sku = "a", Quantity = 2, RowVersion = [1, 2, 3], CheckedAt = Moment },
-            new InventoryItem { Id = 2, Sku = "b", Quantity = 3, RowVersion = [4, 5, 6], CheckedAt = null },
+            new InventoryItem { Id = 1, Sku = "a", Quantity = 2, CheckedAt = Moment },
+            new InventoryItem { Id = 2, Sku = "b", Quantity = 3, CheckedAt = Moment },
         };
 
         var plan = orm().UpdateRange(items).Explain();
@@ -453,23 +453,23 @@ public sealed class BulkWriteLayerTests
 
         Checks.Has("[Sku] = @p0", text);
         Checks.Has("[Quantity]", text);
+        Checks.Has("[CheckedAt] = @p2", text);
+        Checks.Has("[Exception] = @p3", text);
         // 主键在这条命令里出现两次，而两次都是带别名限定的 WHERE 形状 ⇒ SET 里一颗都没有。
         // 不能写成 Absent("[Id] =")：WHERE 就长那样，只是它前面挂着 t0.，那句会把自己的定位条件判丢。
         Assert.Equal(2, Checks.Occurrences(text, "[Id]"));
         Assert.Equal(2, Checks.Occurrences(text, "[t0].[Id]"));
-        Checks.Absent("[RowVersion]", text);
-        Checks.Absent("[CheckedAt]", text);
-        Checks.Has("[t0].[Id] = @p2", text);
+        Checks.Absent("[Version]", text);
+        Checks.Has("[t0].[Id] = @p4", text);
 
-        // 每行 2 颗 SET + 1 颗键 = 3 颗，两行 6 颗；不出 SET 的那三列也一处都不进参数表。
-        Assert.Equal(6, plan.Commands[0].Parameters.Count);
-        Assert.DoesNotContain("RowVersion", plan.Commands[0].Parameters.Select(p => p.Hint!.ColumnName));
-        Assert.DoesNotContain("CheckedAt", plan.Commands[0].Parameters.Select(p => p.Hint!.ColumnName));
+        // 每行 4 颗 SET + 1 颗键 = 5 颗，两行 10 颗；整型令牌一处都不进参数表。
+        Assert.Equal(10, plan.Commands[0].Parameters.Count);
+        Assert.DoesNotContain("Version", plan.Commands[0].Parameters.Select(p => p.Hint!.ColumnName));
 
-        // 并发列<em>哪儿都不去</em>：这一条链不做并发校验——那是 UpdateEngine（调用方点名改哪几列、
+        // 整型令牌<em>哪儿都不去</em>：这一条链不做并发校验——那是 UpdateEngine（调用方点名改哪几列、
         // WHERE 带原值）与 SaveChanges（跟踪器的脏列判定）那一档。整行更新的契约就是"整行交出去"，
-        // 所以它既不写并发列也不比并发列，这一格要钉死的是"少写一列"与"不比一列"是同一件事的两面。
-        Checks.Has("SET 2 列 + WHERE 1 列", plan.Reason);
+        // 所以它既不写整型令牌也不比它；AppSetsValue 那一格可写，随行写出去。
+        Checks.Has("SET 4 列 + WHERE 1 列", plan.Reason);
     }
 
     [Fact]

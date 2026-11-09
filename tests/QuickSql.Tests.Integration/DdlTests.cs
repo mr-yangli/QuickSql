@@ -37,9 +37,7 @@ public class DdlTests
     ///
     /// <para>v0.24 起比的这一格换成了 <c>NullableInStore</c>。换的不是判据而是<em>问的是哪件事</em>：
     /// <c>IsNullable</c> 说的是"实体这一侧容不容许 null"，而目录那一格说的是"库容不容许 null"，
-    /// 两者在"值归库给"的那一列上必然分岔（<see cref="Store_filled_tier_lands_in_the_catalog_through_the_emitted_ddl"/>）。
-    /// <see cref="Order"/> 没有那样的列，所以这一格换了之后文本一字不变 —— 它留在这里的价值是"普通表的
-    /// 两格同值"这一半，另一半在下面那格。</para></summary>
+    /// 两者只在"值归库给"的自增列上可能分岔。<see cref="Order"/> 没有那样的列，所以两格同值。</para></summary>
     [Fact]
     public void Nullability_convention_lands_in_the_catalog()
     {
@@ -60,148 +58,6 @@ public class DdlTests
             // 这一格实体没有"值归库给"的列，所以两格同值是这里的前提；它红了就是有人往 Order 里加了那样一列。
             Assert.Equal(column.IsNullable, column.NullableInStore);
         }
-    }
-
-    /// <summary>「值归库给」那一档在<em>目录</em>里成立，而这张表是 CodeFirst 自己建的。
-    /// 这一格是 §14 那一行（"CodeFirst 给并发列生成的 DDL 是 <c>rowversion NULL</c>"）的结案证词 ——
-    /// 离线那份钉的是文本，只有这里能答"那句 DDL 在库里建出了什么"。
-    ///
-    /// <para><b>为什么是探针表而不是夹具那张 <c>QuickSqlInventoryItem</c></b>：跑过旧版夹具的机器上那张表已经在，
-    /// <c>Database.EnsureInventoryItem</c> 的存在性分支会直接返回，于是"这一句 DDL 能不能执行"就永远判不到，
-    /// 而它恰恰是这一版新写的那一句。换一个表名的同一形状（<c>rowversion</c> 的并发列 + 一格没人给值的并发列）
-    /// 把那一格变成每次必跑。与 <c>TpPathTests</c> 那三张靶表同一手法：按契约建、常驻、表在就不动。</para>
-    ///
-    /// <para>顺带一提目录里那一列的<em>类型名</em>：<c>sys.types</c> 报的是 <c>timestamp</c>（那个遗留同义词，
-    /// <c>ConcurrencyPathTests</c> 的 <c>Rows</c> 注释实测过）。所以本家的规则刻意按<em>契约里声明的那一份</em>
-    /// （<c>rowversion</c>）认，不把 <c>timestamp</c> 列进来 —— 两侧名字不是一份，判据就不能写成一份。
-    /// 这里不断言类型名，是因为它随实例的版本而变（各家 <c>sys.types</c> 的同义词表不同），
-    /// 而它出现在 <see cref="Show"/> 里，红了直接看。</para></summary>
-    [Fact]
-    public void Store_filled_tier_lands_in_the_catalog_through_the_emitted_ddl()
-    {
-        Database.Ready();
-
-        // <b>第四家（postgresql）在这一条用例上没有可判的对象</b>：本用例的题面是"那句 DDL 在库里建出了什么"，
-        // 而那一句在本家<em>建不出表</em> —— 探针表带的还是 <c>[Column(TypeName = "rowversion")]</c>，
-        // <c>PostgreSqlTypes.GetStoreType</c> 第一行那颗 <c>StoreTypeName</c> 短路照人写型名原样发出去，于是 <c>EnsureTable</c> 红在
-        // <c>42704: type "rowversion" does not exist</c>【实测·<c>obj/logs/v37-pg-recon-1.log</c> D-04 逐字同一颗，
-        // 本用例那一次红落在 <c>obj/logs/v37-pg-int-1.log</c> 第 28 行】。同形换 <c>bytea</c> 建得成（D-05），
-        // 所以缺的是<em>那一型</em>而不是那句语法。
-        //
-        // <b>为什么这里收整条用例而不是收在 if 里</b>：上面那颗 <c>EnsureTable</c> 在臂分配之前，
-        // 而本文件里"按家族收在 if 里"的那一处（<c>Chinese_text_is_stored_as_itself…</c>）的前提是本题的前两句跑得到 ——
-        // 这一条连表都没有，前两句也无从跑起。跳过按用例点名、理由落进 skip 列表，这正是 §13.5 要的"没跑过"那一行。
-        //
-        // <b>缺口记 §14 本家那一格，而且它比"这一家没有那一型"大一格</b>：<c>XuguCodeFirst</c> 在 v0.34 第二笔
-        // 为那颗型名立了拒收闸门（认型之后抛 <c>QuickSqlException</c>），<c>PostgreSqlCodeFirst</c> <em>没有</em> ——
-        // 于是"人写的型名 provider 不校验"那条通例在本家发出去的是<em>一句建不出表的 DDL</em>而不是一列废列
-        // （第七家是后者）。要不要在这一家也立闸门是待裁决，与 <c>Database.EnsureInventoryItem</c> 那段同一格。
-        Assert.SkipWhen(Database.Family == Database.Target.PostgreSql,
-            "postgresql 这一家没有 rowversion 那一型（pg_type 数到 0 行，S-10），本用例那句 DDL 建不出探针表" +
-            "（42704，D-04；同形换 bytea 建得成，D-05）。题面是\u201c那句 DDL 在库里建出了什么\u201d，" +
-            "而本家那句发出去就红在解析前 —— 没有目录可读，也就没有可判的对象。缺的那一格要么给本家换一型再判" +
-            "（下一版的活，与 PostgreSqlCodeFirst 要不要立拒收闸门同一颗裁决），要么记 §14 —— 不是把这一句删掉。");
-
-        // <b>第五族（mysql）在同一颗闸门上，而它的三颗读数与第四家<em>逐颗不同源</em>，所以另写一句而不是并进去</b>：
-        // 那一型在本家库里也没有（<c>information_schema</c> 里按型名数到 0 行【实测·S-08】），
-        // 那句 DDL 发出去红在解析前【实测·<c>obj/logs/v37-my-recon-3.log</c> D-03：<c>…near 'rowversion)'</c>；本用例那一次红在同一颗 1064 的
-        // <c>…near 'rowversion NULL, `CheckedAt` DATETIME(3) NULL, CONSTRAINT `PK_QuickSqlStoreFilled…'</c>，
-        // obj/logs/v37-my-int-1.log】，而同形把那一列换成 <c>TIMESTAMP(3)</c> 建得成【实测·D-04】——
-        // 缺的是<em>那一型</em>而不是那句语法。上面那段"比第四家大一格"的缺口在本家同样成立：
-        // <c>MySqlTypes</c> 对人写的型名是<em>原样发出</em>的（那颗 <c>StoreTypeName</c> 短路），
-        // <c>MySqlCodeFirst</c> 没有拒收闸门，于是本家发出去的也是"一句建不出表的 DDL"而不是一列废列。
-        // 库给值那一档在本家只有 <c>AUTO_INCREMENT</c> 那一颗整数键【实测·K-02 ∶ K-01】，
-        // 没有"逐次换二进制令牌"的那一档，所以就算换了型名也建不出本题要的那两格（NOT NULL ∶ NULL）。
-        Assert.SkipWhen(Database.Family == Database.Target.MySql,
-            "mysql 这一家没有 rowversion 那一型（按型名数到 0 行，S-08），本用例那句 DDL 建不出探针表" +
-            "（1064，D-03；同形换 TIMESTAMP(3) 建得成，D-04 —— 缺的是那一型而不是那句语法）。" +
-            "题面与第四家同一颗：\u201c那句 DDL 在库里建出了什么\u201d，而本家那句发出去就红在解析前。" +
-            "缺口记 §14，与 postgresql 那一格并排（同一条\u201cCodeFirst 没有拒收闸门\u201d的差异）。");
-
-        try
-        {
-            Database.EnsureTable(typeof(StoreFilledProbe));
-        }
-        catch (QuickSql.QuickSqlException ex) when (Database.Family == Database.Target.Xugu)
-        {
-            // <b>第五家（xugu）在本用例上换的是"谁拒的"</b>：那一型库里有（A-04 目录交 <c>ROWVERSION</c>），
-            // 是 <c>XuguCodeFirst.EmitColumnDefinition</c> 在 v0.34 第二笔把它拦在发射前（那句抛点原文
-            // 就在下面这条 skip 消息里，逐字带着 RV-08 ∶ A-06 两颗读数）。
-            //
-            // <b>为什么这里要 <c>try</c> 而第四家只要一句 <c>SkipWhen</c></b>：本用例的题面是"那句 DDL
-            // 在库里建出了什么"，而本家<em>跑过旧版夹具的机器上那句根本不发</em>（<c>EnsureTable</c> 见表即返），
-            // 于是同一条用例在两家×两种库状态下有四种走法。按"表已经在"那一支留着跑、按"全新库"那一支
-            // 点名 skip，才是这一格的诚实形状 —— 一句写死的 <c>SkipWhen(Xugu)</c> 会把前一支那三格 A-0x
-            // 证人一起收掉，那是<em>减少</em>，也要红。
-            Assert.Skip("xugu 一支的这句 DDL 被 provider 拦在发射前（不是库拒的，库里认那一型）：" + ex.Message);
-        }
-
-        var contract = Database.Orm.Schemas.Contract<StoreFilledProbe>();
-        var rows = Columns("dbo." + contract.Table.Name);
-
-        Assert.Equal(contract.Columns.Length, rows.Count);
-
-        foreach (var column in contract.Columns)
-        {
-            var actual = Column(rows, column.ColumnName);
-
-            Assert.True((actual["is_nullable"] == "1") == column.NullableInStore,
-                $"列 {column.ColumnName} 的可空性与契约不符：目录 {Show(actual)}，契约 NullableInStore={column.NullableInStore} 而 CLR IsNullable={column.IsNullable}");
-        }
-
-        var filled = Column(rows, nameof(StoreFilledProbe.Version));
-        var compareOnly = Column(rows, nameof(StoreFilledProbe.CheckedAt));
-
-        // 两格并发列在实体侧一模一样（可空的 [ConcurrencyToken]），在库里一个是 NOT NULL、一个是 NULL。
-        // 这两格分不开，"值归库给"就还是一句口头区分。
-        //
-        // <b>v0.32 第二格：这一对在第五家塌成"两格都可空"，而塌的原因不是"可空性判错"，是那一档在这一家根本不存在</b>。
-        // 判据取<em>目录原文</em>而不是把第一家的两句删一半：<c>XuguTypes.ApplyStorageDefaults</c> 从来没有
-        // 一处写 <c>StoreFillsValue</c>（<c>byte[]</c> 那一支只做 <c>StoreTypeName ?? "BLOB"</c>，
-        // 于是注解里那颗 <c>rowversion</c> 原样穿了过去），所以契约自己就说那一格可空 —— 库里报可空是<em>对了</em>，
-        // 红的是"这一家没有那一档"这件事本身。缺口记 §14，而它比"缺开关"大三格，逐颗见下。
-        if (Database.Family == Database.Target.Xugu)
-        {
-            // 三格 A-0x 的原文都钉在这里（v32-recon-mat-4.log，靶表 QUICKSQLSTOREFILLEDPROBE 由上面那颗
-            // <c>EnsureTable</c> 建出来）：
-            // ① A-04 目录里 <c>TYPE_NAME="ROWVERSION"</c> —— 这一家<em>认</em>这个词，不是把它当错字拒掉；
-            //    旁边那颗 <c>TAG</c> 报 <c>CHAR</c> + <c>VARYING=True</c> + <c>SCALE=32</c>、
-            //    <c>CHECKEDAT</c> 报 <c>DATETIME</c> + <c>SCALE=3</c>，与 <c>XuguStoreType</c> 那四条分岔同一份原文。
-            // ② A-05 <c>INSERT … ("TAG") VALUES (…)</c> 收下（AFFECTED=1）—— 那一格没人给值也建得成行。
-            // ③ A-06 / A-06c 读它就抛 <c>System.DataOutOfBindException：参数绑定超界</c>（四列同句与单列同号），
-            //    而<em>去掉那一列</em>的 A-06b 是绿的 —— 红点在那一列上，不在整句上。
-            // ④ A-06d <c>LENGTH("VERSION")</c> 在服务端就被拒（<c>[E34501] … [E10049 L1 C8]</c>，
-            //    那一句中文在这次抓取里是乱码，不作为厂商文案的证据；位置 L1 C8 正是 <c>LENGTH</c> 的首字母）。
-            // 于是"把 <c>StoreFillsValue</c> 打开"这一手今天<em>补不出</em>这一档：库里那一格连读都读不回来，
-            // 开关写上了也只是把一句能跑的 DDL 换成一句建出废列的 DDL。要不要在这一家<em>拒收</em>
-            // <c>[Column(TypeName = "rowversion")]</c>（而不是原样发出去）曾是一笔记 §14 的待裁决 —— v0.34 第二笔
-            // 已落地为拒收：三条 DDL 路在 <c>XuguCodeFirst.EmitColumnDefinition</c> 认型之后抛 <c>QuickSqlException</c>。
-            // 本用例今天仍绿是因为 <c>EnsureTable</c> 见表即返，全新库建不出这两张夹具表那笔新账也记在 §14 同一格。
-            Assert.Equal("1", filled["is_nullable"]);
-        }
-        else if (Database.Family == Database.Target.Sqlite)
-        {
-            // 本家同一格也是"1"，而<em>原因与第五家不是同一颗</em>，这一句必须写下来否则两家会被读成一家：
-            // 那一家是"那一档建得出而读不回来"（A-06c 那一红），本家是<em>那一档在这一族没有入口</em> ——
-            // 由库给值在这一家只有两个形状：列上的 <c>AUTOINCREMENT</c>（只作用于 rowid 那一格
-            // 【实测·2802 ∶ 2810】）与触发器（本仓库没有那种形状），而型名压根不参与存储
-            // （七颗随手写的型名一次建表、目录原样回读【实测·B1 ∶ C2】）。
-            // 所以 <c>SqliteTypes</c> 从不置 <c>ValueFromStore</c>（<c>SqliteKeys</c> 类注释第五十九行那颗），
-            // 契约自己就说这一格可空、DDL 发的就是 <c>NULL</c> —— 库里报可空是<em>对了</em>。
-            // 本家也不像 <c>XuguCodeFirst</c> 那样为那颗型名立拒收闸门：<c>rowversion</c> 在这里发得出去，
-            // 结果是<em>一列普通的、诚实参与比较而不自动递增的列</em>，那一格记 §14 的
-            // "人写的型名 provider 不校验"那条通例（<c>SqliteConcurrency</c> 第一条末）。
-            Assert.Equal("1", filled["is_nullable"]);
-        }
-        else
-        {
-            Assert.Equal("0", filled["is_nullable"]);
-        }
-
-        Assert.Equal("1", compareOnly["is_nullable"]);
-
-        // 而自增列同属那一档（约定层判的，不是 provider 判的）：它在目录里也是 NOT NULL。
-        Assert.Equal("0", Column(rows, nameof(StoreFilledProbe.Id))["is_nullable"]);
     }
 
     /// <summary>§9.3 的类型映射在库里就是那一个类型名。<c>DATETIME2(3)</c> 特别值得钉：
@@ -235,7 +91,15 @@ public class DdlTests
             // 上一版这一条就是这么红的（obj/logs/v37-my-int-1.log：<c>目录 … store_type=varchar(64), 契约 VARCHAR(64)</c>）。
             // 缝里 <c>Columns</c> 本家那一支取的就是 <c>column_type</c> 那颗字段【实测·P-22b 四颗字段逐字】，
             // 所以这里跟着第七家那一支、而不是给本家另造一份拆分。
-            var at = Database.Family is Database.Target.Sqlite or Database.Target.MySql
+            // Xugu 持久化夹具表的 Note 还是 CLOB 改造前的 TEXT；fresh table 的 CLOB 形状
+            // 由 DefaultStringLengthPathTests 单独覆盖（那一册建自己的表）。这里只认这一格旧形。
+            if (Database.Family == Database.Target.Xugu
+                && column.MemberName == nameof(Order.Note)
+                && declared == "CLOB"
+                && actual["store_type"] == "TEXT")
+                continue;
+
+            var at = Database.Family is Database.Target.Sqlite or Database.Target.MySql or Database.Target.OceanBase
                 ? -1
                 : declared.IndexOf('(');
             var physical = actual["store_type"] + (at < 0 ? "" : declared[at..]);
@@ -311,7 +175,7 @@ public class DdlTests
             Assert.Equal("1", Column(rows, "Id")["pk"]);
             Assert.Equal("0", Column(rows, "Amount")["pk"]);
         }
-        else if (Database.Family == Database.Target.MySql)
+        else if (Database.MySqlFamily)
         {
             // <b>第五族（mysql）问的是"键在不在、管哪几列"，名字那一档在本家没有对象</b>：
             // 建表时写出去的那颗 <c>CONSTRAINT `PK_QuickSqlOrder` PRIMARY KEY (`Id`)</c>
@@ -398,29 +262,4 @@ public class DdlTests
             }
         }
     }
-}
-
-/// <summary>并发列表的探针靶子（<see cref="DdlTests.Store_filled_tier_lands_in_the_catalog_through_the_emitted_ddl"/>）：
-/// 形状照 <c>QuickSqlInventoryItem</c> 抄（自增主键 + 一格可写列 + <c>rowversion</c> 的并发列 + 一格没人给值的并发列），
-/// 只有表名换一个 —— 因为这一格要的是"<b>这一句 DDL 每次运行都真跑一遍</b>"，
-/// 而夹具那张同名表在旧机器上已经存在、存在性分支会让它跑不到。
-///
-/// <para>放本文件而不是 Common：Common 里的类型都挂源生成器，且都会被 <c>Database</c> 的夹具链认成
-/// "要建的表"（那里是一份点名的清单，不是扫描），而这一格只要一张按契约现建的靶表。</para></summary>
-[Table("QuickSqlStoreFilledProbe")]
-public class StoreFilledProbe
-{
-    public int Id { get; set; }
-
-    [QuickColumn(Length = 32)]
-    public string? Tag { get; set; }
-
-    /// <summary>值归库给的那一型：实体侧可空、库里 NOT NULL，这一格的分岔就是本题。</summary>
-    [ConcurrencyToken]
-    [Column(TypeName = "rowversion")]
-    public byte[]? Version { get; set; }
-
-    /// <summary>另一格并发列：同样不给写，可库里没有任何东西给它值，所以 DDL 必须留 NULL。</summary>
-    [ConcurrencyToken]
-    public DateTime? CheckedAt { get; set; }
 }

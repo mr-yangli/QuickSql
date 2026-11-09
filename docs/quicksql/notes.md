@@ -2,11 +2,13 @@
 
 > 2026-11-02 全仓注释精简（简短 `///`）时，从代码注释里摘出来的坑位、边界、已知限制与历史账，按模块归档于此。代码里只留一两句能自立的说明；这一份收"展开才说得清"的部分。
 
+> **2026-11-09 rowversion 支持移除**：产品与测试一起删掉了 `ConcurrencyMode.RowVersion`、`ColumnContract.StoreFillsValue`、`OUTPUT/RETURNING` 回读并发列那条路，以及 SQL Server 的 rowversion 映射。并发令牌只剩两族：整型 `Version`（ORM 在 `SET` 里 +1）与 `AppSetsValue`（应用给新值）。下面历史条目中涉及 `rowversion` / `StoreFillsValue` / “值归库给”的，一律以本条为准，代码里已不再走那条路。
+
 ## Metadata／ColumnContract（src/QuickSql.Abstractions/Metadata/ColumnContract.cs）
 
 - `NullabilityDeclared` 只摘写前必填校验（§10.6 的尺子），不改列形状——动形状要的是现库的列而不是一句推断；唯一落 false 的情形是 `#nullable disable` 或未带可空元数据的引用程序集（整份 ABP/DDD 框架代码天天在这一格上）。
 - `IsConcurrencyToken` 与 `ValueFromStore` 不是一回事：前者说"这一侧不写它"，后者说"库里它必不为空"。可空并发列而库里没有任何东西给它值的那一型（CheckedAt）不进列清单，可 DDL 写 NOT NULL 会让每一句不带它的 INSERT 撞库。
-- `AppSetsValue` 与另两族分住：库维护的（StoreFillsValue/rowversion 靠回读）与整型自增（SET Version = Version + 1）都不进 SET；应用给值族必须进——WHERE 是快照、SET 是现值。
+- `AppSetsValue` 与整型自增分住：整型令牌不进 SET（由 ORM 发 `Version = Version + 1`）；应用给值族必须进——WHERE 是快照、SET 是现值。rowversion / StoreFillsValue 已移除。
 - `NullableInStore` 是五族 EmitColumnDefinition 的唯一可空判据——"改一处注解就让两条 DDL 对上"的修法在这一格无处遁形。
 - `Comment` 的 null 与空串语义不同：结构同步按这一格决定要不要重发 COMMENT ON COLUMN。
 - `MaxLength` 解析链上 StringLength 与 MaxLength 同层互斥，取严格者会藏"建表按 20、校验按 50"三个月的 bug，所以直接抛 MetadataConflictException。

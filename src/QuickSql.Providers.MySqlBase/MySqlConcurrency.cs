@@ -4,11 +4,10 @@ using QuickSql.Sql.Ast;
 
 namespace QuickSql.Providers.MySqlBase;
 
-/// <summary>MySQL 血统的乐观并发。没有 rowversion，但有 DATETIME(3) … ON UPDATE CURRENT_TIMESTAMP(3)
-/// 这一档库自动改写的列子句（金仓/Oracle 要建 BEFORE UPDATE 触发器，这里它是列定义上的一个子句）。
-/// 今天落在"应用给值"那一半：发的 DDL 没有那个子句，契约也没有"这一列归库给"的格子——
-/// 要接需两步（类型映射置 StoreFillsValue、CodeFirst 写子句），而第一步会让那一列从 INSERT 列清单里掉出去，
-/// 没打算用库维护的现场会突然插不进那一列，故先不置。只写 DDL 不给那一列赋值是静默的假乐观锁：保存永远成功而冲突永不发生。</summary>
+/// <summary>MySQL 血统的乐观并发。rowversion 支持已移除：并发令牌只有"应用自维护"这一条路，
+/// 整型 Version 由 ORM 在 SET 里 +1，AppSetsValue 一族由应用给新值。MySQL 的
+/// DATETIME … ON UPDATE CURRENT_TIMESTAMP 仍是列定义上的一个子句，但它不再作为"库给令牌"接入——
+/// 只写 DDL 不接契约就是静默的假乐观锁：保存永远成功而冲突永不发生。</summary>
 public sealed class MySqlConcurrency : IConcurrencyStrategy
 {
     public ConcurrencyMode Mode => ConcurrencyMode.TimestampColumn;

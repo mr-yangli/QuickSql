@@ -209,7 +209,8 @@ public static class StructureDiff
             return;
         }
 
-        // 值归库给的那一型（rowversion）在这里例外：库里已有的行由库自己填上值，NOT NULL 撞不出错。
+        // 值归库给的那一型在这里例外：库里已有的行由库自己填上值，NOT NULL 撞不出错。
+        // 今天只剩自增列走 <see cref="ColumnContract.ValueFromStore"/>；rowversion 支持已移除。
         // NOT NULL 且没配默认值照旧拒；配了默认值就走 ADD —— DefaultValue 的值域门禁在契约收尾那一格
         // （G1 ∶ G2 共用），能走到这里的默认值一定是常量字面量档。
         if (!expected.NullableInStore && !expected.ValueFromStore && expected.DefaultValue is null)

@@ -108,21 +108,20 @@ services.AddQuickSqlOrm(DbKind.SqlServer, connectionString, o => o.DefaultString
 
 ### 3.2 并发令牌（乐观锁）
 
-列标 `[ConcurrencyToken]` 后：`UPDATE`/`DELETE` 的 `WHERE` 带上它的旧值，`SET` 与 `INSERT` 列清单里没有它；冲突时（命中 0 行）`SaveChanges` 抛 `DbUpdateConcurrencyException`，链式更新返回受影响行数 0。
+列标 `[ConcurrencyToken]` 后：`UPDATE`/`DELETE` 的 `WHERE` 带上它的旧值；冲突时（命中 0 行）`SaveChanges` 抛 `DbUpdateConcurrencyException`，链式更新返回受影响行数 0。
 
-三类写法等效：
+两族写法：
 
 ```csharp
-[ConcurrencyToken] public uint Version { get; set; }        // 特性（"只比较不书写"，新值由库/触发器给）
-[ConcurrencyToken(true)] public string ConcurrencyStamp { get; set; } = "";  // 特性：新值由应用写入实体
-public string ConcurrencyStamp { get; set; } = "";          // 名字约定：成员名恰为 ConcurrencyStamp 时自动升档（ABP IHasConcurrencyStamp 零注解接入）
+[ConcurrencyToken] public int Version { get; set; }   // 整型：ORM 在 UPDATE 里发 Version = Version + 1
+[ConcurrencyToken(true)] public string ConcurrencyStamp { get; set; } = "";  // 应用给值：新值在实体上，随行写进 SET
+public string ConcurrencyStamp { get; set; } = "";    // 名字约定：成员名恰为 ConcurrencyStamp 时自动升档（ABP IHasConcurrencyStamp 零注解接入）
 ```
 
-`true`（应用自维护）那一族：新值在实体上，随整行写进 `SET`，`WHERE` 仍比快照旧值；`SaveChanges` 不会替你 `Version+1`。
-
-### 3.3 rowversion / 值归库给的列
-
-`[Column(TypeName = "rowversion")]`（SQL Server）等"库生成"的列按 `StoreFillsValue` 识别：插入后回读，写侧不收。
+- **整型族**：不进 `INSERT` 列清单、也不接受调用方手写 `SET`；ORM 每次更新自动发 `Version = Version + 1`，并把实体上的值同步 +1。列请配默认值 0（`[DefaultValue(0)]` / `HasDefaultValue(0)`）。
+- **应用给值族**：新值在实体上，进 `SET` 与 `INSERT`；`WHERE` 仍比快照旧值，`SaveChanges` 不会替你生成新值。
+- 非整型又没标 `AppSetsValue` 的令牌没有可用的维护方式，`ChangeTracker` 构造时直接抛 `QuickSqlException`。
+- **`rowversion` / “值归库给”的并发令牌支持已移除**：SQL Server 也不再接受 `[Column(TypeName = "rowversion")]`，请改用上面的整型或应用给值族。
 
 ## 4. Fluent API
 
@@ -139,7 +138,7 @@ model.Entity<Order>()
 
 model.Entity<Order>().Property(o => o.Note).HasMaxLength(256).HasDbType("xml");
 model.Entity<Order>().Property(o => o.Amount).HasPrecision(18, 4);
-model.Entity<Order>().Property(o => o.RowVersion).IsConcurrencyToken(false);
+model.Entity<InventoryItem>().Property(i => i.Version).IsConcurrencyToken(false);
 model.Entity<Order>().Property(o => o.Id).HasColumnName("OrderId").IsIdentity(true);
 ```
 

@@ -80,24 +80,23 @@ public sealed class DataSourceAttribute(string cluster) : Attribute
 }
 
 /// <summary>乐观并发的比较列（DataAnnotations 里没有等价的注解，所以落在自研属性层）。
-/// 语义是"只比较、不书写"，四件事同时成立：这一列不进 UPDATE 的 SET、不进 INSERT 的列清单
-/// （值由库给：SQL Server 的 rowversion、别家的触发器或默认值），但进 UPDATE/DELETE 的 WHERE
-/// （比较的是物化时拿到的那个值）与 INSERT/UPDATE 之后的回填集（不回读就是"手里的值永远是旧的"，
-/// 下一次保存必然假冲突）。"不书写"不等于"不参与脏判定"：往这一列里写值是有人绕开了"值归库给"这条，
-/// 必须现形，所以脏判定照比，比出差异就在发射前整句拒掉（剔掉那一列才是错的——那等于把调用方写进去的值
-/// 静默丢弃，而静默丢弃查不出来）。AppSetsValue = true 开出第三族（应用给值：ConcurrencyStamp 一派）：
-/// 那一列进 SET 与 INSERT 列清单（写出去的是实体当前值），WHERE 仍比快照旧值，不回读、也不自动加一——
-/// 新值由应用在保存前生成好。</summary>
+/// 默认的整型族是"只比较、不书写"：这一列不进 UPDATE 的 SET、不进 INSERT 的列清单
+/// （ORM 每次更新发 <c>Version = Version + 1</c>），但进 UPDATE/DELETE 的 WHERE（比较物化时的旧值）。
+/// "不书写"不等于"不参与脏判定"：往这一列里写值是有人绕开了 ORM 的 +1，必须现形，
+/// 所以脏判定照比，比出差异就在发射前整句拒掉（剔掉那一列才是错的——那等于把调用方写进去的值
+/// 静默丢弃，而静默丢弃查不出来）。AppSetsValue = true 是应用给值族（ConcurrencyStamp 一派）：
+/// 那一列进 SET 与 INSERT 列清单（写出去的是实体当前值），WHERE 仍比快照旧值，不自动加一——
+/// 新值由应用在保存前生成好。rowversion / 值归库给的那一档支持已移除。</summary>
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class ConcurrencyTokenAttribute : Attribute
 {
-    /// <summary>默认构造：只比较不书写的那一族（库给值或整型自增）。</summary>
+    /// <summary>默认构造：整型自增那一族（ORM 在 SET 里发 Version = Version + 1）。</summary>
     public ConcurrencyTokenAttribute() => AppSetsValue = false;
 
-    /// <summary>应用给值那一族（第三族）：新值由应用在保存前生成，列进 SET 与列清单，WHERE 仍比快照。</summary>
+    /// <summary>应用给值那一族：新值由应用在保存前生成，列进 SET 与列清单，WHERE 仍比快照。</summary>
     public ConcurrencyTokenAttribute(bool appSetsValue) => AppSetsValue = appSetsValue;
 
-    /// <summary>这一并发列的新值由应用给（写出去），而不是库给（回读）或 SET 自增。</summary>
+    /// <summary>这一并发列的新值由应用给（写出去），而不是由 ORM 的 SET 自增。</summary>
     public bool AppSetsValue { get; }
 }
 

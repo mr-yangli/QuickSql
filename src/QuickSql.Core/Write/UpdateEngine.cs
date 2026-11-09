@@ -237,8 +237,8 @@ sealed class UpdateEngine<T> : IUpdate<T> where T : class
             throw new QuickSqlException($"{_contract.Table.Name} 的自增列 {column.MemberName} 不接受写：那是 IDENTITY_INSERT 那条路（IKeyStrategy.IdentityInsertToggle），本版本未接。");
 
         if (column.IsConcurrencyToken && !column.AppSetsValue)
-            throw new QuickSqlException($"{_contract.Table.Name} 的并发列 {column.MemberName} 只比较、不书写（§8.2）：那一列的值归库给，" +
-                "而这一句在库里也执行不过（SQL Server 的 rowversion 不可赋值）。要改版本号得直连库；" +
+            throw new QuickSqlException($"{_contract.Table.Name} 的并发列 {column.MemberName} 只比较、不书写（§8.2）：" +
+                "整型 Version 由 ORM 在 UPDATE 里发 Version = Version + 1，调用方不能直接点它写；" +
                 "应用自己给值的并发列（AppSetsValue 那一族）不在这一格，点它写它是合法的。");
 
         return column;

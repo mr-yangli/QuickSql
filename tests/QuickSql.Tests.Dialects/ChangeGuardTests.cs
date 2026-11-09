@@ -71,8 +71,8 @@ public sealed class ChangeGuardTests
         Assert.Equal("NVARCHAR(MAX)", order.Single(c => c.MemberName == nameof(Order.Note)).StoreTypeName);
         Assert.True(Provider.ChangeGuard.Compares(order.Single(c => c.MemberName == nameof(Order.Note))));
 
-        // rowversion 就站在 LOB 家族旁边的二进制那一档，而并发谓词天天在比它（v0.18 两个实例都跑通）。
-        Assert.True(Provider.ChangeGuard.Compares(item.Single(c => c.MemberName == nameof(InventoryItem.RowVersion))));
+        // 整型并发令牌站在整数那一档，而并发谓词天天在比它。
+        Assert.True(Provider.ChangeGuard.Compares(item.Single(c => c.MemberName == nameof(InventoryItem.Version))));
     }
 
     // ── 守卫的形状 ───────────────────────────────────────────────────

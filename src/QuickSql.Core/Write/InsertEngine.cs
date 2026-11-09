@@ -439,8 +439,8 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         return ReadBackAsync(preparation, preparation.KeyOrdinals, Plan(Backfill.Keys), ct);
     }
 
-    /// <summary>把「值归库管的那几列」（自增列 ∪ 并发列）读回实体——ExecuteReturnKeysAsync 的超集，
-    /// 没有并发列时两档产出逐字相同的文本、走同一次往返。跟踪器的那一档插入走这里。</summary>
+    /// <summary>把「值归库管的那几列」读回实体。rowversion 支持已移除，这一档今天与
+    /// <see cref="ExecuteReturnKeysAsync"/> 只差在公开入口：没有库生成的并发令牌可回读。</summary>
     public Task ExecuteGeneratedAsync(CancellationToken ct = default)
     {
         var preparation = Prepare();
@@ -521,9 +521,6 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         var ordinals = new List<int>(contract.Columns.Length);
         var keys = new List<ColumnContract>();
         var keyOrdinals = new List<int>();
-        // 没有并发列的实体占绝大多数，这两张表懒出来：先建好再判断等于向每条批量插入收一笔"为别人设计的列"的钱。
-        List<ColumnContract>? tokens = null;
-        List<int>? tokenOrdinals = null;
 
         for (var ordinal = 0; ordinal < contract.Columns.Length; ordinal++)
         {
@@ -539,24 +536,18 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
                 continue;
             }
 
-            // 并发列同样不进列清单，理由与自增列同一条：那一列的值不归这一侧决定（rowversion 由库递增）。
-            // 它也不进 AuditValue 与契约校验——一列不写出去，就没有可校验的值。
+            // 并发列（非 AppSetsValue）不进列清单：整型 Version 由 ORM 在 UPDATE 里 +1，
+            // 初始值由列默认值（建议 0）给；它也不进 AuditValue 与契约校验——一列不写出去，就没有可校验的值。
             // 应用给值那一族（AppSetsValue，如 ABP 的 ConcurrencyStamp）例外：新值由应用生成、要随行写出去，
-            // 所以进列清单、也进 AuditValue 与校验；它不需要回读（值就是刚写的这一个）。
+            // 所以进列清单、也进 AuditValue 与校验。
             if (column.IsConcurrencyToken && !column.AppSetsValue)
-            {
-                (tokens ??= []).Add(column);
-                (tokenOrdinals ??= []).Add(ordinal);
-
                 continue;
-            }
 
             columns.Add(column);
             ordinals.Add(ordinal);
         }
 
-        // 回填集 = 自增列 ∪ 并发列，两半的下标表按同一顺序并起来：回包按位置落进实体，
-        // Returning 的列序与这张下标表必须是同一把尺子。没有并发列时两半是同一份数组。
+        // 回填集只有自增列：rowversion 支持已移除，并发令牌全是应用自维护的，不需要语句后回读。
         ColumnContract[] keyColumns = [.. keys];
         int[] identityOrdinals = [.. keyOrdinals];
 
@@ -625,8 +616,8 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
             [.. ordinals],
             keyColumns,
             identityOrdinals,
-            tokens is null ? keyColumns : [.. keyColumns, .. tokens],
-            tokenOrdinals is null ? identityOrdinals : [.. identityOrdinals, .. tokenOrdinals],
+            keyColumns,
+            identityOrdinals,
             cells,
             traces)
         {
@@ -868,10 +859,10 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
     {
         None,
 
-        /// <summary>只有自增列。没有并发列时与  逐字同文。</summary>
+        /// <summary>只有自增列。</summary>
         Keys,
 
-        /// <summary>自增列 ∪ 并发列。</summary>
+        /// <summary>rowversion 支持移除后与 <see cref="Keys"/> 同集：只回填自增列，保留这一档是为了公开口不破。</summary>
         Generated,
     }
 }

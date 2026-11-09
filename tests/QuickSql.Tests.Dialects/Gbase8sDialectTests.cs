@@ -757,10 +757,12 @@ public sealed class Gbase8sDialectTests
     [Fact]
     public void A_rowversion_column_is_refused_at_the_ddl_emission_point_on_an_absence_reading()
     {
-        var contract = orm().Schemas.Contract<InventoryItem>();
-        var version = contract.Columns.Single(c => c.MemberName == nameof(InventoryItem.RowVersion));
+        var contract = orm().Schemas.Contract<BadToken>();
+        var stamp = contract.Columns.Single(c => c.MemberName == nameof(BadToken.Stamp));
 
-        var failure = Checks.Raised<QuickSqlException>(() => Statement(w => Provider.CodeFirst.EmitCreateTable(w, contract)));
+        // rowversion 支持已移除，这里用普通二进制列 + 人写的型名模拟那一颗闸门。
+        var failure = Checks.Raised<QuickSqlException>(() =>
+            Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, stamp with { StoreTypeName = "rowversion" })));
 
         // 两边都拒，而来路差两档：虚谷是"建得成、会自增、读不回"三格实测之后裁的，
         // 本家是按<em>缺席读</em>——这一族的类型清单里没有那一型。判据同一条：不建出一列看着能用的废列（§5.8）。
@@ -768,16 +770,12 @@ public sealed class Gbase8sDialectTests
         Checks.Has("[ConcurrencyToken]", failure.Message);
         Checks.Has("缺席读", failure.Message);
 
-        Assert.Throws<QuickSqlException>(() =>
-            Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, version)));
-
         // 闸门只点名那一颗：人写的别的名字照旧原样穿过。
-        var echo = Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, version with { StoreTypeName = "DECIMAL(9,2)" }));
+        var echo = Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, stamp with { StoreTypeName = "DECIMAL(9,2)" }));
 
-        Checks.Has("\"RowVersion\" DECIMAL(9,2) NULL", echo);
+        Checks.Has("\"Stamp\" DECIMAL(9,2) NULL", echo);
 
-        // 名字原样穿过而<em>不折</em>：这一家的"不折"在 DDL 侧第一次让人写下的名字与我们发出去的名字逐字相同，
-        // 而折大写的两家在同一格会把 RowVersion 打成 ROWVERSION——同一颗闸门，两种可读性。
+        // 名字原样穿过而<em>不折</em>：这一家的"不折"在 DDL 侧第一次让人写下的名字与我们发出去的名字逐字相同。
     }
 
     // ── 内联字面量 ────────────────────────────────────────────────────

@@ -219,7 +219,7 @@ public sealed class OrderingPathTests
         // <b>回包是 <c>String</c> 而不是装箱数</b>正是这一句的本题，所以换完型名之后它量的还是同一件事。
         // 第四家与第七家不换：那两家<em>认</em> <c>VARCHAR(20)</c> 这一形（第四家整册绿，v37-pg-int-2.log；
         // 第七家同，v37-sqlite-int-2.log），本家今天只有这一颗型名是它不认的。
-        var sql = Database.Family == Database.Target.MySql
+        var sql = Database.MySqlFamily
             ? "SELECT CAST([Id] AS CHAR(20)) AS Id FROM [dbo].[QuickSqlMilestone] WHERE [Title] = @title"
             : "SELECT CAST([Id] AS VARCHAR(20)) AS Id FROM [dbo].[QuickSqlMilestone] WHERE [Title] = @title";
 

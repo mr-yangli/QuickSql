@@ -748,35 +748,26 @@ public sealed class XuguDialectTests
         // v0.34 第二笔的裁决落点（§14「要不要拒收」，「全部完善」整批授权自决为拒收）。
         // 判据不在"这一家认不认这个词"——认，库里建得成还会自增（RV-01/RV-11）—— 在"建出来我们用不用得了"：
         // 带它的投影读即 System.DataOutOfBindException（RV-08/A-06），§5.8 不许建出"看起来能用"的列。
-        var contract = orm().Schemas.Contract<InventoryItem>();
-        var version = contract.Columns.Single(c => c.MemberName == nameof(InventoryItem.RowVersion));
-        var checkedAt = contract.Columns.Single(c => c.MemberName == nameof(InventoryItem.CheckedAt));
+        // rowversion 支持已移除，这里用普通二进制列 + 人写的型名模拟那一颗闸门。
+        var contract = orm().Schemas.Contract<BadToken>();
+        var stamp = contract.Columns.Single(c => c.MemberName == nameof(BadToken.Stamp));
 
-        // 1) 整表与另一支单列都抛：闸门坐在 EmitColumnDefinition 上，CREATE TABLE / ADD COLUMN /
-        //    ALTER COLUMN 三支共用它，所以一处立闸、三处吃到。
-        var failure = Checks.Raised<QuickSqlException>(() => Statement(w => Provider.CodeFirst.EmitCreateTable(w, contract)));
+        var failure = Checks.Raised<QuickSqlException>(() =>
+            Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, stamp with { StoreTypeName = "rowversion" })));
 
         Checks.Has("System.DataOutOfBindException", failure.Message); // 说出为什么
         Checks.Has("[ConcurrencyToken]", failure.Message);           // 说出该改成什么
 
-        Assert.Throws<QuickSqlException>(() =>
-            Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, version)));
-
-        // 2) 同一条判据吃三种字形（大小写与前后空白都关不住它）。
+        // 同一条判据吃三种字形（大小写与前后空白都关不住它）。
         foreach (var declared in new[] { "rowversion", "ROWVERSION", " RowVersion " })
             Assert.Throws<QuickSqlException>(() =>
-                Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, version with { StoreTypeName = declared })));
+                Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, stamp with { StoreTypeName = declared })));
 
-        // 3) 闸门只点名那一颗：人写的别的名字照旧原样穿过 —— "这一族认哪些名"的清单仍是"全认、不校验"，
-        //    rowversion 是第一颗也是唯一一颗例外（XuguTypes.GetStoreType 的注释同一句）。
-        var echo = Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, version with { StoreTypeName = "NUMERIC(9,2)" }));
+        // 闸门只点名那一颗：人写的别的名字照旧原样穿过 —— "这一族认哪些名"的清单仍是"全认、不校验"，
+        // rowversion 是第一颗也是唯一一颗例外（XuguTypes.GetStoreType 的注释同一句）。
+        var echo = Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, stamp with { StoreTypeName = "NUMERIC(9,2)" }));
 
-        Checks.Has("\"ROWVERSION\" NUMERIC(9,2) NULL", echo);
-
-        // 4) 同一份契约的第二格并发列（应用给值那一档）不受牵连：拒收吃的是那一列，不是那一格语义。
-        var untouched = Statement(w => Provider.CodeFirst.EmitAddColumn(w, contract.Table, checkedAt));
-
-        Checks.Has("\"CHECKEDAT\" DATETIME(3) NULL", untouched);
+        Checks.Has("\"STAMP\" NUMERIC(9,2) NULL", echo);
     }
 
     // ── 内联字面量（ToLogSql 那一档）─────────────────────────────────

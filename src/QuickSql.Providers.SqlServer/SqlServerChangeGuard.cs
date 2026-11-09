@@ -16,8 +16,7 @@ public sealed class SqlServerChangeGuard : IChangeGuard
 {
     /// <summary>连等号都不接受的存储类型（LOB 三兄弟 + xml + 两套空间型 + sql_variant）。
     /// 名字取 ( 之前的那一段，所以 XML 与 xml、带长度的 VARCHAR(n) 与不带的都能命中。
-    /// rowversion 不在这一列里：它名义上是 binary(8)，WHERE [Version] = @p 跑得通，
-    /// 把它算成不可比就会让带并发列的表整批退回逐条。</summary>
+    /// 并发令牌现在是整型 Version 或 AppSetsValue 列，不再是 binary(8) 的 rowversion。</summary>
     static readonly FrozenSet<string> Incomparable = new[]
     {
         "text",

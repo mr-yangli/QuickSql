@@ -41,20 +41,13 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
 
     /// <summary>应用自维护的并发列，分两族：int Version 那一档在 SET 里写 Version = Version + 1、
     /// 写完后直接在实体上 +1；AppSetsValue 那一族（如 ABP 的 ConcurrencyStamp）新值已在实体上，
-    /// 脏判定自然把它带进 SET，不自增、不回读。库维护的（如 rowversion）不在这一档，它们靠 OUTPUT/RETURNING 回读。
+    /// 脏判定自然把它带进 SET，不自增、不回读。库给值的 rowversion 支持已移除。
     /// 空数组就是「没有应用自维护的并发列」。</summary>
     readonly int[] _appMaintainedTokens;
 
     /// <summary>应用给值的并发列（AppSetsValue）。已包含在 _appMaintainedTokens 里（同样不回读），
     /// 单列一份是因为它们的 SET 走脏判定（实体上已有新值）而不是 +1 改写——WriteSingularAsync 那一圈要跳过它们。</summary>
     readonly int[] _appSetsTokens;
-
-    /// <summary>库维护的并发列（rowversion 等），需要 OUTPUT/RETURNING 回读新值。
-    /// 空数组就是「没有库维护的并发列」，OUTPUT/RETURNING 子句与回读逻辑都不跑。</summary>
-    readonly int[] _storeFilledTokens;
-
-    /// <summary>库维护并发列的契约本体，顺序与  一致 —— 它是 OUTPUT/RETURNING 的列序。</summary>
-    readonly ColumnContract[] _storeFilledTokenColumns;
 
     readonly TableRef _table;
 
@@ -132,12 +125,9 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
         _writable = writable;
         _tokens = [.. tokens];
 
-        // 并发列分三档：库维护的（StoreFillsValue，如 rowversion）靠 OUTPUT/RETURNING 回读；
-        // 应用给值的（AppSetsValue）不回读、不自增——新值已在实体上，脏判定自然带进 SET；
-        // 其余应用自维护的（如 int Version）在 SET 里写 Version = Version + 1，写完后实体直接 +1。
-        // 三档不重叠、合起来等于 _tokens 全集。「其余」那一档只认整型（int/long/short/byte）：
-        // 非整型的并发列（如 datetime2 时间戳）即使 StoreFillsValue = false 也走回读，对它们做 +1 没有语义。
-        var storeFilled = new List<int>();
+        // 并发列分两族：应用给值的（AppSetsValue）新值已在实体上，脏判定自然带进 SET；
+        // 其余应用自维护的（int Version 一派）在 SET 里写 Version = Version + 1，写完后实体直接 +1。
+        // 两族都不回读；库给值的 rowversion 支持已移除，非整型又没标 AppSetsValue 的令牌在启动期正面拒。
         var appMaintained = new List<int>();
         var appSets = new List<int>();
 
@@ -150,16 +140,17 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
                 appSets.Add(ordinal);
                 appMaintained.Add(ordinal);
             }
-            else if (column.StoreFillsValue || !IsIntegerClrType(column.ClrType))
-                storeFilled.Add(ordinal);
-            else
+            else if (IsIntegerClrType(column.ClrType))
                 appMaintained.Add(ordinal);
+            else
+                throw new QuickSqlException(
+                    $"{_contract.Table.Name} 的并发列 {column.MemberName}（{column.ClrType.Name}）没有可用的令牌维护方式：" +
+                    "库给值的 rowversion 支持已移除；非整型并发列请用 [ConcurrencyToken(true)] 由应用给新值，" +
+                    "整型并发列用 [ConcurrencyToken] int / long / short / byte（ORM 在 UPDATE 里 +1）。");
         }
 
-        _storeFilledTokens = [.. storeFilled];
         _appMaintainedTokens = [.. appMaintained];
         _appSetsTokens = [.. appSets];
-        _storeFilledTokenColumns = [.. _storeFilledTokens.Select(ordinal => _columns[ordinal])];
         // 目标怎么引用自己由方言定（WriteTargetAlias）：T-SQL 与 PG 系给一个独立别名 t0，
         // Oracle 血统不接受目标别名、只能用表名本身。要问方言而不是现场写死：同一份 _table
         // 既进 UPDATE 的 SET/WHERE，也进冲突重读那一条 SELECT——两处必须同名。
@@ -919,12 +910,12 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
 
         var engine = new InsertEngine<T>(_orm, [.. pending.Select(node => (T) node.Entity)]);
 
-        // 两档文本要在这里选好：有自增列、或者有库维护的并发列（如 rowversion），就必须走回填那一档，
-        // 否则实体手里的键是 0、并发列是空——前者让身份映射登记不上（同一会话第二次保存会把那一行再插一遍），
-        // 后者让下一次保存必假冲突。应用自维护的并发列（如 int Version）不需要回填——实体已经有初始值。
+        // 两档文本要在这里选好：有自增列就必须走回填那一档，
+        // 否则实体手里的键是 0——身份映射登记不上，同一会话第二次保存会把那一行再插一遍。
+        // 并发令牌全是应用自维护的，不需要回填——实体已经有初始值或新值。
         // 先 Explain 再执行不是多余：Explain 里跑契约校验，必须发生在第一条语句上线之前；
         // 回填档的执行口走同一个已缓存的计划，不会把 AuditValue 过第二遍。
-        var backfill = _hasIdentity || _storeFilledTokens.Length > 0;
+        var backfill = _hasIdentity;
         var plan = backfill ? engine.ExplainGenerated() : engine.Explain();
         var rows = plan.RowCount;
 
@@ -1057,8 +1048,7 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
             var sets = Sets(row);
 
             // 应用自维护的并发列（如 int Version）：在 SET 里加 Version = Version + 1。
-            // 库维护的（如 rowversion）不加——它们的值由库生成，靠 OUTPUT/RETURNING 回读；
-            // 应用给值的那一族也不加——它们的新值在实体上，Sets() 已按脏判定带进来了。
+            // 应用给值的那一族不加——它们的新值在实体上，Sets() 已按脏判定带进来了。
             foreach (var ordinal in _appMaintainedTokens)
             {
                 if (Array.IndexOf(_appSetsTokens, ordinal) >= 0)
@@ -1068,24 +1058,22 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
                     new ColumnExpression(_table, _columns[ordinal]), new ParameterValue(1, _columns[ordinal]))));
             }
 
-            // OUTPUT/RETURNING 只回读库维护的并发列；应用自维护的在写完后直接 +1，不需要回读。
+            // 并发令牌全是应用自维护的，没有 OUTPUT/RETURNING 回读。
             var sql = Emit(new UpdateStatement
             {
                 Table = _table,
                 Sets = sets,
                 Where = WhereWithTokens(row.Key, row.Node.Snapshot),
-                Returning = _storeFilledTokenColumns,
-            }, sets.Count + row.Key.Length + _storeFilledTokens.Length, traces, ref step);
+            }, sets.Count + row.Key.Length, traces, ref step);
 
-            var rows = await WriteAsync(sql, row.Entity, tag, ct).ConfigureAwait(false);
+            var rows = await _orm.Ado.NonQueryAsync(sql, tag, ct).ConfigureAwait(false);
 
             // 0 行 + 没有并发列：那一行不在了，行数进报告，不抛。
             // 0 行 + 有并发列 = 说不清是"别人改过"还是"行没了"，必须问一次，不能猜。
             if (rows == 0 && _tokens.Length > 0)
                 throw await ConflictAsync(row.Entity, row.Node.Snapshot, row.Key, "update", sql, ct).ConfigureAwait(false);
 
-            // 应用自维护的并发列：写成功后直接在实体上 +1。库维护的已经由 WriteAsync 回读了；
-            // 应用给值的那一族不 +1——实体手里已经是新值。
+            // 应用自维护的并发列：写成功后直接在实体上 +1。应用给值的那一族不 +1——实体手里已经是新值。
             foreach (var ordinal in _appMaintainedTokens)
             {
                 if (Array.IndexOf(_appSetsTokens, ordinal) < 0)
@@ -1639,21 +1627,6 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
         return and;
     }
 
-    /// <summary>一句 UPDATE 的执行出口。有库维护并发列时它同时是回填口：同一条语句既写出去又把
-    /// OUTPUT/RETURNING 回读的新值落进实体；应用自维护的并发列不走这条路（写完后直接在实体上 +1，不需要回读）。
-    /// 返回值按回包行数算，对一句 WHERE 主键 ∧ 并发列 的单行 UPDATE 它就是受影响行数，0 就是冲突。</summary>
-    async Task<int> WriteAsync(DialectSql sql, T entity, ExecutionTag tag, CancellationToken ct)
-    {
-        if (_storeFilledTokens.Length == 0)
-            return await _orm.Ado.NonQueryAsync(sql, tag, ct).ConfigureAwait(false);
-
-        return await _orm.Ado.WriteWithResultAsync(sql, tag, (reader, index) =>
-        {
-            for (var column = 0; column < _storeFilledTokens.Length; column++)
-                _schema.SetValue(entity, _storeFilledTokens[column], Value(reader, column));
-        }, ct).ConfigureAwait(false);
-    }
-
     /// <summary>应用自维护的并发列在写成功后直接 +1：库已经把 Version = Version + 1 写进去了，
     /// 实体手里那一格还停在旧值上，下一次保存的 WHERE 会拿旧值去比——假冲突。
     /// 这里读当前值、加一、写回去，与库那一侧的改写保持同步。</summary>
@@ -1674,8 +1647,8 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
         _schema.SetValue(entity, ordinal, next);
     }
 
-    /// <summary>那一格的值。GetValue 对 NULL 给的是 DBNull，直接塞进实体属性就是一次类型不匹配，
-    /// 所以这里折成 null——可空的并发列（DateTimeOffset? 那一派）读回空值是常态。</summary>
+    /// <summary>冲突补读那一格的值。GetValue 对 NULL 给的是 DBNull，直接塞进消息就是 "System.DBNull"，
+    /// 所以这里折成 null。</summary>
     static object? Value(DbDataReader reader, int ordinal) => reader.IsDBNull(ordinal) ? null : reader.GetValue(ordinal);
 
     /// <summary>0 行那一条的成因分查："别人改过"与"这一行没了"在行数上一模一样，而处置相反

@@ -688,32 +688,19 @@ public class ReadPathTests
         //    不回填就不必走回填链。）
         var batch = "quicksql-esc-" + Guid.NewGuid().ToString("N")[..8];
 
-        // <b>第四家（postgresql）在这一判上没有对象</b>：它要一张 <c>InventoryItem</c>，而本家建不出那张表
-        // —— 表里带的还是那颗 <c>[Column(TypeName = "rowversion")]</c>，42704（<c>Database.EnsureInventoryItem</c>
-        // 那段把 S-10 ∶ D-04 ∶ D-05 三颗读数钉好了）。这一跑的第一版红在这里【实测·
-        // <c>obj/logs/v37-pg-int-1.log</c> 第 11 行：<c>42P01: relation "QuickSqlInventoryItem" does not exist</c>】。
-        //
-        // <b>为什么按家族收在 if 里而不是整条用例跳过</b>（与 <c>DdlTests.Chinese_text_is_stored_as_itself…</c>
-        // 那一处同一手法）：上面那两判走的是 <c>OrderItem</c>，本家建得出、也跑到了，而本题问的
-        // "转义没生效就多命中"在那两判里成立得一样好 —— 整条跳过会把那两判一起伪装成没跑过。
-        // 第三判缺的那一格要么下一版按本家换一张能建的表重跑（<c>LIKE … ESCAPE</c> 的语义与那张表是谁无关），
-        // 要么记 §14 —— 不是把这一句删掉。
-        if (Database.InventoryItemGap is null)
-        {
-            Assert.Equal(1, await Orm.Insert(new InventoryItem { Sku = batch + "/a_1", Quantity = 1 })
-                .ExecuteAffrowsAsync(ct));
-            Assert.Equal(1, await Orm.Insert(new InventoryItem { Sku = batch + "/ax1", Quantity = 2 })
-                .ExecuteAffrowsAsync(ct));
+        // 第三判拿 <c>InventoryItem</c> 当一张带文本列的普通靶表：并发令牌改成整型 Version 之后
+// rowversion 支持已移除，这张表在所有家族都建得出来。
+        Assert.Equal(1, await Orm.Insert(new InventoryItem { Sku = batch + "/a_1", Quantity = 1 })
+            .ExecuteAffrowsAsync(ct));
+        Assert.Equal(1, await Orm.Insert(new InventoryItem { Sku = batch + "/ax1", Quantity = 2 })
+            .ExecuteAffrowsAsync(ct));
 
-            // 前置：两行都在。少了这一句，下一句的那个 1 说不清是"转义生效"还是"只插进了一行"。
-            Assert.Equal(2, await Orm.Select<InventoryItem>()
-                .Where(i => i.Sku!.StartsWith(batch + "/a")).CountAsync(ct));
+        // 前置：两行都在。少了这一句，下一句的那个 1 说不清是"转义生效"还是"只插进了一行"。
+        Assert.Equal(2, await Orm.Select<InventoryItem>()
+            .Where(i => i.Sku!.StartsWith(batch + "/a")).CountAsync(ct));
 
-            Assert.Equal(1, await Orm.Select<InventoryItem>()
-                .Where(i => i.Sku!.StartsWith(batch + "/a_1")).CountAsync(ct));
-        }
-        else
-            Console.WriteLine($"ReadPathTests.Like_predicates_honor_their_escapes：第三判在本家没跑（{Database.Family} 建不出 InventoryItem —— {Database.InventoryItemGap}）");
+        Assert.Equal(1, await Orm.Select<InventoryItem>()
+            .Where(i => i.Sku!.StartsWith(batch + "/a_1")).CountAsync(ct));
     }
 
     /// <summary>拆分查询（§5.7）：<c>AsSplitQuery()</c> 把引用导航从 LEFT JOIN 改成主查询之后单独发查询再内存缝合。

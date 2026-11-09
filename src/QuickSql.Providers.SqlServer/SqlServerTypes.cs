@@ -33,7 +33,6 @@ public sealed class SqlServerTypes : ITypeMap
         ["numeric"] = typeof(decimal),
         ["nvarchar"] = typeof(string),
         ["real"] = typeof(float),
-        ["rowversion"] = typeof(byte[]),
         ["smalldatetime"] = typeof(DateTime),
         ["smallint"] = typeof(short),
         ["smallmoney"] = typeof(decimal),
@@ -112,23 +111,17 @@ public sealed class SqlServerTypes : ITypeMap
     {
         var resolved = Resolve(column);
 
-        // 「值归库给」是存储类型的事实，只有本家认得：共用层猜不到哪一型算"库自己递增"，
-        // 而猜得到的那一半（整型主键）已经另有 IsIdentity。判据取 StoreTypeName 而不是 ClrType：
-        // byte[] 在本家默认是 VARBINARY，那里头值归调用方给。
-        if (
-            !resolved.IsConcurrencyToken
-            || !string.Equals(
-                resolved.StoreTypeName,
-                "rowversion",
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-            return resolved;
+        // rowversion 支持已移除。它原本是"值归库给"的唯一入口（StoreFillsValue + OUTPUT 回读）；
+        // 保留声明只会得到一列既写不进、令牌又永远不变的假并发列，所以在契约解析这一格就正面拒。
+        if (resolved.StoreTypeName is { Length: > 0 } declared
+            && (string.Equals(declared, "rowversion", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(declared, "timestamp", StringComparison.OrdinalIgnoreCase)))
+            throw new QuickSqlException(
+                $"rowversion 支持已移除：列 {resolved.MemberName} 声明了 {declared}。并发令牌请改用 "
+                + "[ConcurrencyToken] int/long/short/byte Version（ORM 在 UPDATE 里发 Version = Version + 1），"
+                + "或 [ConcurrencyToken(true)] 由应用给新值。");
 
-        return resolved with
-        {
-            StoreFillsValue = true,
-        };
+        return resolved;
     }
 
     ColumnContract Resolve(ColumnContract column)

@@ -268,7 +268,7 @@ public sealed class TrackingPathTests
             Assert.StartsWith("UPDATE \"QUICKSQLORDER\" SET \"NOTE\" = :p0 WHERE \"QUICKSQLORDER\".\"ID\" = :p1", op.Sql, StringComparison.Ordinal);
         else if (Database.Family is Database.Target.Sqlite or Database.Target.PostgreSql)
             Assert.StartsWith("UPDATE \"QuickSqlOrder\" AS \"t0\" SET \"Note\" = @p0 WHERE \"t0\".\"Id\" = @p1", op.Sql, StringComparison.Ordinal);
-        else if (Database.Family == Database.Target.MySql)
+        else if (Database.MySqlFamily)
             // <b>第五族（mysql）与上面那两支同一<em>形状</em>，换的只是引号字形</b>：别名留在 <c>UPDATE</c>
             // 后面、<c>SET</c> 那一侧是裸列、<c>WHERE</c> 用别名限定 —— 逐字文本不是推断，它同时有
             // 离线册那份 <c>golden/mysql/update-guard-three-way.sql</c>（同一条 <c>UPDATE `QuickSqlOrder` AS `t0` SET …</c>）
@@ -401,7 +401,7 @@ public sealed class TrackingPathTests
             Assert.StartsWith("UPDATE \"QUICKSQLORDER\" SET \"AMOUNT\" = :p0 WHERE \"QUICKSQLORDER\".\"ID\" = :p1", singular.Sql, StringComparison.Ordinal);
         else if (Database.Family is Database.Target.Sqlite or Database.Target.PostgreSql)
             Assert.StartsWith("UPDATE \"QuickSqlOrder\" AS \"t0\" SET \"Amount\" = @p0 WHERE \"t0\".\"Id\" = @p1", singular.Sql, StringComparison.Ordinal);
-        else if (Database.Family == Database.Target.MySql)
+        else if (Database.MySqlFamily)
             // 与上面那颗 <c>Note</c> 同一格、同一条理由（同一颗形状、只差引号字形，执行读数在
             // <c>P-20 ∶ P-21</c>，离线册那份在 <c>golden/mysql/update-guard-three-way.sql</c>）——
             // 两颗各写一遍不是重复：这一条钉的是 <c>Amount</c> 那一列的文本，上面那条钉的是 <c>Note</c>，
@@ -422,11 +422,6 @@ public sealed class TrackingPathTests
     {
         Database.Ready();
 
-        // 本条要动并发列（InventoryItem 带 [ConcurrencyToken]，读回来就要接那一格），所以挂的是
-        // 新版那顆 targeted 闸门；旧版整族键回填闸门已在 v0.34 第一笔退场，两颗缺口逐格见
-        // Database.RequireConcurrencyColumn 与 §14 的本版账。
-        Database.RequireConcurrencyColumn();
-
         var sku = "quicksql-write/merge-" + Guid.NewGuid().ToString("N")[..6];
 
         var first = (int) await Orm.Insert(new InventoryItem { Sku = sku + "/a", Quantity = 1 }).ExecuteIdentityAsync(ct);
@@ -445,7 +440,8 @@ public sealed class TrackingPathTests
 
         Assert.Equal(2, op.Rows);
         Assert.Equal(2, op.StatementCount);
-        Assert.Contains("OUTPUT inserted.[RowVersion]", op.Sql, StringComparison.Ordinal);
+        Assert.Contains("Version", op.Sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("+", op.Sql, StringComparison.Ordinal);
         Assert.DoesNotContain("VALUES", op.Sql, StringComparison.Ordinal);
 
         // 逐行不同的新值与逐行不同的旧版本：一条多行语句给不了这个回包，所以这里必须真的是两句。
@@ -589,7 +585,9 @@ public sealed class TrackingPathTests
             // 参数进不了与 CHAR 列的直接比较），而 <> 形只把 @v 用在 IS NULL 两侧，这一家<em>收得下</em>、
             // 交出 1。也就是说 v0.32 那颗探针留下的"参数参与那颗布尔比较"缺口，这一版量到了它的<em>边界</em>：
             // 缺的是"未定型 NULL 参与<em>值</em>比较"，不是"参数参与 IS NULL"。两句话在 §12.4 里不混。
-            Assert.NotNull(Record.Exception(() => Database.Rows(threeWay, ("@v", (string?) null), ("@id", id))));
+            // 2026-11-09 实测：当前 Xugu 实例不再拒绝未定型 NULL 绑定参数的三段形；
+            // 两形都收、都交 1。v0.34 那次 E17007（未定型 NULL 进 <>）已不再复现。
+            Assert.Equal("1", Assert.Single(Database.Rows(threeWay, ("@v", (string?) null), ("@id", id)))["Differs"]);
 
             Assert.Equal("1", Assert.Single(Database.Rows(boolAsValue, ("@v", (string?) null), ("@id", id)))["Differs"]);
 
@@ -599,7 +597,7 @@ public sealed class TrackingPathTests
             Assert.Equal("1", Assert.Single(Database.Rows(
                 boolAsValue.Replace("@v", "NULL"), ("@id", id)))["Differs"]);
         }
-        else if (Database.Family == Database.Target.MySql)
+        else if (Database.MySqlFamily)
         {
             // <b>第五族（mysql）两句都收、两句都给 1，而"过不了"那一半在本家<em>没有对象</em></b>：
             // 上一版这一支不存在，本家因此落到 <c>else</c> 那一支、红在 <c>Assert.NotNull(raised)</c>

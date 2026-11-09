@@ -172,7 +172,7 @@ public sealed class SessionTransactionPathTests
     public async Task A_second_connection_cannot_read_the_uncommitted_write_of_the_pinned_transaction()
     {
         Assert.SkipWhen(
-            Database.Family is not (Database.Target.PostgreSql or Database.Target.MySql),
+            Database.Family is not (Database.Target.PostgreSql or Database.Target.MySql or Database.Target.OceanBase),
             "这一问要快照读法：SQLite 无 MVCC、SQL Server 默认 READ COMMITTED 不开 RCSI，两家的读数都是锁等待");
 
         var orm = await NewStoreAsync();

@@ -64,7 +64,7 @@ public enum BulkWriteMethod { Auto, Merged, Upsert, SingleRow }
 
 ## 4. 脏列与并发列
 
-- 并发令牌列（`[ConcurrencyToken]` 等，见 [02 篇 §3.2](02-entity-mapping.md#32-并发令牌乐观锁)）不进 `SET`、不进 `INSERT` 列清单，进 `WHERE` 与回填集；NULL 快照折成 `IS NULL`。
+- 并发令牌列（`[ConcurrencyToken]` 等，见 [02 篇 §3.2](02-entity-mapping.md#32-并发令牌乐观锁)）：整型令牌不进 `SET`、不进 `INSERT` 列清单（ORM 在 `SET` 里发 `Version = Version + 1`）；应用给值族（`AppSetsValue`）进 `SET` 与 `INSERT`。两族都进 `WHERE`，NULL 快照折成 `IS NULL`。rowversion 支持已移除，回填集只剩自增键。
 - 会话（`SaveChanges`）那条路的 `UPDATE` 只写被判定为脏的列——那是另一条路的职责划分，见 [09 篇](09-dbcontext-and-tracking.md)。
 
 ## 5. 诊断

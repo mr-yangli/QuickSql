@@ -568,9 +568,9 @@ public sealed class DamengDialectTests
     [Fact]
     public void Binary_inlines_here_because_only_one_reading_of_the_text_exists()
     {
-        var contract = orm().Schemas.Contract<InventoryItem>();
-        var sku = contract.Columns.Single(c => c.MemberName == nameof(InventoryItem.Sku));
-        var version = contract.Columns.Single(c => c.MemberName == nameof(InventoryItem.RowVersion));
+        var contract = orm().Schemas.Contract<BadToken>();
+        var sku = contract.Columns.Single(c => c.MemberName == nameof(BadToken.Name));
+        var version = contract.Columns.Single(c => c.MemberName == nameof(BadToken.Stamp));
 
         var insert = new InsertStatement
         {

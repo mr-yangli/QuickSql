@@ -204,7 +204,7 @@ public sealed record SchemaColumn(
     /// 两者分不开的话，"备注同步"就永远只有单向发射：写进去的备注下一趟读不回来，判不出差别。</summary>
     public string? Comment { get; init; }
 
-    /// <summary>这一列是不是库给值的那几列（自增 / rowversion）。null = 读不出。</summary>
+    /// <summary>这一列是不是库给值的那几列（自增）。null = 读不出。</summary>
     public bool? IsIdentity { get; init; }
 
     /// <summary>这一列是不是主键的一员。null = 读不出。</summary>
@@ -267,16 +267,15 @@ public interface IKeyStrategy
     void EmitPostStatementKeyRead(SqlWriter writer, ColumnContract key);
 }
 
-public enum ConcurrencyMode { None, RowVersion, FullColumnCompare, TimestampColumn }
+public enum ConcurrencyMode { None, FullColumnCompare, TimestampColumn }
 
 public interface IConcurrencyStrategy
 {
     ConcurrencyMode Mode { get; }
 
     /// <summary>给一列生成"库里这一列还是我读到的那一版"的比较式。调用点在发射之前：内核把它合取进
-    /// AST 的 WHERE，随后 AST 成文，才轮到 CudBuilding。早先那句"追加到文本尾巴、所以在 CudBuilding 之后"
-    /// 不成立：两家的收尾位置不同（T-SQL 的 OUTPUT 在 FROM 之前，PG 系的 RETURNING 在整句之后），
-    /// 文本级追加必在一家写出语法错。</summary>
+    /// AST 的 WHERE，随后 AST 成文，才轮到 CudBuilding。并发令牌今天只有"应用自维护"一条路
+    /// （整型 +1 或 AppSetsValue），没有库生成令牌的回读路径。</summary>
     SqlExpression BuildPredicate(SqlExpression target, ColumnContract column, object? originalValue);
 }
 

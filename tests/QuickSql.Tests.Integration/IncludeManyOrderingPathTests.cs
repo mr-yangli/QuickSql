@@ -50,6 +50,7 @@ public sealed class IncludeManyOrderingPathTests
 
         EnsureTable(typeof(Rack));
         EnsureTable(typeof(ShelfSlot));
+        EnsureTable(typeof(SlotHook));
 
         var db = Session();
         var rack = ScrambledRack();

@@ -60,7 +60,7 @@ public sealed class ApplicationKeyConventionTests
 
         Checks.Has("[Id], [Sku], [Quantity]", sql);
         Assert.Equal(
-            [nameof(InventoryItem.Id), nameof(InventoryItem.Sku), nameof(InventoryItem.Quantity)],
+            [nameof(InventoryItem.Id), nameof(InventoryItem.Sku), nameof(InventoryItem.Quantity), nameof(InventoryItem.CheckedAt), nameof(InventoryItem.Exception)],
             parameters.Select(p => p.Hint?.MemberName).ToArray());
 
         // 客户端给的那个号原样发出去，不是 0、不是被吞掉。

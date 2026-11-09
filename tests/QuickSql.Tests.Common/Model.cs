@@ -139,9 +139,9 @@ public class LegacyShipment
 /// <c>Order</c> 的写路径样本已经被黄金样本钉死了，往里加一列会让几十份样本整片变红 ——
 /// 而"没有并发列的实体一条语句都不多"这条主张，需要一个<em>有</em>并发列的类型来判，又不能拿别的类型陪葬。
 ///
-/// <para><c>RowVersion</c> 在库里是 <c>rowversion</c>（8 字节、值由库给、不接受写），CLR 侧<em>必须</em>是可空的
-/// <c>byte[]?</c>：新增那一趟调用方手里没有值，而 §10.6 的 required 尺子量的是整个实体、不是即将进列清单的那几列 ——
-/// 写成 <c>byte[]</c> 会让"插一行新库存"这句话必抛。这是这一格今天真实的形状，不是疏忽。</para></summary>
+/// <para>两格并发令牌都是跨库可移植的：<c>Version</c> 是整型（ORM 在 UPDATE 里发 <c>Version = Version + 1</c>，
+/// 初始值由列默认值 0 给），<c>CheckedAt</c> 是应用给值那一族（<c>AppSetsValue</c>，新值由应用生成）。
+/// SQL Server 的 rowversion 支持已移除，这一族不再需要可空的 <c>byte[]?</c> 令牌列。</para></summary>
 [Table("QuickSqlInventoryItem")]
 public class InventoryItem
 {
@@ -152,18 +152,22 @@ public class InventoryItem
 
     public int Quantity { get; set; }
 
-    /// <summary>只比较、不书写：不进 <c>SET</c>、不进 INSERT 的列清单，进 <c>WHERE</c> 与回填集（§8.2）。</summary>
+    /// <summary>并发令牌：整型 Version，ORM 在 UPDATE 里发 <c>Version = Version + 1</c>。
+    /// 初始值 0 由列默认值给（这一列不进 INSERT 列清单）；SQL Server 的 rowversion 支持已移除。</summary>
     [ConcurrencyToken]
-    [Column(TypeName = "rowversion")]
-    public byte[]? RowVersion { get; set; }
+    [System.ComponentModel.DefaultValue(0)]
+    public int Version { get; set; }
 
-    /// <summary>第二个并发列，而且是<em>可空</em>的那一档：库里没有任何东西写它，所以它一直是 NULL。
-    /// 这不是凑数 —— <c>[列] = @p</c> 在 NULL 上是 UNKNOWN，照那个形状拼谓词就是<em>每次保存都假冲突</em>，
-    /// 所以"NULL 折成 <c>IS NULL</c>"这一档必须有现场才判得动（集成层 <c>ConcurrencyPathTests</c>）。
-    /// 两列同时存在还顺带钉住一件事：<c>WHERE</c> 与 <c>OUTPUT</c> 里并发列的次序必须是契约列序，
-    /// 回包按位置落进实体，次序错了就是把 <c>RowVersion</c> 塞进 <c>CheckedAt</c>。</summary>
-    [ConcurrencyToken]
+    /// <summary>第二个并发列，而且是<em>可空</em>的那一档：应用给值（AppSetsValue）。
+    /// 库里是 NULL 时，<c>[列] = @p</c> 是 UNKNOWN，照那个形状拼谓词就是<em>每次保存都假冲突</em>，
+    /// 所以"NULL 折成 <c>IS NULL</c>"这一档必须有现场才判得动（集成层 <c>ConcurrencyPathTests</c>）。</summary>
+    [ConcurrencyToken(true)]
     public DateTime? CheckedAt { get; set; }
+
+    /// <summary>列名恰好叫 Exception：用来钉住"属性名与 CLR 类型名同名"时生成器与发射层
+    /// 不把成员名误当类型解析。</summary>
+    [QuickColumn(Length = 64)]
+    public string? Exception { get; set; }
 }
 
 /// <summary>完全没标注的实体：G1 不产出它（生成器只认带 <c>[Table]</c> 的类型），运行期必须退回 G2。

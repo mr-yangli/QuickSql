@@ -146,6 +146,13 @@ public sealed class ApplicationKeyPathTests
                 ("@table", TableName), ("@column", nameof(AppKeyRow.Id)))
                 .Single()["ExtraFlag"] is { } flag && flag.Contains("AUTO_INCREMENT", StringComparison.Ordinal),
 
+            // OceanBase（MySQL 模）同一颗 EXTRA 位：auto_increment 与空串两向同 MySQL。
+            Database.Target.OceanBase => Database.Rows(
+                "SELECT UPPER(extra) AS ExtraFlag FROM information_schema.columns " +
+                "WHERE table_schema = DATABASE() AND table_name = @table AND column_name = @column",
+                ("@table", TableName), ("@column", nameof(AppKeyRow.Id)))
+                .Single()["ExtraFlag"] is { } oceanBaseFlag && oceanBaseFlag.Contains("AUTO_INCREMENT", StringComparison.Ordinal),
+
             // 虚谷的目录里"库发号"就是 ALL_COLUMNS.IS_SERIAL 那颗布尔位（[实测·M2-03]，布尔取值形）。
             // join 形状与 XuguSchemaReader.ProbeSql 同源——三 张 表按 TABLE_ID/SCHEMA_ID 挂接，不 join 连表名都问不到；
             // 目录里存的是折叠后的大写（与 Fold 同一条纪律），所以表名、列名都要自己折成大写给进参数。

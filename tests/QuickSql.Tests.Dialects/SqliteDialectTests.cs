@@ -646,11 +646,10 @@ public sealed class SqliteDialectTests
         var sql = Statement(w => Provider.Keys.EmitReturning(w, [key, created]));
 
         // 句尾多列 RETURNING 有实测【实测·K/124/421】，所以这一族理论上能回填"库里刚算出来的任何一格"
-        // （DEFAULT 值、CURRENT_TIMESTAMP）。但 ColumnContract.StoreFillsValue 那条链今天只有
-        // SqlServerTypes 会置位——<b>本家有承接的语法而契约里没有那一格的调用方</b>，与
-        // Gbase8sConcurrency 那句"两颗一起记 §14"并排（那一家有表达式没有回包，本家两者都有而没人调用）。
+        // （DEFAULT 值、CURRENT_TIMESTAMP）。rowversion 支持已移除，契约里没有"值归库给"的并发令牌入口，
+        // 于是这条链今天只有自增列一个调用方。
         Checks.Has("RETURNING \"Id\", \"CreatedAt\"", sql);
-        Assert.False(created.StoreFillsValue);
+        Assert.False(created.ValueFromStore);
     }
 
     // ── 函数表：每一颗模板都在活库上问过取值形状 ──────────────────────
@@ -1099,30 +1098,6 @@ public sealed class SqliteDialectTests
         // 部分索引（WHERE 那一支）这一族确实有【实测·2818】，而 IndexContract 里没有那一颗——
         // 与 XuguCodeFirst 那条 BITMAP 同一格，只是本家那一支更常用。
         Assert.DoesNotContain("FILTERED", Enum.GetNames<IndexKind>());
-    }
-
-    [Fact]
-    public void A_rowversion_declaration_is_echoed_because_this_library_accepts_any_spelling()
-    {
-        var contract = orm().Schemas.Contract<InventoryItem>();
-
-        // 与虚谷、GBase 8s 那两家不同：那两家的 DDL 发射点拒 rowversion（虚谷建得成而读不回、
-        // 本家按缺席读），<b>本家不拒</b>——因为 affinity 让这一族接受任何声明字形，
-        // 而"人写下的名字"这一格在 provider 侧的纪律是原样 echo（§4）。
-        // 所以这一张表在本家会建成，而 [ConcurrencyToken] 的语义在这一列上<em>没有任何东西保证</em>：
-        // 这一族没有自动更新的版本列，值必须由应用给（SqliteConcurrency.Mode 就是 TimestampColumn）。
-        // 这一格今天没有读数（探针没问过 rowversion 那一串字被回显成什么），所以它记 §14 而不写成断言。
-        var ddl = Statement(w => Provider.CodeFirst.EmitCreateTable(w, contract));
-
-        Checks.Has("\"RowVersion\" rowversion NULL", ddl);
-
-        // 这一张表的主键仍然是那根自增 Id，而它在本家换成内联那一形——本行量的不是键而是"声明名照样穿过"。
-        Checks.Has("\"Id\" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL", ddl);
-
-        // 第二根并发列（可空 DateTime?）落 TEXT，而文本上的等值比的是写法【实测·3304 ∶ 3305】——
-        // 这一句留在这里是因为它是"能不能当版本列"在本家的真实判据：它是否只由本仓库写过。
-        Checks.Has("\"CheckedAt\" TEXT NULL", ddl);
-        Assert.Equal(ConcurrencyMode.TimestampColumn, Provider.Concurrency.Mode);
     }
 
     // ── 内联字面量：本家在这一格争的是正确性而不是计划缓存 ────────────

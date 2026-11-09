@@ -126,9 +126,8 @@ static class StatementEmitter
     }
 
     /// <summary>值的可读文本——钩子回放与冲突消息里那几颗值都从这里落地。二进制单独一档：
-    /// byte[].ToString() 交的是类型名，而 rowversion 恰恰是并发列最常见的那一型，
-    /// 「会话以为是 System.Byte[]，库里是 System.Byte[]」会把消息的全部用处抹掉（要能看出哪一列、差在哪）。
-    /// 形状对齐库里的写法：0x + 大写十六进制。</summary>
+    /// byte[].ToString() 交的是类型名，「会话以为是 System.Byte[]，库里是 System.Byte[]」会把消息的全部用处抹掉
+    /// （要能看出哪一列、差在哪）。形状对齐库里的写法：0x + 大写十六进制。</summary>
     public static string Text(object? value) => value switch
     {
         null or DBNull => "NULL",

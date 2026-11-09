@@ -79,7 +79,15 @@ static class Database
         Sqlite,
         PostgreSql,
         MySql,
+        OceanBase,
     }
+
+    /// <summary>本层把 <see cref="Target.OceanBase"/> 当作 MySQL 血统的一颗叶子：连接、目录、字形、分页、
+    /// 自增回读都走 <see cref="Target.MySql"/> 那几支。它不是"把两家并成一家"——两家在
+    /// <see cref="ConnectionString"/>／<see cref="Driver"/>／<see cref="BuildOrm"/>／<see cref="BuildProvider"/>
+    /// 四处分岔，真跑出来的读数仍按 <see cref="Family"/> 记在各自名下；这里收的只是那些<em>同一条 SQL 能用</em>的分支，
+    /// 免得把十几处 MySQL 分支抄成两份、然后没人看的那一份先漂移。</summary>
+    public static bool MySqlFamily => Family is Target.MySql or Target.OceanBase;
 
     static Target? _family;
 
@@ -94,8 +102,9 @@ static class Database
             "sqlite" => Target.Sqlite,
             "postgresql" => Target.PostgreSql,
             "mysql" => Target.MySql,
+            "oceanbase" => Target.OceanBase,
             var other => throw new InvalidOperationException(
-                $"QUICKSQL_TEST_PROVIDER = \"{other}\" 不认识：本层只接 sqlserver（缺省）、xugu、sqlite、postgresql 与 mysql。"),
+                $"QUICKSQL_TEST_PROVIDER = \"{other}\" 不认识：本层只接 sqlserver（缺省）、xugu、sqlite、postgresql、mysql 与 oceanbase。"),
         };
 
     /// <summary>目标库的连接串，三家的配置各走各的环境变量（<c>QUICKSQL_TEST_CONNECTION</c>、
@@ -113,6 +122,7 @@ static class Database
         Target.Sqlite => Sqlite.TryTestConnectionString() ?? Sqlite.ScratchConnectionString("integration"),
         Target.PostgreSql => PostgreSql.TestConnectionString,
         Target.MySql => MySql.TestConnectionString,
+        Target.OceanBase => OceanBase.TestConnectionString,
         _ => SqlServer.TestConnectionString,
     };
 
@@ -125,6 +135,7 @@ static class Database
         Target.Sqlite => Sqlite.Driver(),
         Target.PostgreSql => PostgreSql.Driver(),
         Target.MySql => MySql.Driver(),
+        Target.OceanBase => OceanBase.Driver(),
         _ => SqlServer.Driver(),
     };
 
@@ -135,6 +146,7 @@ static class Database
             Target.Sqlite => Sqlite.Orm(factory, ConnectionString),
             Target.PostgreSql => PostgreSql.Orm(factory, ConnectionString),
             Target.MySql => MySql.Orm(factory, ConnectionString),
+            Target.OceanBase => OceanBase.Orm(factory, ConnectionString),
             _ => SqlServer.Orm(factory),
         };
 
@@ -155,6 +167,7 @@ static class Database
             Target.Sqlite => Sqlite.Provider(factory),
             Target.PostgreSql => PostgreSql.Provider(factory),
             Target.MySql => MySql.Provider(factory),
+            Target.OceanBase => OceanBase.Provider(factory),
             _ => SqlServer.Provider(factory),
         };
 
@@ -278,7 +291,7 @@ static class Database
     ///
     /// 于是<em>同一个数在两种来源下有两份落处</em>：夹具灌的种子是 <c>'12.34'</c>，ORM 写进去的是
     /// <c>'12.3400'</c>，那一句"回包对得上库里"在这里比的是数而不是字。缺口记 §14 本家那一格。</para></summary>
-    public static Type MoneyClrType => Family is Target.SqlServer or Target.PostgreSql or Target.MySql ? typeof(decimal) : typeof(string);
+    public static Type MoneyClrType => Family is Target.SqlServer or Target.PostgreSql or Target.MySql or Target.OceanBase ? typeof(decimal) : typeof(string);
 
     /// <summary>一列 <c>INT</c>（本家叫 <c>INTEGER</c>）在<em>回包</em>那一格是什么 CLR 型。
     /// <b>这一颗是"回包形状"而不是"契约里那一格"</b>，所以与 <see cref="MoneyClrType"/> 并排放：
@@ -392,88 +405,6 @@ static class Database
 
     /// <summary>每条集成用例的第一句。<see cref="Assert.SkipUnless"/> 抛的是跳过异常，所以它同时是守卫。</summary>
     public static void Ready() => Assert.SkipUnless(Unavailable is null, $"本机测试库不可用：{Unavailable}");
-
-    /// <summary>第二颗闸门，v0.34 第一笔起挂在<em>要动并发列</em>的用例第一句之后。
-    ///
-    /// <para><b>这一格从前挂的是另一颗闸门 <c>RequireKeyBackfill</c>：虚谷一家整族 skip</b>。
-    /// 旧账原文照录不删——"第四跑那 51 颗红里有 45 颗红在这一颗上，它们<em>不是</em> 45 个缺陷，
-    /// 是<em>一个</em>缺口的 45 个消费者"（那个缺口：<c>INSERT … RETURNING</c> 被库收下、行进去了、
-    /// 回包 <c>FIELDS=0</c>，<c>obj/logs/v32-recon-keys-1.log</c> 的 N-06/N-07）。v0.34 第一笔把
-    /// 那颗口子建起来了（<c>IKeyStrategy</c> 的语句后回读钩子，虚谷这一家带真库出处），
-    /// 45 个消费者连同那句"改 <c>IKeyStrategy</c> 的签名不归本版（接口契约留给用户定）"一起退场 ——
-    /// 后半句被用户一句「都要」收走。这一格现在剩的是并发列的<b>两颗缺口，彼此独立</b>：</para>
-    ///
-    /// <list type="bullet">
-    /// <item><b>键＋版本的回填集仍走 <c>EmitReturning</c></b>：语句后回读那颗口子只接"回填集恰好
-    /// 一颗自增列"这一形（<c>InsertEngine.Build</c> 的 <c>postRead</c> 判据），带令牌的形状发出去的
-    /// <c>RETURNING "ID", "VERSION"</c> 还是实测的那个空结果集 —— 0/N 红与 v0.32 同格。</item>
-    /// <item><b>那一列连读都读不回来</b>：<c>SELECT "VERSION"</c> 由驱动侧抛
-    /// <c>System.DataOutOfBindException：参数绑定超界</c>（<c>v32-recon-mat-4.log</c> 的 A-06c；
-    /// 四列同句 A-06 同号，去掉那一列的 A-06b 是绿的）。</item>
-    /// </list>
-    ///
-    /// <para><b>所以这一句仍是 skip，既不是红、也不是把闸门松开</b>：它把两颗缺口的消费者收成
-    /// 一格可数的账，逐颗缺口记在 §14 的并发契约格里（与"两个已落地家族都有批量 RETURNING"并排读）。</para>
-    ///
-    /// <para><b>第七家挂的是另一条账，而它比虚谷那一格更靠前</b>：本家不是"那一档建了而读不回来"，
-    /// 是<b>那一档在本家没有入口</b>。<c>InventoryItem.RowVersion</c> 带的是
-    /// <c>[Column(TypeName = "rowversion")]</c>，而型名在这一族不参与存储【实测·B1 ∶ C2 七颗型名原样回读】，
-    /// "由库给值"在这一族只有 rowid 那颗 <c>AUTOINCREMENT</c> 一个入口【实测·2802 ∶ 2810】——
-    /// 于是那一列就是一列普通可空列，库永远不给它值。两半后果都在第一跑里数到了
-    /// （<c>obj/logs/v37-sqlite-int-1.log</c>）：回填交回 <c>null</c>（那条用例红在
-    /// <c>item.RowVersion!.Length</c> 的 <c>NullReferenceException</c>），而"别人改过那一行"这种冲突
-    /// 永不发生（另两颗红在 <c>Assert.Throws&lt;DbUpdateConcurrencyException&gt;</c> 的"没抛"）——
-    /// 并发<em>谓词</em>本身在本家是通的【实测·3302 ∶ 3303 命中与不命中各一颗，
-    /// <c>SqliteConcurrency</c> 第二条】，缺的是让那一格<em>动</em>起来的人。整格记 §14，
-    /// 与"应用自己给版本值"那一条路（本家能跑的那一档）并排。</para></summary>
-    public static void RequireConcurrencyColumn()
-    {
-        Assert.SkipWhen(Family == Target.Xugu,
-            "xugu 这一家的并发列今天两颗缺口都没补：键＋版本的回填集仍发 RETURNING（库收下、回包空结果集，" +
-            "obj/logs/v32-recon-keys-1.log N-06/N-07），而 SELECT 那一列直接被驱动抛 DataOutOfBindException" +
-            "（v32-recon-mat-4.log A-06c）。单颗自增列的回填已在 v0.34 第一笔改走语句后回读" +
-            "（本文件那颗整族闸门就是这么退场的），本条用例的判据因此没跑过；" +
-            "它若被强跑，红点是 ReadBackAsync 的\u201c只回填了 0/N 行\u201d与裁判回读那一列各一处。");
-
-        Assert.SkipWhen(Family == Target.Sqlite,
-            "sqlite 这一家没有\u201c值归库给\u201d那一档：型名不参与存储（B1/C2），而库给值的入口只有 rowid 那颗 " +
-            "AUTOINCREMENT（2802/2810），所以 [Column(TypeName = \"rowversion\")] 建的是一列普通可空列。" +
-            "第一跑的两半读数在 v37-sqlite-int-1.log：回填交回 null，而\u201c别人改过\u201d永不成立（并发谓词本身是通的，" +
-            "3302/3303）。本文件的十条用例判的都是\u201c库给那一格换了值\u201d，在本家没有对象。");
-
-        // <b>第四家挂的是<em>第三颗</em>理由，与前两家都不重合，而它比第七家那一格更靠前</b>：
-        // 第七家是"那一档在本族没有入口但列建得出来"，第五家是"建得出而读不回来"（A-06c），
-        // 本家是<b>连那一列都建不出来</b> —— <c>rowversion</c> 这颗型名在这一台库里不存在
-        // （<c>pg_type</c> 数到 0 行【实测·S-10】），而 provider 对人写的型名原样发出（<c>StoreTypeName</c> 短路），
-        // 于是夹具那张表在本家今天建不出来（原文与三颗读数记在 <see cref="EnsureInventoryItem"/> 那一段，
-        // 库里那一颗红是 <c>42704</c>【实测·D-04】）。
-        // <b>本家另有一条与前两家相反的证据要一起读</b>：并发<em>谓词</em>与键的回填两句在本家都通 ——
-        // <c>RETURNING</c> 场外与事务里各跑一次都命中【实测·K-01 ∶ K-02】，也就是说 v0.32 那一格
-        // "回填集发 RETURNING 交回空结果集"的红<em>不是</em>本家的形状（那一家是库收下而回包空，本家是库答键）。
-        // 所以这一家缺的只有那一型：把它换成 <c>bytea</c> 加一句人给的默认值就能建出<em>另一件事</em>的靶表，
-        // 而那一档判的仍是"值归库给"—— 需要的是产品侧的一个决定（要不要像 <c>XuguCodeFirst</c> v0.34
-        // 那样拒收这颗型名，还是替这一族登记一个真入口），不是夹具的一句替代 SQL。缺口记 §14。
-        Assert.SkipWhen(Family == Target.PostgreSql,
-            "postgresql 这一家没有 rowversion 那一型（pg_type 数到 0 行，S-10），夹具那张并发列表因此建不出来" +
-            "（42704，D-04；同形换 bytea 建得成，D-05 —— 缺的是那一型而不是那句语法）。本条用例判的是" +
-            "\u201c库给那一格换了值\u201d，而本家库给值的入口只有 identity 那颗序列（K-03），没有逐次换二进制令牌的那一档。" +
-            "键的回填与并发谓词本身在本家都有读数（K-01/K-02），红点不会落在那两句上。");
-
-        // <b>MySQL 挂的是第四颗理由，而它与第四家同源不同句</b>：那一格的两半在这里都成立 ——
-        // 库里没有那一型（S-08 数到 0）、provider 原样发出人写的型名（StoreTypeName 短路），
-        // 于是夹具那张表在本家建不出来；红点那句<em>不是</em> <c>42704</c> 而是 <c>1064</c>
-        // 【实测·D-03】，因为这一族的目录不给"型名不存在"这一颗专门错误，它在解析阶段就当语法错折回来。
-        // <b>本家另有一条与前三家都不同的加分要说</b>：并发<em>谓词</em>本身在这一族是通的 ——
-        // <c>MySqlConcurrency.Mode</c> 是 <c>TimestampColumn</c>（人给值的那一列），而"这一列变了没有"
-        // 那句比较在本家有专门的空值安全算子 <c>&lt;=&gt;</c>【实测·Z-05：<c>NULL &lt;=&gt; NULL</c> 交 1，
-        // 而 <c>IS DISTINCT FROM</c> 这一族没有【实测·Z-04】】。所以这一家缺的仍然只有那一型与那张表。
-        Assert.SkipWhen(Family == Target.MySql,
-            "mysql 这一家没有 rowversion 那一型（S-08 数到 0 行），夹具那张并发列表因此建不出来" +
-            "（1064，D-03；那一列换成 TIMESTAMP(3) 的建表语句收，D-04 —— 缺的是那一型而不是那句语法）。" +
-            "本条用例判的是\u201c库给那一格换了值\u201d，而本家库给值的入口只有 AUTO_INCREMENT 那一档整数键（K-02），" +
-            "没有逐次换二进制令牌的那一档。本家的并发档位设计上是\u201c人给值的那一列\u201d（MySqlConcurrency = TimestampColumn），" +
-            "与夹具声明的 rowversion 不是同一颗；谓词那一半在本家有专门的空值安全算子（<=>，Z-05），红点不会落在那一句上。");
-    }
 
     /// <summary>第三颗闸门：<b>这一家有没有"库里真的会挡"那条外键裁判</b>。
     ///
@@ -667,6 +598,8 @@ static class Database
             // 所以本家是五家里唯一一处"<see cref="MillisText"/> 与 T-SQL 那颗 <c>CONVERT(…, 121)</c>
             // 连前提都相同"的一族：定宽由库给，不靠 <see cref="Orders"/> 那批种子的毫秒位全非零。
             Target.MySql => "CAST(" + column + " AS CHAR)",
+            // OceanBase 的 MySQL 模与 MySQL 本尊同一形：CAST(... AS CHAR) 是这一族把时刻打成文本的那一句。
+            Target.OceanBase => "CAST(" + column + " AS CHAR)",
             _ => "CONVERT(varchar(23), " + column + ", 121)",
         };
 
@@ -703,6 +636,8 @@ static class Database
         // 与 <see cref="CatalogueName"/> 那一段同一颗纪律），比的是"同一颗词忽略大小写"，
         // 那一步由 <c>DdlTests</c> 在本家那一支点名。
         Target.MySql => "datetime(3)",
+        // OceanBase 的 information_schema.columns 与 MySQL 同一形：column_type 交回带量纲的整串。
+        Target.OceanBase => "datetime(3)",
         _ => "datetime2",
     };
 
@@ -809,8 +744,9 @@ static class Database
         // 【实测·X-02 的表头 <c>COLUMN_NAME|DATA_TYPE|…</c> 全部大写】），而别名交回的是写出去的那一形
         // 【实测·X-13 的 <c>verbatim|upper</c>】—— 于是 <see cref="Rows"/> 那颗键比较器在本家
         // 仍是 <c>Ordinal</c>（第七家同判据），代价只是这六颗别名要一颗不落。
-        if (Family == Target.MySql)
-            return Rows(
+        if (MySqlFamily)
+        {
+            var columns = Rows(
                 "SELECT c.column_name AS name, " +
                 "CASE WHEN c.is_nullable = 'YES' THEN '1' ELSE '0' END AS is_nullable, " +
                 "c.column_type AS store_type, " +
@@ -821,6 +757,21 @@ static class Database
                 "WHERE c.table_schema = DATABASE() AND c.table_name = @tbl " +
                 "ORDER BY c.ordinal_position",
                 ("@tbl", AssumeName(table)));
+
+            if (Family == Target.MySql)
+                return columns;
+
+            // OceanBase 4.4 的 column_type 仍按 MySQL 5.7 那一形带整型显示宽度（INT -> int(11)），
+            // 而契约写出去的是 INT。显示宽度在 OB 里不改变存储（与 MySQL 8.0 去掉它同一判据），
+            // 所以在裁判这一侧剥成整型基名；decimal/varchar/datetime 的量纲原样保留。
+            return columns.Select(r => new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["name"] = r["name"],
+                ["is_nullable"] = r["is_nullable"],
+                ["store_type"] = IntegerDisplayWidth.Replace(r["store_type"], "$1"),
+                ["scale"] = r["scale"],
+            }).ToList();
+        }
 
         var raw = Rows(
             "SELECT c.col_no, c.col_name, c.type_name, c.scale, c.not_null, c.\"VARYING\" " +
@@ -923,7 +874,7 @@ static class Database
             // <c>DdlTests</c> 那一句用的是 <c>Assert.Contains</c>，多出来的行不碍事，而主键那一半在本家
             // 问不出名字（<see cref="PrimaryKeyNamed"/> 本家那一段抛，改由 <see cref="PrimaryKeyColumns"/>
             // 问"这把键管哪几列"，实测·P-24）。
-            Target.MySql => Rows(
+            Target.MySql or Target.OceanBase => Rows(
                     "SELECT DISTINCT s.index_name AS index_name FROM information_schema.statistics s " +
                     "WHERE s.table_schema = DATABASE() AND s.table_name = @tbl",
                     ("@tbl", AssumeName(table)))
@@ -958,9 +909,9 @@ static class Database
                 "ALTER ADD CONSTRAINT 是语法错（4509/4510），CodeFirst 发的键是内联形（2802/3009），" +
                 "判据要换成 pragma_table_info 的 pk 那颗字段（4707），见本方法的注释。");
 
-        if (Family == Target.MySql)
+        if (MySqlFamily)
             throw new InvalidOperationException(
-                $"mysql 这一家没有\u201c具名主键\u201d这一颗目录对象，PrimaryKeyNamed(\"{name}\") 在本家没有对象：" +
+                $"mysql/oceanbase 这一家没有\u201c具名主键\u201d这一颗目录对象，PrimaryKeyNamed(\"{name}\") 在本家没有对象：" +
                 "建表时写的那颗名字被库静默改掉了 —— ALTER/CREATE 里写 CONSTRAINT `PK_QuickSqlProbeT`，" +
                 "information_schema.table_constraints 交回的那一行叫 PRIMARY（constraint_type='PRIMARY KEY'，" +
                 "enforced='YES'，实测·X-03；夹具那一形在本家第二次量到，实测·P-23）。" +
@@ -1005,9 +956,9 @@ static class Database
     {
         Ready();
 
-        if (Family != Target.MySql)
+        if (!MySqlFamily)
             throw new InvalidOperationException(
-                $"PrimaryKeyColumns 只在 mysql 这一家有对象（那一家的主键约束不带名字，见 {nameof(PrimaryKeyNamed)}），" +
+                $"PrimaryKeyColumns 只在 mysql/oceanbase 这一家有对象（那一家的主键约束不带名字，见 {nameof(PrimaryKeyNamed)}），" +
                 $"当前目标库是 {Family}；这一家该问的是 PrimaryKeyNamed。");
 
         // 别名一颗不落：本家不写别名时结果集的列名会被折成大写（X-02 的表头），而 Rows 的键比较器在
@@ -1101,6 +1052,22 @@ static class Database
         // 字符集 <c>utf8mb4</c> ∶ 默认排序规则 <c>utf8mb4_0900_ai_ci</c> ∶ <c>lower_case_table_names=0</c>
         // 【实测·S-04】—— 最后那一颗是 <see cref="TableExists"/> 不许折大小写的根因之一（表名按字节比，
         // 三形对照见【实测·Y-03】），而 <c>root@%</c> 落在 <c>TestDB</c> 上【实测·S-05】。
+        // <b>OceanBase 与 MySQL 本尊在"建库"这一格分岔</b>：这一台是用户提供的 SYS 租户、
+        // 用户 root，建库权在；而 provider 那条 <c>CREATE DATABASE IF NOT EXISTS</c> 的口子本来就在
+        // <c>MySqlProviderBase.EnsureDatabaseExistsAsync</c> 上通着（<c>CanCreateDatabase = true</c>），
+        // 它做的事正是"把连接串里的库名摘掉、连上服务器、再按名补建"。所以这一支不要求库先在场：
+        // 串里点了库名就补建一次，已有则库不动；没点库名时那颗方法自己跳过，随后连接照旧会红在"库不存在"。
+        // MySQL 本尊那一支仍然保持"库必须在场"——那是已经量过的一台实例的授权边界，不在这一笔里改。
+        if (Family == Target.OceanBase)
+        {
+            BuildProvider(factory).EnsureDatabaseExistsAsync(ConnectionString).GetAwaiter().GetResult();
+
+            Console.WriteLine("PrepareCatalog：oceanbase 一支按连接串里的库名补建（CREATE DATABASE IF NOT EXISTS），已存在则不动。"
+                + "连接串本身含口令、不进任何一行输出。");
+
+            return;
+        }
+
         if (Family == Target.MySql)
         {
             Console.WriteLine("PrepareCatalog：mysql 一支不建库（授权只到那一座 TestDB 里建表），目标库必须在场。"
@@ -1235,7 +1202,7 @@ static class Database
         // 本家是视图那一侧就把比较定成了 <c>bin</c>）。所以这里既不能套 <see cref="Fold"/>，
         // 也不许在 SQL 里 <c>LOWER()</c> 一把再问 —— 后者会把两件事一起取消：这一句的"原样"证人，
         // 以及下面 <see cref="Columns"/> 那一段写的那颗本家特有的坑。
-        if (Family == Target.MySql)
+        if (MySqlFamily)
             return Is(connection,
                 "SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END FROM information_schema.tables " +
                 "WHERE table_schema = DATABASE() AND table_name = @tbl AND table_type = 'BASE TABLE'",
@@ -1310,7 +1277,7 @@ static class Database
         // 答不出"库里那一列叫什么"</b> —— 后者归 <see cref="Columns"/>（把字段读出来比）。
         // 这一格不留白：<see cref="EnsureInventoryItem"/> 那一句"补一颗后加的列"要的正是前者，
         // 而它旁边那颗 <c>table_name</c> 筛选仍然按 <c>=</c> 原样问（不折，理由同第 ④ 条）。
-        if (Family == Target.MySql)
+        if (MySqlFamily)
             return Is(connection,
                 "SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END FROM information_schema.columns " +
                 "WHERE table_schema = DATABASE() AND table_name = @tbl AND column_name = @col",
@@ -1366,7 +1333,7 @@ static class Database
         // <c>FK_&lt;子表&gt;_&lt;父表&gt;</c> 是本仓库的写法而不是库的规则，按它拆表名等于让裁判去猜
         // 产出的命名法。类型词那一颗闸门留住之后，本句问的仍然只是"这条外键在不在"，
         // 与 <see cref="ForeignKeyActive"/> 各问一档。
-        if (Family == Target.MySql)
+        if (MySqlFamily)
             return Is(connection,
                 "SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END FROM information_schema.table_constraints " +
                 "WHERE constraint_schema = DATABASE() AND constraint_name = @nm " +
@@ -1445,7 +1412,7 @@ static class Database
         // 没有落库【实测·W-15 ∶ W-16 数到 1 行】，而会话级那颗开关现场原值是 <c>1</c>【实测·W-17】。
         // <c>OrderingPathTests</c> 那颗负样本（绕开会话插一条没有父的行必须抛）在真夹具上是同一格的第二次作证，
         // 所以本家<em>不</em>挂 <see cref="RequireForeignKeyJudge"/>，那一格与第四家同一侧。
-        if (Family == Target.MySql)
+        if (MySqlFamily)
             return ConstraintPresent(connection, name);
 
         return Family == Target.SqlServer
@@ -1471,163 +1438,39 @@ static class Database
     static string? Fold(string? identifier)
         => identifier is { Length: > 0 } name ? name.ToUpperInvariant() : null;
 
-    /// <summary>并发列那张表（§8.2，v0.18）。<b>v0.24 起它与其它表同一条产路</b>（<see cref="EnsureTable"/> →
-    /// <c>CodeFirst.EmitCreateTable</c>）；在此之前它是全份唯一一处手写建表，而那一处手写本身就是一格缺口：
-    /// 契约里 <c>InventoryItem.RowVersion</c> 只能声明成<em>可空</em>（<c>byte[]?</c> —— §10.6 的必填规则量的是
-    /// 整只实体的属性，非空的 <c>byte[]</c> 会让"新增一行"在客户端就过不去，而新增时那一格还没有值），
-    /// 而 CodeFirst 的可空性恰恰照抄 CLR，于是产出 <c>rowversion NULL</c> —— 那一列的值<em>永远归库给</em>，
-    /// "可能为空"是与它的语义不符的说法。现在契约长出了那一档（<c>ColumnContract.ValueFromStore</c>，
-    /// 由本家 <c>ITypeMap.ApplyStorageDefaults</c> 落输入、DDL 读 <c>NullableInStore</c>），
-    /// 自动产物与库的真实形状<em>一致</em>，于是这一处不再需要手写的理由 —— 而"两条 DDL 对上"
-    /// 从一句主张换成了 <c>DdlTests</c> 里逐列比目录的那一句。
+    /// <summary>并发列那张表（§8.2，v0.18）。它与其它表同一条产路（<see cref="EnsureTable"/> →
+    /// <c>CodeFirst.EmitCreateTable</c>），仍然在 <see cref="EnsureTable"/> 那一批<em>之后</em>建、没有种子：
+    /// <see cref="Seed"/> 的判据是"客户表非空"，把这张表并进那条链会牵动所有按标签计行数的用例。
     ///
-    /// <para>仍然在 <see cref="EnsureTable"/> 那一批<em>之后</em>建、仍然没有种子：<see cref="Seed"/> 的判据是
-    /// "客户表非空"，把这张表并进那条链会牵动所有按标签计行数的用例。</para>
-    ///
-    /// <para>本机早先跑过一版的机器上表已经在（按上一份手写 DDL 建的）：只补后加的 <c>CheckedAt</c>，不重建 ——
-    /// 重建会把别人写的行一起抹掉。那一份旧形状与今天的自动产出逐列相同（<c>rowversion NOT NULL</c>、
-    /// <c>CheckedAt NULL</c>），所以 <c>DdlTests</c> 那一句对拍在两种起点上都是同一句断言。
-    /// <b>而"这句 DDL 在真库上跑得通"这一格在旧机器上会被那个存在性分支绕过</b>，
-    /// 所以它另有证人：<c>DdlTests</c> 里那张按同一形状现场建的探针表。</para></summary>
+    /// <para>rowversion 支持已移除：这张表原来是 rowversion 形状，现在改用整型 <c>Version</c>
+    /// + 应用给值的 <c>CheckedAt</c>。跑过旧版夹具的机器上表已在时，这里按列名识别旧形状
+    /// （有 <c>RowVersion</c>、缺 <c>Version</c>/<c>CheckedAt</c>）并整张重建——这是一张只归本层用、
+    /// 没有种子的靶表，重建代价只是它自己。</para></summary>
     static void EnsureInventoryItem(DbConnection connection, QuickSqlOrm orm)
     {
         var table = orm.Schemas.Contract(typeof(InventoryItem)).Table;
 
         if (TableExists(connection, table))
         {
-            // 表已经在了（本机早先跑过一版）就只补后加的那一列，不重建。
-            if (!ColumnExists(connection, table, "CheckedAt"))
-                Execute(connection, Family switch
-                {
-                    // 这一家 ADD COLUMN 要带 <c>COLUMN</c> 那颗关键字（D-04 那一绿就是这一形），
-                    // 而 T-SQL 那一支不要 —— 两条都是<em>各家自己的</em>写法，不是"同一句换个引号"，
-                    // 所以它不进 <see cref="Translate"/>，留在这里点名。
-                    Target.Xugu => """ALTER TABLE "QUICKSQLINVENTORYITEM" ADD COLUMN "CHECKEDAT" DATETIME(3) NULL""",
-                    // 第四家这一支两个读数：<c>ADD COLUMN … timestamp(3) NULL</c> 收【实测·T-04】，
-                    // 而 <c>COLUMN</c> 那颗关键字在本家<em>可省</em>【实测·T-05 同一形不带它也收】——
-                    // 这里仍然写全，是因为本仓库 <c>PostgreSqlCodeFirst.EmitAddColumn</c> 发的就是全形，
-                    // 裁判跟着产品的写法走而不是跟着"最少能跑"的写法走。型名取 <c>timestamp(3)</c>
-                    // 与 <see cref="TimeStoreType"/> ∶ <c>PostgreSqlTypes</c> 那一格同一颗。
-                    Target.PostgreSql => """ALTER TABLE "QuickSqlInventoryItem" ADD COLUMN "CheckedAt" timestamp(3) NULL""",
-                    // 第七家这一句三颗读数各钉一格：<c>ADD COLUMN … TEXT NULL</c> 本家收【实测·4706，
-                    // 那颗 <c>NULL</c> 关键字不是装饰 —— 非空而没给默认值的 <c>ADD COLUMN</c> 在这一族是
-                    // 正面拒的【实测·313 ∶ 2811】】；表名与列名都按建表那份拼法问【实测·4702 ∶ 4704】；
-                    // 型名写 <c>TEXT</c> 是因为本家的时刻列就是这么声明的（<c>TimeStoreType</c> 那一段），
-                    // 而不是因为 <c>DATETIME</c> 会被拒 —— 那一形也建得成，只是换一颗 affinity 配方【实测·606】。
-                    Target.Sqlite => """ALTER TABLE "QuickSqlInventoryItem" ADD COLUMN "CheckedAt" TEXT NULL""",
-                    _ => "ALTER TABLE [dbo].[QuickSqlInventoryItem] ADD [CheckedAt] datetime2(3) NULL",
-                });
-
-            return;
+            // 旧夹具的 rowversion 形状（或缺少 Version / CheckedAt）不再兼容。这是一张只归本层用的
+            // 无种子靶表，所以整张重建；新形状与其它表同一条 CodeFirst 产路。
+            if (ColumnExists(connection, table, "RowVersion")
+                || !ColumnExists(connection, table, "Version")
+                || !ColumnExists(connection, table, "CheckedAt")
+                || !ColumnExists(connection, table, "Exception"))
+            {
+                // 只在外层 TableExists 为真时走到这里，所以不带 IF EXISTS：Xugu 对那一形不一定支持。
+                Execute(connection, "DROP TABLE [dbo].[QuickSqlInventoryItem]");
+            }
+            else
+            {
+                return;
+            }
         }
 
-        // <b>第四家到这里就建不出这张表，而"建不出"必须留档、不能把整副夹具带走</b>：
-        // <c>InventoryItem.RowVersion</c> 带的是 <c>[Column(TypeName = "rowversion")]</c>，而
-        // <c>PostgreSqlTypes.GetStoreType</c> 第一行是"人写过的型名原样还"（<c>StoreTypeName</c> 短路），
-        // 于是那句 DDL 里 <c>"RowVersion" rowversion</c> 直达库—— 库答
-        // <c>42704: type "rowversion" does not exist</c>【实测·D-04】。
-        // <b>三颗读数把这一格钉成"缺的是那一型，不是那句语法"</b>：这一台库里 <c>pg_type</c> 里
-        // <c>typname='rowversion'</c> 数到 <b>0 行</b>【实测·S-10】；同一形把那一列换成 <c>bytea</c>
-        // 就建得成【实测·D-05】；而"值由库给"在这一族唯一的入口是 identity 那颗序列
-        // （<c>pg_get_serial_sequence</c> 问得出来【实测·K-03】），没有任何东西会替一列<em>逐次</em>换二进制令牌。
-        // 所以这一家<em>今天</em>补不出这张夹具表，写开关也不行。
-        //
-        // <b>为什么是"跳过 + 留档"而不是让整副夹具红</b>：这颗异常如果照直抛出去，<c>Run()</c> 会把
-        // 它记成 <see cref="Unavailable"/>，于是本家一百条用例全部 skip —— 那正是 §13.5 那条纪律
-        // 一直在防的"一个缺口伪装成一百个没跑过"。做法与 v0.34 第一笔退场那颗闸门同一手：
-        // <em>缺口按对象收，不按整副收</em>。这张表今天只有三处消费者（并发那十条、<c>TrackingPathTests</c>
-        // 那一颗动并发列的、<c>ReadPathTests</c> 那一句只把它当"一张带文本列的靶表"），
-        // 前两组已由 <see cref="RequireConcurrencyColumn"/> 在本家挂 skip，后一处挂
-        // <see cref="RequireInventoryItemTable"/>。<b>这一手没有把判据松开</b>：它只是让
-        // "这一族没有 rowversion"这一格由一条可数的 skip 报出来，而<em>不是</em>由整本册子的静默消失报出来。
-        if (Family == Target.PostgreSql)
-        {
-            InventoryItemGap = "postgresql 这一家没有 rowversion 那一型：pg_type 里数到 0 行（S-10），" +
-                "而 provider 对人写的型名原样发出（StoreTypeName 短路），建表因此红在 42704（D-04）；" +
-                "同形换 bytea 建得成（D-05），所以缺的是那一型而不是那句语法。" +
-                "库给值的入口在本族只有 identity（K-03），没有逐次换二进制令牌的那一档 —— 缺口记 §14，" +
-                "要不要在这一家拒收 [Column(TypeName = \"rowversion\")]（XuguCodeFirst v0.34 那一手）是待裁决。";
-
-            Console.WriteLine("EnsureInventoryItem：postgresql 一支建不出夹具表 —— " + InventoryItemGap);
-
-            return;
-        }
-
-        // <b>第五家（xugu）走到同一格，方向<em>相反</em>：那一型它有（目录里认这个词，A-04 交
-        // <c>TYPE_NAME="ROWVERSION"</c>），是<em>本仓库自己</em>在 v0.34 第二笔为它立了拒收闸门 ——
-        // 因为库里建得成、会自增，而驱动一读那一列就抛 <c>System.DataOutOfBindException</c>
-        // （<c>XuguCodeFirst.cs:202</c> 那句抛点引的 RV-08 ∶ A-06 两批同一颗红）。
-        // 后果与第四家同一形而来源不同：第四家是库在解析前拒（42704），本家是 provider 在发射时拒
-        // （<c>QuickSqlException</c>，一句 DDL 都没发出去）。
-        //
-        // <b>这一支补的是 v37-xugu-int-2.log 量到的一格真账</b>：那一跑是 <c>Total 100 / Failed 3 / Skipped 92</c>，
-        // 而 92 那颗整片静默的红点来源就在这一句 —— 全新库（本机今天的状态）没有那张表，
-        // 存在性分支绕不过去，异常照直进 <c>Unavailable</c>，于是"一家缺那一档"伪装成"一百条没跑过"。
-        // <b>跑过旧版夹具的机器上今天仍然不走这一支</b>（表在就只补 <c>CHECKEDAT</c> 那一列，
-        // 上面那段存在性分支），所以这一手不减少任何现有证人，只把全新库那一台的整册静默换成
-        // 按对象点名的 skip。缺口本身（本家建不出夹具表）仍记 §14 那一格，与 DdlTests 探针表同一颗。
-        if (Family == Target.Xugu)
-        {
-            InventoryItemGap = "xugu 这一家由 provider 自己拒收 rowversion 那一型：库里有那一型也会自增（A-04），" +
-                "但驱动读不回那一列（带它的 SELECT 抛 DataOutOfBindException，RV-08 ∶ A-06），" +
-                "所以 XuguCodeFirst 在 v0.34 第二笔把那句 DDL 拦在发射前（QuickSqlException）。" +
-                "全新库因此建不出这张夹具表（跑过旧版夹具的机器上表已经在，走的是存在性分支）—— " +
-                "缺口记 §14，与 DdlTests 那张探针表同一格；并发那十一条另由 RequireConcurrencyColumn 点名。";
-
-            Console.WriteLine("EnsureInventoryItem：xugu 一支建不出夹具表 —— " + InventoryItemGap);
-
-            return;
-        }
-
-        // <b>MySQL 这一家与第四家同一侧、同一颗形状，只有报错的那一句不同</b>：这一台库里没有
-        // <c>rowversion</c> 那一型（<c>information_schema</c> 按型名数到 <b>0</b>【实测·S-08】），而
-        // <c>MySqlTypes.GetStoreType</c> 的第一行同样是"人写过的型名原样还"（<c>StoreTypeName</c> 短路，
-        // <c>src/QuickSql.Providers.MySqlBase/MySqlTypes.cs:92</c>），于是 <c>EmitCreateTable</c> 把
-        // <c>`RowVersion` rowversion</c> 原样发出去，库答 <c>You have an error in your SQL syntax …
-        // near 'rowversion)'</c>【实测·D-03】。
-        // <b>与第四家同一手的两颗对照也量了</b>：只有那一列的形状不同 —— 带 <c>V rowversion</c> 的建表语句
-        // 正面拒【实测·D-03】，带 <c>T TIMESTAMP(3) NULL</c> 的建表语句收【实测·D-04】，
-        // 所以缺的是那一型而不是那句语法；而"值由库逐次换"在本族<em>没有</em>入口 —— 库给值的只有
-        // <c>AUTO_INCREMENT</c> 那一档整数键（<c>LAST_INSERT_ID()</c> 问得出来【实测·K-02】），
-        // 没有任何东西替一列生成逐次递增的二进制令牌。
-        // <b>这一家与第四家不同的一格要一起写</b>：<c>MySqlConcurrency.Mode</c> 是 <c>TimestampColumn</c>，
-        // 也就是这一族的并发<em>设计</em>本来就走"人给值的那一列"，而夹具那张表声明的是
-        // <c>DbTypes = "rowversion"</c> 那一档 —— 于是这里缺的不是"并发这一档"，是<b>夹具的声明与这一族的
-        // 设计档位不是同一颗</b>。要不要在本家把 <c>rowversion</c> 折成 <c>TIMESTAMP(3) ON UPDATE</c>
-        // （语义近似而字节令牌不成立），还是像 <c>XuguCodeFirst</c> v0.34 那样拒收这颗型名，是产品侧的决定，
-        // 不是夹具的一句替代 SQL。缺口记 §14，与第四家那一格并排。
-        if (Family == Target.MySql)
-        {
-            InventoryItemGap = "mysql 这一家没有 rowversion 那一型（S-08 数到 0），而 provider 对人写的型名原样发出" +
-                "（StoreTypeName 短路），建表因此红在 1064（D-03）；同形换 TIMESTAMP(3) 建得成（D-04），" +
-                "所以缺的是那一型而不是那句语法。库给值的入口在本族只有 AUTO_INCREMENT 那一档整数键（K-02），" +
-                "没有逐次换二进制令牌的那一档 —— 缺口记 §14，与 postgresql 那一格并排；" +
-                "而本家的并发档位（MySqlConcurrency = TimestampColumn）设计上是\"人给值的那一列\"，" +
-                "与夹具声明的 rowversion 不是同一颗，要不要折型或拒收是待裁决。";
-
-            Console.WriteLine("EnsureInventoryItem：mysql 一支建不出夹具表 —— " + InventoryItemGap);
-
-            return;
-        }
+        // rowversion 支持已移除：这张靶表现在与其它表同一条 CodeFirst 产路，所有家族都建得出。
 
         EnsureTable(connection, orm, typeof(InventoryItem));
-    }
-
-    /// <summary><see cref="EnsureInventoryItem"/> 在本家交不回那张夹具表时留下的原文。
-    /// <b>它是夹具<em>自己</em>的一条账，不是从 <c>Unavailable</c> 那份抄来的</b>：整副夹具是好的，
-    /// 缺的只有那一张表，所以 skip 的消息也只该带这一颗的原因。</summary>
-    public static string? InventoryItemGap { get; private set; }
-
-    /// <summary>第四颗闸门：<b>这一家今天有没有夹具那张并发列表</b>。挂在唯一一条<em>不涉并发语义</em>、
-    /// 只是把 <c>InventoryItem</c> 当一张普通靶表用的用例上（<c>ReadPathTests</c> 那一句按前缀数行）。
-    /// 与 <see cref="RequireConcurrencyColumn"/> 的分工写在各自的注释里：那一颗判的是"这一族有没有
-    /// 值归库给那一档"，本颗判的只是"那张表在不在"，两者在本家同源而<em>不必</em>同源 ——
-    /// 如果哪天本家有了能建的并发列形状，本颗闸门会自己失去对象，那一颗不会。</summary>
-    public static void RequireInventoryItemTable()
-    {
-        var gap = InventoryItemGap;
-
-        Assert.SkipWhen(gap is not null, gap ?? string.Empty);
     }
 
     /// <summary>排序见证用的那条外键约束 —— <b>手工加在裁判连接上，不是 CodeFirst 发的</b>。
@@ -1713,7 +1556,7 @@ static class Database
                 // 到得了同一状态"的那一形；加分的一格是：DROP 外键<em>不</em>带走库为它自动建的那颗索引
                 // 【实测·W-07 两形名单一模一样，都含 <c>FK_…</c> 那一颗】，而再 ADD 时库认出那颗同名同列的
                 // 索引直接复用，不会撞 <c>Duplicate key name</c> —— 那是本层"先删后加"在本家不红的根因。
-                Target.MySql => "ALTER TABLE `QuickSqlMilestone` DROP FOREIGN KEY `" + ProjectForeignKey + '`',
+                Target.MySql or Target.OceanBase => "ALTER TABLE `QuickSqlMilestone` DROP FOREIGN KEY `" + ProjectForeignKey + '`',
                 _ => $"ALTER TABLE [dbo].[QuickSqlMilestone] DROP CONSTRAINT [{ProjectForeignKey}]",
             });
 
@@ -1752,7 +1595,7 @@ static class Database
             // 拿它当 <c>WITH NOCHECK</c> 的替身会把一颗约束的性质写成一颗会话的性质。那一档的差记 §14。
             // 种子里那行孤儿子挂的是 <c>CustomerId</c>、这条管的是 <c>ProjectId</c>，校验存量看不到它，
             // 与第四家那一段同一个理由。
-            Target.MySql => "ALTER TABLE `QuickSqlMilestone` ADD CONSTRAINT `" + ProjectForeignKey + "` " +
+            Target.MySql or Target.OceanBase => "ALTER TABLE `QuickSqlMilestone` ADD CONSTRAINT `" + ProjectForeignKey + "` " +
                             "FOREIGN KEY (`ProjectId`) REFERENCES `QuickSqlProject` (`Id`)",
             _ => "ALTER TABLE [dbo].[QuickSqlMilestone] WITH NOCHECK ADD CONSTRAINT [FK_QuickSqlMilestone_QuickSqlProject] " +
                  "FOREIGN KEY ([ProjectId]) REFERENCES [dbo].[QuickSqlProject] ([Id])",
@@ -1868,7 +1711,7 @@ static class Database
                 // 回包型是 <c>UInt64</c>，所以下面那颗装箱匹配走的是 <c>var other</c> 那一支的
                 // <c>Convert.ToInt32</c>，与 <see cref="IntClrType"/> 那格本家交 <c>Int32</c> <em>不</em>冲突
                 // （那一格问的是<em>列</em>的回包，这一格问的是<em>会话函数</em>的回包，两颗不同的东西）。
-                Target.MySql => " ; SELECT LAST_INSERT_ID()",
+                Target.MySql or Target.OceanBase => " ; SELECT LAST_INSERT_ID()",
                 _ => " ; SELECT CAST(SCOPE_IDENTITY() AS int)",
             },
             args);
@@ -2008,7 +1851,7 @@ static class Database
             Target.Xugu => XuguText(sql),
             Target.Sqlite => SqliteText(sql),
             Target.PostgreSql => PostgresText(sql),
-            Target.MySql => MySqlText(sql),
+            Target.MySql or Target.OceanBase => MySqlText(sql),
             _ => sql,
         };
 
@@ -2104,4 +1947,9 @@ static class Database
     static readonly Regex Qualified = new(@"\[([^\]]+)\]", RegexOptions.CultureInvariant);
     static readonly Regex National = new(@"(?<![\w$])N'", RegexOptions.IgnoreCase);
     static readonly Regex Placeholder = new(@"@([A-Za-z_]\w*)");
+
+    /// <summary>OceanBase 目录里整型名那一颗显示宽度：<c>int(11)</c> → <c>int</c>。
+    /// 只收整型六颗，定点与字符型的括号是量纲、必须留着。</summary>
+    static readonly Regex IntegerDisplayWidth =
+        new(@"^(tinyint|smallint|mediumint|int|integer|bigint)\(\d+\)$", RegexOptions.IgnoreCase);
 }

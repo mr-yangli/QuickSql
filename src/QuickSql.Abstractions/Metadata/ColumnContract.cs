@@ -24,17 +24,15 @@ public sealed record ColumnContract
 
     public required bool IsIdentity { get; init; }
 
-    /// <summary>并发列：只比较不书写——不进 SET、不进列清单、不进脏判定，但进 WHERE 与回填集。</summary>
+    /// <summary>并发列：只比较不书写——不进 SET、不进列清单、不进脏判定，但进 WHERE。
+    /// 应用给值那一族（<see cref="AppSetsValue"/>）例外：新值在实体上，随行写出去。</summary>
     public bool IsConcurrencyToken { get; init; }
 
     /// <summary>应用给值的应用自维护并发列（ABP 的 ConcurrencyStamp 一族）：新值由应用生成，进 SET 与 INSERT，WHERE 比快照。只有 IsConcurrencyToken 为真时有效。</summary>
     public bool AppSetsValue { get; init; }
 
-    /// <summary>provider 说这一型由库自己给值且永不为空（输入位）。今天只有 SQL Server 的 rowversion。</summary>
-    public bool StoreFillsValue { get; init; }
-
-    /// <summary>"值归库给"结论位 = 自增 ∪ StoreFillsValue；唯一读者是 NullableInStore。</summary>
-    public bool ValueFromStore => IsIdentity || StoreFillsValue;
+    /// <summary>"值归库给"结论位 = 自增。并发令牌不再有"库给值"那一档（rowversion 支持已移除）。</summary>
+    public bool ValueFromStore => IsIdentity;
 
     /// <summary>字符上限。required：漏算一尺就是事故。</summary>
     public required int? MaxChars { get; init; }
