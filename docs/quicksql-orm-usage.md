@@ -1,29 +1,29 @@
 # QuickSql — .NET 10 的多数据库 ORM
 
-一套实体与 LINQ 风格链式 API，覆盖 **18 家数据库**（SQL Server、PostgreSQL、MySQL、Oracle、SQLite、达梦、人大金仓、虚谷、GBase 等），源生成器编译期生成实体契约实现零反射物化。内置工作单元（变更跟踪 + `SaveChanges`）、乐观锁、全局过滤器、软删除、AOP 审计、分表分库与读写分离、CodeFirst 结构同步、原生 SQL 逃生舱。
+一套实体与 LINQ 风格链式 API，覆盖 **19 家数据库**（SQL Server、PostgreSQL、MySQL、Oracle、SQLite、达梦、人大金仓、虚谷、GBase 等），源生成器编译期生成实体契约实现零反射物化。内置工作单元（变更跟踪 + `SaveChanges`）、乐观锁、全局过滤器、软删除、AOP 审计、分表分库与读写分离、CodeFirst 结构同步、原生 SQL 逃生舱。
 
-> 目标框架 `net10.0`；当前为 `-beta` 预发布系列；MIT 协议；除 ADO.NET 驱动外零第三方依赖。
+> 目标框架 `net10.0`；包版本跟 .NET 主版本走（nuget.org 当前可还原的是 10.0.0）；MIT 协议；除 ADO.NET 驱动外零第三方依赖。
 
 ## 安装
 
 普通应用装三颗 QuickSql 包 + 各自数据库的 ADO.NET 驱动（provider 不自带驱动）：
 
 ```bash
-dotnet add package QuickSql.Core --prerelease
-dotnet add package QuickSql.Providers.SqlServer --prerelease   # 只装你真要连的那家
-dotnet add package QuickSql.Generators --prerelease            # 源生成器（实体契约 + provider 登记）
+dotnet add package QuickSql.Core
+dotnet add package QuickSql.Providers.SqlServer   # 只装你真要连的那家
+dotnet add package QuickSql.Generators            # 源生成器（实体契约 + provider 登记）
 dotnet add package Microsoft.Data.SqlClient                    # 数据库驱动
 ```
 
 或写死版本号：
 
 ```xml
-<PackageReference Include="QuickSql.Core" Version="0.39.0-beta.35" />
-<PackageReference Include="QuickSql.Providers.SqlServer" Version="0.39.0-beta.35" />
-<PackageReference Include="QuickSql.Generators" Version="0.39.0-beta.35" />
+<PackageReference Include="QuickSql.Core" Version="10.0.0" />
+<PackageReference Include="QuickSql.Providers.SqlServer" Version="10.0.0" />
+<PackageReference Include="QuickSql.Generators" Version="10.0.0" />
 ```
 
-> 全家都是 `-beta.N` 预发布档，`dotnet add package` 必须带 `--prerelease`；版本以 nuget.org 实际可得的最新一颗为准。
+> 稳定档，`dotnet add package` 不带旗标即可；版本以 nuget.org 实际可得的最新一颗为准。
 
 ## 快速上手
 

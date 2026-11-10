@@ -22,14 +22,15 @@
     <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
-  <!-- NuGet 打包元数据里"本 subtree 独有"的那三颗：一颗版本跟着规格册的 v0.39 口径，发的是预发布档
-       （预发布档不进消费方默认解析）、README 挂哪一份册子、Tags 说什么。作者与许可在根上。
-       每重打一次包升一颗 beta：同版本号不同内容的两颗包，消费方全局缓存里那颗会压住新打的 —— 还原照样绿，
+  <!-- NuGet 打包元数据里本仓独有的那三颗：版本号、README 挂哪一份册子、Tags 说什么。作者与许可内联在本文件上面那段。
+       版本跟 .NET 主版本走（.NET 10 → 10.x），10.0.0 起发稳定档（2026-11-09 首颗上 NuGet），不再是预发布序列。
+       每重打一次包必升一颗：同版本号不同内容的两颗包，消费方全局缓存里那颗会压住新打的 —— 还原照样绿，
        拿到的却是旧二进制（2026-10-10 在应用侧实测过这一格）。
        这一组只喂 dotnet pack，编译期行为一个字不改；非库工程（tests / benchmarks / samples）各自在
-       csproj 或本目录的 props 里标 IsPackable=false，所以 dotnet pack Quick.slnx 出的是 22 颗库包。 -->
+       csproj 或本目录的 props 里标 IsPackable=false，所以 dotnet pack QuickSql.slnx 出的是本家 25 颗库包。
+       版本号改了就同步 CHANGELOG.md 那一节的标题。 -->
   <PropertyGroup>
-    <Version>10.0.0</Version>
+    <Version>10.1.0</Version>
     <PackageReadmeFile>quicksql-orm-usage.md</PackageReadmeFile>
     <PackageTags>orm;sql;linq;ado.net;source-generator</PackageTags>
   </PropertyGroup>

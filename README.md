@@ -1,15 +1,15 @@
 # QuickSql
 
-LINQ 风格链式多数据库 ORM：一套实体覆盖 18 家数据库（含达梦/金仓/虚谷/GBase 等信创库），源生成器零反射物化。
+LINQ 风格链式多数据库 ORM：一套实体覆盖 19 家数据库（含达梦/金仓/虚谷/GBase 等信创库），源生成器零反射物化。
 
 MIT 协议。
 
 ## 安装
 
 ```bash
-dotnet add package QuickSql.Core --prerelease
-dotnet add package QuickSql.Providers.SqlServer --prerelease
-dotnet add package QuickSql.Generators --prerelease
+dotnet add package QuickSql.Core
+dotnet add package QuickSql.Providers.SqlServer
+dotnet add package QuickSql.Generators
 dotnet add package Microsoft.Data.SqlClient     # 驱动由应用侧自装
 ```
 
@@ -54,6 +54,7 @@ tests/QuickSql.Tests.Dialects/bin/Debug/net10.0/QuickSql.Tests.Dialects.exe
 
 - [文档中心（按功能 16 篇）](docs/quicksql/README.md)
 - [设计规格](docs/quicksql-orm-design.md)
+- [更新日志](CHANGELOG.md)
 
 ## License
 
