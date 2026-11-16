@@ -260,9 +260,10 @@ static class Database
     public static string StoredGuidText(Guid value)
         => Family == Target.Sqlite ? value.ToString("D").ToUpperInvariant() : value.ToString("D");
 
-    /// <summary>这一家的 <c>NUMERIC(18,4)</c> 那一格<em>交回什么 CLR 型</em>：T-SQL 交 <c>decimal</c>，
-    /// 第五家交 <c>string</c>（<c>"12.3456"</c> 原样一串字，标度带着 ——
-    /// 出处 <c>obj/logs/v32-recon-mat-1.log</c> 的 A-01，与 F-46b 同一件事的第二次量）。
+    /// <summary>这一家的 <c>NUMERIC(18,4)</c> 那一格<em>交回什么 CLR 型</em>：T-SQL 交 <c>decimal</c>；
+    /// 第五家在驱动 3.3.4.5 那一代交 <c>string</c>（<c>"12.3456"</c> 原样一串字，标度带着 ——
+    /// 出处旧仓的 A-01，与 F-46b 同一件事的第二次量；那份日志没有随仓走下来），而本仓交付的
+    /// 4.0.0.8 交回 <c>decimal</c> —— 换代的读数与判读在下面 2026-11-16 那一段。
     /// <b>这一颗为什么在缝里而不在那两条用例里</b>：它是"回包形状"而不是"某条断言的期望值"，
     /// 而读侧的 <c>ValueConverter</c> 恰好把这一格兜住了（<c>Amount</c> 在两家的集成用例里都读得出十进制数，
     /// 第四跑那 45 颗红没有一颗红在这里）—— 兜住不等于同形：装箱代价与等价判据在两家不是一式，
@@ -289,9 +290,18 @@ static class Database
     /// 而本家 <c>information_schema</c> 交的是 <c>decimal(18,4)</c> 一颗带量纲的字段【实测·X-02 第四行】，
     /// 所以"标度带着"这一格本家与虚谷同侧（库里带着），回包形状却与 T-SQL 同侧。</para>
     ///
+    /// <para><b>【2026-11-16 虚谷改判，驱动 4.0.0.8】那一句"三家 ∶ 两家"今天读作"四家 ∶ 一家"</b>：
+    /// 集成册虚谷那六颗既有红里两颗红在 <c>GetFieldType</c> 这一句（Expected: System.String ∶
+    /// Actual: System.Decimal），上库复测：<c>GetFieldType(AMOUNT)</c> 与 <c>GetValue</c> 同交
+    /// <c>Decimal</c>、值 <c>12.3456</c>【实测·<c>obj/logs/v42-xugu-fix-probe-5.log</c> 回包形状段】。
+    /// 这不是判据漂了，是<b>驱动换代</b>：<c>QuickSql.Tests.Integration.csproj</c> 那颗
+    /// 【本版改判，厂商 4.0.0.8】注释记着交付物在 v0.32–v0.33 之间从 3.3.4.5 换成 4.0.0.8，
+    /// A-01 的 <c>string</c> 是 3.3.4.5 的事实。在册六家里 <c>string</c> 从此只剩第七家
+    /// （上面那段的 TEXT 载体那条路）。</para>
+    ///
     /// 于是<em>同一个数在两种来源下有两份落处</em>：夹具灌的种子是 <c>'12.34'</c>，ORM 写进去的是
     /// <c>'12.3400'</c>，那一句"回包对得上库里"在这里比的是数而不是字。缺口记 §14 本家那一格。</para></summary>
-    public static Type MoneyClrType => Family is Target.SqlServer or Target.PostgreSql or Target.MySql or Target.OceanBase ? typeof(decimal) : typeof(string);
+    public static Type MoneyClrType => Family is Target.SqlServer or Target.PostgreSql or Target.MySql or Target.OceanBase or Target.Xugu ? typeof(decimal) : typeof(string);
 
     /// <summary>一列 <c>INT</c>（本家叫 <c>INTEGER</c>）在<em>回包</em>那一格是什么 CLR 型。
     /// <b>这一颗是"回包形状"而不是"契约里那一格"</b>，所以与 <see cref="MoneyClrType"/> 并排放：

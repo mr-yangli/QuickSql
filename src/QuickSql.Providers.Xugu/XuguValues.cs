@@ -89,8 +89,16 @@ public sealed class XuguValues : IValueBinder
             var t when t == typeof(double) => DbType.Double,
             var t when t == typeof(decimal) => DbType.Decimal,
 
-            // DbType.DateTime 上线的是驱动里的旧型，而列是 DATETIME(3)。这一臂五家同取 DateTime2（来路各不同）。
-            var t when t == typeof(DateTime) => DbType.DateTime2,
+            // DbType.DateTime 上线的是驱动里的旧型，而列是 DATETIME(3)。非 null 仍取 DateTime2（五家同取，
+            // 来路各不同）：毫秒保真要它，且这条非 null 路在活库上一直绿。
+            // <b>null 改绑旧型</b>【实测·obj/logs/v42-xugu-fix-probe-2.log P01/P09 对 E2/P16、-3.log F1】：
+            // InsertOrUpdate 的 MERGE 在 USING (SELECT … UNION ALL …) 源臂里把每一格都绑成参数，
+            // 同一列位置上"非 null 的 DateTime2"与"绑成 DateTime2 的 DBNull"混排时，驱动对那颗空值做
+            // DATETIME→BINARY 的型推，当场 [E34501]/[E17049] 没有实现DATETIME到BINARY的转换 ——
+            // 三行全 null（E2）与整臂全绑旧型（P16）都绿，唯独混排那颗红。空值没有精度可失，旧型是安全臂：
+            // 落库读回 NULL 原样、同臂非 null 侧毫秒 567 保真（F1 落库核验），
+            // INSERT/UPDATE/谓词三侧同臂无殃及（F2/F4/F5/F6）。
+            var t when t == typeof(DateTime) => value is null ? DbType.DateTime : DbType.DateTime2,
 
             // 这一行到不了：列那一侧在 XuguTypes 就抛了。写出来是为了让"绑定层认得、缺的是列"在读代码时看得见。
             var t when t == typeof(DateTimeOffset) => DbType.DateTimeOffset,

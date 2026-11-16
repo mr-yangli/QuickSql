@@ -111,8 +111,11 @@ public sealed class XuguDialect(XuguTypes types, XuguKeys keys, XuguValues value
 
     /// <summary>InsertOrUpdate 发 MERGE INTO … USING (SELECT … FROM dual UNION ALL …)，与 Oracle 血统同形；
     /// 不发 USING (VALUES …)——那一形实测语法错，行集只能从 USING (SELECT …) 带。
-    /// 档位要说清：MERGE 骨架在活库上跑过（单行、手工写的那颗），本层产出的多行 UNION ALL、目标别名、
-    /// 整句拼接未复点。ON/WHEN 两支由共用层 EmitMergeTail 发，不收分号。</summary>
+    /// 档位要说清：MERGE 骨架在活库上跑过（单行、手工写的那颗）；本层产出的多行 UNION ALL、目标别名、
+    /// 整句拼接 2026-11-16 起在活库上复点（BulkWritePathTests 的 InsertOrUpdate 两条真跑这条链），
+    /// 换来一颗绑定侧的约束：USING 源臂里 null 的时刻参数要绑旧型 DbType.DateTime，
+    /// 混排 DateTime2 空值的症状与出处记在 <see cref="XuguValues"/> 的 DbTypeOf 那一段。
+    /// ON/WHEN 两支由共用层 EmitMergeTail 发，不收分号。</summary>
     public override void Emit(in UpsertStatement upsert, SqlWriter writer)
     {
         writer.Append("MERGE INTO ");

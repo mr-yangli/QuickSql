@@ -22,6 +22,12 @@ namespace QuickSql.Tests.Integration;
 /// <c>moment 120</c> / <c>text 8 152</c> B/次），而<em>绝对值</em>差一个数量级、字符串那一格从第一家的
 /// <c>0</c> 变成这里的 <c>8 152</c>。两处判据的分岔都写在用例里，各带自己的出处，不合并成一句"大致相同"。</para>
 ///
+/// <para>③ 的 <b>2026-11-16 复点（驱动 4.0.0.8）</b>：第五家那批读数是 3.3.4.5 的事实 —— 交付物换代之后
+/// 同一把尺重量的四颗数全是 <c>0</c>，且 <c>GetValue</c> 两次取同一格交回<em>同一个实例</em>
+/// （ReferenceEquals 见证）：这一代驱动把行值在 <c>Read()</c> 那一刻一次物化，行上反复取不再分配。
+/// 两条用例的虚谷臂按这一代重写，"装箱存在"的缺席证明随之换形（箱子在行缓冲里，不在每次取值上）；
+/// 读数与 sanity 在 <c>obj/logs/v42-xugu-fix-probe-5.log</c>（Release）与 <c>-6.log</c>（Debug 同数）。</para>
+///
 /// <para><b>判据只取字节不取毫秒</b>（§12.8 的口径）：分配数与机器负载无关，所以这里能断"等于 24"，
 /// 而不能像时间那样只能设单向地板——那 42 ns 的差价就是没法这样断的东西，它只记在文档里。</para>
 ///
@@ -147,9 +153,11 @@ public sealed class MaterializationAllocationTests
         // 而<em>要换的理由就是这一颗</em>，两处隔七行各写一遍两家各一句的话，改一处忘一处就会假绿。
         Assert.Equal(Database.IntClrType, reader.GetFieldType(0));
 
-        // <b>这颗是本版新加的，而它是这一批用例在第五家的分岔点</b>：同一列 <c>NUMERIC(18,4)</c>，
-        // T-SQL 交回 <c>decimal</c>、这一家交回 <c>string</c>（A-01 逐字量到 <c>"12.3456"</c>，
-        // 与 F-46b 同一件事的第二次量）。名字放在缝里（<see cref="Database.MoneyClrType"/>）而不是在这里写两家各一句：
+        // <b>这一格在第五家换过一次朝代，而缝跟着换代走</b>：同一列 <c>NUMERIC(18,4)</c>，T-SQL 交回
+        // <c>decimal</c>；驱动 3.3.4.5 那一代交回 <c>string</c>（A-01 逐字量到 <c>"12.3456"</c>，
+        // 与 F-46b 同一件事的第二次量），2026-11-16 用交付的 4.0.0.8 复测交回 <c>Decimal</c>
+        // （<c>GetFieldType</c> 与 <c>GetValue</c> 同型、值 <c>12.3456</c>；obj/logs/v42-xugu-fix-probe-5.log）。
+        // 名字放在缝里（<see cref="Database.MoneyClrType"/>）而不是在这里写两家各一句：
         // 下面那对 <c>money*</c> 判据钉的是"这一格装了什么箱"，而<em>那一句成不成立要看的就是这一颗</em>。
         Assert.Equal(Database.MoneyClrType, reader.GetFieldType(1));
 
@@ -163,7 +171,15 @@ public sealed class MaterializationAllocationTests
         var momentDoor = PerCall(() => _ = ValueConverter.Read<DateTime>(reader, 2));
         var textDoor = PerCall(() => _ = ValueConverter.Read<string>(reader, 3));
 
-        Assert.True(idBoxed > 0, $"真驱动竟然不装箱了（实测 {idBoxed} B/次）：判据要改，别删用例。");
+        if (Database.Family == Database.Target.Xugu)
+            // <b>第五家在 4.0.0.8 上换了形状</b>：行值在 Read() 那一刻一次物化，同一条 reader 上反复取
+            // 同一格交回同一个实例（ReferenceEquals 见证同场），逐列读数全 0 B/次
+            // （obj/logs/v42-xugu-fix-probe-5.log；v32 那批 112/8 152/120/8 152 是 3.3.4.5 的事实）。
+            // "装箱仍然存在"的缺席证明随之换形：箱子在行缓冲里，不在每次取值上 —— 判 0 是这一代的形状，
+            // 哪一代驱动不缓存了，这一句红在 Expected: 0 / Actual: X，那时的读数说话。
+            Assert.True(idBoxed == 0, $"第五家读一颗整数列不再每取一次箱一次（实测 {idBoxed} B/次）：驱动换代了，先用同一把尺重跑 obj/logs/v42-xugu-fix-probe-5.log 那一场再改。");
+        else
+            Assert.True(idBoxed > 0, $"真驱动竟然不装箱了（实测 {idBoxed} B/次）：判据要改，别删用例。");
 
         // <b>第七家把上面那句"门的读数必须与直接装箱同价"打破了，而破的不是量具，是型</b>：本家的
         // <c>INTEGER</c> 列交回装箱 <c>Int64</c> 而契约要 <c>int</c>，于是门在 <c>GetValue</c> 那一颗箱之外
@@ -182,7 +198,11 @@ public sealed class MaterializationAllocationTests
         else
             Assert.Equal(idBoxed, idDoor);
 
-        Assert.True(moneyBoxed > idBoxed, $"decimal 的箱子（{moneyBoxed} B）不再比 int（{idBoxed} B）大，量具或驱动变了，这一批读数要重看。");
+        if (Database.Family == Database.Target.Xugu)
+            // 同一颗行缓存：钱列与整数列在这一代驱动上同价（0 B/次），"箱子比整数大"的顺带钉子在第五家让位。
+            Assert.True(moneyBoxed == 0, $"第五家的钱列不再每取一次箱一次（实测 {moneyBoxed} B/次）：同上那句，先重跑探针那一场再改。");
+        else
+            Assert.True(moneyBoxed > idBoxed, $"decimal 的箱子（{moneyBoxed} B）不再比 int（{idBoxed} B）大，量具或驱动变了，这一批读数要重看。");
         Assert.Equal(moneyBoxed, moneyDoor);
 
         if (Database.Family == Database.Target.Sqlite)
@@ -195,26 +215,18 @@ public sealed class MaterializationAllocationTests
 
         // 字符串本来就不装箱：报 0 是为了让那个 0 不被读成"字符串那一格已经省过了"。
         //
-        // <b>v0.32 第二格：那句"不装箱"只有第一家成立，而这一格是这批用例在第五家唯一的实质分岔</b>。
-        // 同一把尺（<c>PerCall</c>，20 000 次取均值、四舍五入到 0.01）在第五家的四个读数：
-        // <c>id=112</c>、<c>money=8 152</c>、<c>moment=120</c>、<c>text=8 152</c> B/次
-        // （v32-int-xugu-7.log；第一家那一版是 <c>int 24</c> / <c>decimal 32</c> / <c>DateTime 24</c> / <c>string 0</c>，
-        // 逐格在 §12.7 C 末尾）。三件事一起记：
-        // ① <b>形状仍然成立</b> —— 上面那三对 <c>Assert.Equal(boxed, door)</c> 在五颗数上全绿，
-        //   也就是"门与直接装箱同价"这一句<em>不随家族变</em>，那把缺席的门在两家的缺席是同一件事；
-        //   <b>这一句到第七家不再成立，它已被上面那两臂换掉</b>（本家两格门比装箱贵一整颗箱，
-        //   【实测·4812】；留这段原文是因为第五家那一版的三对确实全绿，改口要有可对读的那一版）。
-        // ② <b>绝对值差一个数量级</b> —— 一颗 <c>int</c> 的读在这里要 112 B 而不是 24 B；
-        // ③ <b>字符串那一格在这一家根本不"免费"</b>：<c>text</c> 与 <c>money</c> 同为 8 152 B/次，
-        //   而 <c>money</c> 那一列在这一家交回的也是 <c>string</c>（A-01/F-46b）——两颗 8 152 是同一件事的两次量，
-        //   一颗 <c>VARCHAR</c> 与一颗 <c>NUMERIC</c> 的串读起来等价，且都与串的实际长度无关（三字的"甲公司"
-        //   与七字的"12.3456"同价）。所以这里的判据只能写成单向地板，理由与 §12.8 那三颗时间格子同一类：
-        //   <b>"等于 8 152"钉的是驱动某一版的内部缓冲，不是这一族的行为约定</b>，换一版驱动就红不是我们想要的信号。
-        //   地板取 8 000：它比第一家的 0 高三个数量级，比实测低一截，谁把这一格改成"缓存住就不分配"都会红在这里。
+        // <b>第五家这一格的两代读数各是一代驱动的事实，而判据跟着换代走</b>：v0.32 那一代（3.3.4.5，
+        // v32-int-xugu-7.log，旧仓日志未随仓走下来）量到 <c>id=112</c>、<c>money=8 152</c>、<c>moment=120</c>、
+        // <c>text=8 152</c> B/次 —— 字符串要 8 152、与钱列同价（钱列当时也交 string，A-01/F-46b），
+        // 所以那时判据写成 > 8 000 的地板（"等于 8 152"钉的是驱动内部缓冲，不是行为约定 —— 那句警惕被
+        // 2026-11-16 的换代当场应验）。4.0.0.8 上同一把尺重跑（obj/logs/v42-xugu-fix-probe-5.log）：
+        // 四颗读数全 0，且 <c>GetValue</c> 两次取同一格交回同一个实例 —— 这一代驱动在 Read() 那一刻把
+        // 行值一次物化，行上反复取（含字符串）不再分配。判据随之换成等号 0：它钉的仍是驱动一代的形状，
+        // 下一版不缓存了就红在 Expected: 0 / Actual: X，读数说话。
         if (Database.Family == Database.Target.Xugu)
-            Assert.True(textDoor > 8_000,
-                $"第五家读一颗字符串列的代价不再是每次数 KB（实测 {textDoor} B/次）：" +
-                "那条 8 152 的读数变了，先重跑 v32-int-xugu-7 那一场再改这一格与 §12.7 C，别改判据放它过去。");
+            Assert.True(textDoor == 0,
+                $"第五家读一颗字符串列不再每次分配（实测 {textDoor} B/次）：4.0.0.8 把行值一次物化了，" +
+                "先用同一把尺重跑 obj/logs/v42-xugu-fix-probe-5.log 那一场再改这一格。");
         else if (Database.Family == Database.Target.Sqlite)
             // <b>第七家：那一串"本来就不装箱"在本家只剩第一家成立</b>。本家的文本列每读一次都由驱动
             // 现造一颗 <c>string</c>（【实测·4812：<c>text GetValue</c> 与 <c>text 门</c> 同为 32 B/次，
@@ -274,19 +286,23 @@ public sealed class MaterializationAllocationTests
         else
             Assert.Equal(reader.GetValue(0), ValueConverter.Read<int>(reader, 0));
 
-        // <b>这一句在第五家换的是<em>等号两边</em>，不是宽容度</b>：同一列 <c>NUMERIC(18,4)</c>，第一家交回
-        // <c>decimal</c>（于是"门与 <c>GetValue</c> 同值"就是一句等号），第五家交回 <c>string</c>
-        // （A-01 逐字量到 <c>"12.3456"</c>，与 F-46b 同一件事的第二次量）。原句在那里红的两行打印出来是
-        // <c>Expected: 12.3456 / Actual: 12.3456</c> —— 一颗 <c>string</c> 对一颗 <c>decimal</c>，
-        // 字符串表示一模一样而<em>不是同一个型</em>，那种红读起来像"转换错了"，真相是"没有可对照的那一颗"。
-        // 所以这一家改问同一句话的可执行形式：门给的 <c>decimal</c> 与把那串按不变文化直接解析，两路同值。
-        // 它比原句弱在哪也要说明：弱在没拿驱动当对照，而这一家的驱动今天没有那颗 decimal 可当对照。
+        // <b>这一句在第七家换的是<em>等号两边</em>，不是宽容度</b>：同一列定点，第一家（四、五、六家同侧，
+        // 缝里 <see cref="Database.MoneyClrType"/> 那段）交回 <c>decimal</c>，"门与 <c>GetValue</c> 同值"
+        // 就是一句等号；本家钱列在 DDL 里是 <c>TEXT</c>，驱动读回 <c>string</c>【实测·4810 ∶ 4813】——
+        // 原句在本家红的两行打印出来是 <c>Expected: 12.3456 / Actual: 12.3456</c>，一颗 <c>string</c> 对
+        // 一颗 <c>decimal</c>，字符串表示一模一样而<em>不是同一个型</em>，那种红读起来像"转换错了"，
+        // 真相是"没有可对照的那一颗"。所以本家改问同一句话的可执行形式：门给的 <c>decimal</c> 与把那串
+        // 按不变文化直接解析，两路同值。它比原句弱在哪也要说明：弱在没拿驱动当对照，而本家的驱动今天
+        // 没有那颗 decimal 可当对照（"直绑 <c>decimal</c>"会落成一串被驱动抹掉尾零的字，
+        // 所以 ORM 侧自己先折不变形文本）。
         //
-        // <b>第七家走的是同一臂，而它交回的那一串逐字不同于第五家</b>（缝里 <see cref="Database.MoneyClrType"/>
-        // 那段：本家的钱列在 DDL 里就是 <c>TEXT</c>，驱动读回 <c>string</c>【实测·4810 ∶ 4813】，
-        // 而"直绑 <c>decimal</c>"会落成一串被驱动抹掉尾零的字，所以 ORM 侧自己先折不变形文本）。
-        // 两家的<em>判据</em>是同一句（门 == 把那串按不变文化解析），两份<em>字</em>不同，因此共用一条臂而各带出处。
-        if (Database.Family is Database.Target.Xugu or Database.Target.Sqlite)
+        // <b>第五家 2026-11-16 从这条臂里退场</b>：v0.32 那一代（3.3.4.5）它与本家同臂 —— 钱列交回
+        // <c>string</c>（A-01 量到 <c>"12.3456"</c>，判据同一句而两份字不同，"两家各带出处"是那一代的读法）；
+        // 交付物换代到 4.0.0.8 之后 <c>GetFieldType</c> 与 <c>GetValue</c> 都交 <c>Decimal</c>
+        // 【实测·obj/logs/v42-xugu-fix-probe-5.log】，原句（等号）在第五家直接成立，它回到第一家的那一臂 ——
+        // 判据跟着 <see cref="Database.MoneyClrType"/> 的换代改判走，两处隔几行各说一遍，
+        // 改一处忘一处就会假绿。
+        if (Database.Family == Database.Target.Sqlite)
             Assert.Equal(decimal.Parse((string) reader.GetValue(1), CultureInfo.InvariantCulture),
                 ValueConverter.Read<decimal>(reader, 1));
         else

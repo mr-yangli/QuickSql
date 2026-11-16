@@ -80,9 +80,15 @@ public sealed class DefaultValuePathTests
         var sku = Batch + "/create";
 
         // 列清单只写 Sku：Reserved 与 Note 根本不在语句里，值由库按 DEFAULT 给。
+        // 占位符前缀取本家方言那颗，而不是写死 @：原生 SQL 口的契约是"文本一颗不动"（RawSql.cs，
+        // 改写占位符从来不是这条链的义务），而虚谷驱动只认 : 前缀 —— 夹具写死 @ 时那颗参数根本挂不上，
+        // @sku 被当成未知变量落成 NULL，ORM 按键就找不回这一行（【实测·obj/logs/v42-xugu-fix-probe-2.log
+        // D1/D4：DbType.Object 无辜，@ 文本是唯一凶手；D2/D3 同文本换 : 即绿】）。其余五家的前缀本来就是 @，
+        // 这一句在它们那边逐字不变。
         await orm.Ado.ExecuteNonQueryAsync(
             "INSERT INTO " + Database.Provider.CodeFirst.Identifiers.Quote("QuickSqlDefaultsV1")
-            + " (" + Database.Provider.CodeFirst.Identifiers.Quote("Sku") + ") VALUES (@sku)",
+            + " (" + Database.Provider.CodeFirst.Identifiers.Quote("Sku") + ") VALUES ("
+            + Database.Provider.Dialect.ParameterPrefix + "sku)",
             new { sku }, ct);
 
         var back = await orm.Select<GrownRow>().Where(r => r.Sku == sku).FirstOrDefaultAsync(ct);
@@ -118,12 +124,13 @@ public sealed class DefaultValuePathTests
         // 各家的存量行口径不同——SQL Server 不回填——所以可空那半只对新插入断，见下面 fresh）。
         Assert.Equal(7, stored!.Reserved);
 
-        // 新插入不欠值：默认列一颗都不写（原生 SQL，同一场 ① 的口径）。
+        // 新插入不欠值：默认列一颗都不写（原生 SQL，同一场 ① 的口径）。占位符前缀的出处见上面那格。
         var sku2 = Batch + "/after";
 
         await orm.Ado.ExecuteNonQueryAsync(
             "INSERT INTO " + Database.Provider.CodeFirst.Identifiers.Quote("QuickSqlDefaultsV1")
-            + " (" + Database.Provider.CodeFirst.Identifiers.Quote("Sku") + ") VALUES (@sku)",
+            + " (" + Database.Provider.CodeFirst.Identifiers.Quote("Sku") + ") VALUES ("
+            + Database.Provider.Dialect.ParameterPrefix + "sku)",
             new { sku = sku2 }, ct);
 
         var fresh = await orm.Select<GrownRow>().Where(r => r.Sku == sku2).FirstOrDefaultAsync(ct);
