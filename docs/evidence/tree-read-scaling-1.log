@@ -1,0 +1,16 @@
+rows read     QuickSql        FreeSql         SqlSugar        raw ADO (no objects)
+--------------------------------------------------------------------------------
+cap 0         0.10 ms 177 KiB 0.13 ms 347 KiB 0.18 ms 97 KiB  0.04 ms 1 KiB   
+cap 10        0.12 ms 10 KiB  0.14 ms 11 KiB  0.19 ms 21 KiB  0.05 ms 1 KiB   
+cap 100       0.25 ms 30 KiB  0.22 ms 22 KiB  0.27 ms 32 KiB  0.08 ms 1 KiB   
+cap 1000      1.53 ms 234 KiB 0.94 ms 135 KiB 1.16 ms 145 KiB 0.35 ms 1 KiB   
+cap 10000     13.79 ms 2377 KiB 8.27 ms 1362 KiB 12.01 ms 1374 KiB 4.81 ms 1 KiB   
+cap 20020     34.08 ms 4820 KiB 17.51 ms 2800 KiB 13.88 ms 2804 KiB 4.38 ms 1 KiB   
+
+超线性拆分（每格 9 轮中位；同一条谓词 Id <= cap）
+shape                     10000 行         20020 行         比值
+------------------------------------------------------------------
+QuickSql 整行               14.53 ms        32.67 ms        2.2x
+QuickSql 一颗列              3.08 ms         5.77 ms         1.9x
+QuickSql 三颗列              7.35 ms         13.95 ms        1.9x
+裸 ADO 三颗列                 3.39 ms         7.00 ms         2.1x

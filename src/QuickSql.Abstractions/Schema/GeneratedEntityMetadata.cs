@@ -37,3 +37,13 @@ public interface IBoxedEntityValidator
 {
     void Validate(object entity, List<ValidationFailure> failures);
 }
+
+/// <summary>按列序读一颗实体成员的值的非泛型口。它单独一颗，而不是挂进 <see cref="IBoxedEntityTypeSchema"/>：
+/// 那一颗还捎着 <c>BoxedReader</c>，而 G2 侧的读取器装箱是由注册表用一次
+/// <c>MakeGenericMethod</c> 代做的（启动期付出）——这一颗不需要，两侧的 schema 本来就按列序
+/// 存着编译好的委托，取出来直接调就是零反射、零动态代码。
+/// ordinal 与 <see cref="IEntityTypeSchema{T}.GetValue"/> 同一把尺子：<c>EntityContract.Columns</c> 的下标。</summary>
+public interface IBoxedEntityAccessor
+{
+    object? GetValue(object entity, int ordinal);
+}

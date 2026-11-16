@@ -181,7 +181,7 @@ public sealed class TrackingPathTests
     {
         Database.Ready();
 
-        var db = Session();
+        await using var db = Session();
         var note = tagged(1);
         var order = row("甲公司", 12.3456m, note);
 
@@ -215,7 +215,7 @@ public sealed class TrackingPathTests
     {
         Database.Ready();
 
-        var db = Session();
+        await using var db = Session();
         var id = Guid.NewGuid();
         var value = tagged(2);
 
@@ -245,7 +245,7 @@ public sealed class TrackingPathTests
 
         var id = await Seed(row("乙公司", 12.3456m, note));
 
-        var db = Session();
+        await using var db = Session();
         var order = Assert.Single(await ReadTagged(db, note));
 
         order.Note = note + "/改";
@@ -304,7 +304,7 @@ public sealed class TrackingPathTests
         var note = tagged(4);
         var id = await Seed(row("原名字", 1m, note));
 
-        var db = Session();
+        await using var db = Session();
         var order = Assert.Single(await ReadTagged(db, note));
 
         order.CustomerName = "戊戌科技（改）";
@@ -327,7 +327,7 @@ public sealed class TrackingPathTests
         var second = await Seed(row("丁公司", 2m, note));
         var third = await Seed(row("戊公司", 3m, note));
 
-        var db = Session();
+        await using var db = Session();
         var rows = await ReadTagged(db, note);
 
         Assert.Equal(3, rows.Count);
@@ -427,7 +427,7 @@ public sealed class TrackingPathTests
         var first = (int) await Orm.Insert(new InventoryItem { Sku = sku + "/a", Quantity = 1 }).ExecuteIdentityAsync(ct);
         var second = (int) await Orm.Insert(new InventoryItem { Sku = sku + "/b", Quantity = 2 }).ExecuteIdentityAsync(ct);
 
-        var db = Session();
+        await using var db = Session();
         var rows = await db.Set<InventoryItem>().Where(i => i.Sku == sku + "/a" || i.Sku == sku + "/b").OrderBy(i => i.Id).ToListAsync(ct);
 
         Assert.Equal(2, rows.Count);
@@ -463,7 +463,7 @@ public sealed class TrackingPathTests
         var second = await Seed(row("乙", 2m, note));
         var already = await Seed(row("丙", 3m, note));
 
-        var db = Session();
+        await using var db = Session();
         var rows = await ReadTagged(db, note);
 
         // 会话读完之后，<b>会话之外的人</b>把第三行改成了"待会儿要写进去的那个值"。
@@ -498,7 +498,7 @@ public sealed class TrackingPathTests
         // 已经有一条用例钉着，这里重钉一遍是为了让两个档的口径出现在同一个现场里）。
         var alone = await Seed(row("丁", 4m, note + "/solo"));
 
-        var single = Session();
+        await using var single = Session();
         var lonely = Assert.Single(await ReadTagged(single, note + "/solo"));
 
         Database.Execute("UPDATE [dbo].[QuickSqlOrder] SET [Note] = @v WHERE [Id] = @id",
@@ -655,7 +655,7 @@ public sealed class TrackingPathTests
 
         await Seed(row("己公司", 5m, note));
 
-        var db = Session();
+        await using var db = Session();
 
         // 读一次、改一次、保存：全程没有 Attach、没有 Entry(...).State，判的就是 §8.2 那句自动侦测。
         var order = Assert.Single(await ReadTagged(db, note));
@@ -686,7 +686,7 @@ public sealed class TrackingPathTests
         var kept = await Seed(row("庚公司", 1m, note + "/keep"));
         var doomed = await Seed(row("辛公司", 1m, note + "/drop"));
 
-        var db = Session();
+        await using var db = Session();
 
         await ReadTagged(db, note + "/keep");
         var toDelete = Assert.Single(await ReadTagged(db, note + "/drop"));
@@ -728,7 +728,7 @@ public sealed class TrackingPathTests
         var first = await Seed(row("壬公司", 1m, note + "/a"));
         var second = await Seed(row("癸公司", 2m, note + "/b"));
 
-        var db = Session();
+        await using var db = Session();
 
         var a = Assert.Single(await ReadTagged(db, note + "/a"));
         var b = Assert.Single(await ReadTagged(db, note + "/b"));
@@ -765,8 +765,8 @@ public sealed class TrackingPathTests
 
         var id = await Seed(row("子公司", 1m, note));
 
-        var first = Session();
-        var second = Session();
+        await using var first = Session();
+        await using var second = Session();
 
         var fromFirst = Assert.Single(await ReadTagged(first, note));
         var fromSecond = Assert.Single(await ReadTagged(second, note));
@@ -797,7 +797,7 @@ public sealed class TrackingPathTests
         await Seed(row("辰公司", 1m, note + "/drop"));
         var editedId = (await Seed(row("巳公司", 1m, note + "/edit")));
 
-        var db = Session();
+        await using var db = Session();
 
         var keep = Assert.Single(await ReadTagged(db, note + "/keep"));
         var drop = Assert.Single(await ReadTagged(db, note + "/drop"));
@@ -856,7 +856,7 @@ public sealed class TrackingPathTests
 
         var note = tagged(11);
 
-        var db = Session();
+        await using var db = Session();
 
         db.Add(row("好的一行", 1m, note + "/a"));
         db.Add(row(new string('字', 70), 1m, note + "/b"));

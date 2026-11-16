@@ -5,9 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- 驱动包只出现在 tests/，src/ 下的 provider 一律不编译期引用（§1.2 原则 3） -->
+    <!-- 驱动包只出现在 tests/ 与 benchmarks/，src/ 下的 provider 一律不编译期引用（§1.2 原则 3）。
+         Sqlite 取 10.0.11：树册三方对照（docs/quicksql/plan-tree-query.md §13）在本家 provider 上
+         实测过的版本，同时是 SqlSugarCore 5.1.4.221 的传递依赖 —— 单一版本避免对照装置里驱动漂移。 -->
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.1.0" />
-    <PackageVersion Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.11" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="MySqlConnector" Version="2.6.2" />
 
@@ -20,6 +22,14 @@
     <!-- §12.8 第二行「物化吞吐 vs Dapper ≥ 90%」的对照组。只在 benchmarks/ 出现：
          基准要的是"业界公认的快"，不是要引入第二个 ORM —— 依赖方向与 src/ 无关。 -->
     <PackageVersion Include="Dapper" Version="2.1.35" />
+
+    <!-- 树册 §13 那本"另一本账"的三方对照组（口径与读数：docs/quicksql/plan-cross-orm-bench.md）。
+         与 Dapper 同一条依赖纪律：只在 benchmarks/ 出现，不进 src/。
+         注意 FreeSql.Provider.Sqlite 底下是 System.Data.SQLite.Core（自带原生驱动），
+         与另三臂共用的 Microsoft.Data.Sqlite 不同源 —— 这条边界属于对照结论的一部分，不是配置失误。 -->
+    <PackageVersion Include="FreeSql" Version="3.5.311" />
+    <PackageVersion Include="FreeSql.Provider.Sqlite" Version="3.5.311" />
+    <PackageVersion Include="SqlSugarCore" Version="5.1.4.221" />
 
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.1" />

@@ -199,6 +199,22 @@ public class QuickSqlQuery<T> : IQuery<T>, IEngineCarrier
     public IQuery<T> AsSplitQuery(int navigateBatchSize = 20)
         => new QuickSqlQuery<T>(Engine.SplitQuery());
 
+    // ── 树形闭包 ────────────────────────────────────────────────────────
+    // 三颗口都只转发：形状守卫、父键认列、取数与缝合全在 QueryEngine.Tree.cs 那一颗内核里，
+    // 这一层不养第二份口径（与 IncludeMany 同一手法）。
+
+    public ITreeQuery<T> Descendants<TKey>(Expression<Func<T, TKey>> parentSelector, params object[] roots)
+        => new QuickSqlTreeQuery<T>(Engine.Tree(parentSelector, TreeDirection.Descendants, roots));
+
+    public ITreeQuery<T> Ancestors<TKey>(Expression<Func<T, TKey>> parentSelector, params object[] nodes)
+        => new QuickSqlTreeQuery<T>(Engine.Tree(parentSelector, TreeDirection.Ancestors, nodes));
+
+    public Task<List<TreeNode<T>>> ToTreeAsync<TKey>(Expression<Func<T, TKey>> parentSelector, CancellationToken ct = default)
+        => Engine.Tree(parentSelector, TreeDirection.Slice, []).TreeForestAsync<T>(ct);
+
+    public List<TreeNode<T>> ToTree<TKey>(Expression<Func<T, TKey>> parentSelector)
+        => Blocking(() => ToTreeAsync(parentSelector));
+
     /// <summary>「接口里有、实现还没有」的统一说法。不写成返回源对象：那样调用方看不出它没生效，
     /// 而这些路径的产出恰恰是"导航属性该有值了"。DbSet.Load 用同一个口，因为那是同一种"没实现"。</summary>
     internal static QuickSqlException Deferred(string member, string why)
@@ -304,6 +320,33 @@ sealed class QuickSqlOrderedQuery<T>(QueryEngine engine) : QuickSqlQuery<T>(engi
 
     public IOrderedQuery<T> ThenBy(string sortSpec, bool descending = false)
         => new QuickSqlOrderedQuery<T>(Engine.Order(sortSpec, descending, append: true));
+}
+
+/// <summary>树形链的落地。与链式对象同一纪律：不可变、只做类型化转发，两颗旋钮派生新引擎。
+/// 这一层没有 Where/OrderBy/Select 出口——闭包行上再筛一刀会把链砍断（口径在 ITreeQuery 上）。</summary>
+[RequiresUnreferencedCode(TranslationCost.Message)]
+[RequiresDynamicCode(TranslationCost.Message)]
+sealed class QuickSqlTreeQuery<T>(QueryEngine engine) : ITreeQuery<T>
+{
+    internal QueryEngine Engine { get; } = engine;
+
+    public ITreeQuery<T> Depth(int max) => new QuickSqlTreeQuery<T>(Engine.TreeDepth(max));
+
+    public ITreeQuery<T> IncludeSelf(bool include = true) => new QuickSqlTreeQuery<T>(Engine.TreeIncludeSelf(include));
+
+    public Task<List<TreeNode<T>>> ToTreeAsync(CancellationToken ct = default) => Engine.TreeForestAsync<T>(ct);
+
+    public async Task<List<TreeRow<T>>> ToTreeRowsAsync(CancellationToken ct = default)
+        => QueryEngine.Flatten(await Engine.TreeForestAsync<T>(ct).ConfigureAwait(false));
+
+    /// <summary>同步出口是 sync-over-async，口径与 QuickSqlQuery 那一族相同（内核没有第二套同步执行路径）。</summary>
+    public List<TreeNode<T>> ToTree() => ToTreeAsync().GetAwaiter().GetResult();
+
+    public List<TreeRow<T>> ToTreeRows() => ToTreeRowsAsync().GetAwaiter().GetResult();
+
+    public string ToSql() => Engine.TreeFirstSql(out _).Text;
+
+    public QueryPlan Explain() => Engine.TreeExplain();
 }
 
 /// <summary>分组链。这一层没有任何物化出口，这是刻意的：分组而未选的形状（整行列 +

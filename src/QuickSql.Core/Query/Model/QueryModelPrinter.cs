@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using QuickSql.Sql.Ast;
 
@@ -21,23 +22,29 @@ static class QueryModelPrinter
         }
 
         // 表源的两种非默认来路都要在文本里看得见，否则等价性测试会漏掉一整类差异。
-        if (model.Source is SourceRawText raw)
-            b.Append("  SOURCE RAW[").Append(raw.Sql).Append("]{")
-             .Append(string.Join(", ", raw.Parameters.Select(p => p.Name))).Append("}\n");
-
-        // 合并的形状（关键字与两条腿各自的全文）要在文本里看得见；关键字打规范形（EXCEPT 不打 MINUS）。
-        if (model.Source is SourceSetOps setOps)
+        // 形状清单在这一处穷尽，与 QueryCompiler 的 FROM 分派同一把尺：OverriddenSource 加第三形状时
+        // 编译器会当场逼着两边补行——「这一格里有东西就必须有一行」的契约由编译器执行，不再靠人记。
+        if (model.Source is { } overridden)
         {
-            b.Append("  SOURCE ").Append(setOps.Operation switch
+            var lines = overridden switch
             {
-                SetOperationKind.UnionAll => "UNION ALL",
-                SetOperationKind.Union => "UNION",
-                SetOperationKind.Intersect => "INTERSECT",
-                SetOperationKind.Except => "EXCEPT",
-                _ => throw new QuickSqlException($"未知集合运算档 {setOps.Operation}"),
-            }).Append('\n');
-            b.Append("    LEG1\n").Append(Indent(Print(setOps.First)));
-            b.Append("    LEG2\n").Append(Indent(Print(setOps.Second)));
+                RawTextSource raw => new StringBuilder()
+                    .Append("  SOURCE RAW[").Append(raw.Sql).Append("]{")
+                    .Append(string.Join(", ", raw.Parameters.Select(p => p.Name))).Append("}\n"),
+                SourceSetOps setOps => new StringBuilder()
+                    // 合并的形状（关键字与两条腿各自的全文）要在文本里看得见；关键字打规范形（EXCEPT 不打 MINUS）。
+                    .Append("  SOURCE ").Append(setOps.Operation switch
+                    {
+                        SetOperationKind.UnionAll => "UNION ALL",
+                        SetOperationKind.Union => "UNION",
+                        SetOperationKind.Intersect => "INTERSECT",
+                        SetOperationKind.Except => "EXCEPT",
+                        _ => throw new QuickSqlException($"未知集合运算档 {setOps.Operation}"),
+                    }).Append('\n')
+                    .Append("    LEG1\n").Append(Indent(Print(setOps.First)))
+                    .Append("    LEG2\n").Append(Indent(Print(setOps.Second))),
+            };
+            b.Append(lines);
         }
 
         if (model.DerivedFrom is { } inner)
@@ -71,6 +78,23 @@ static class QueryModelPrinter
 
         b.Append("  PLAN ").Append(Plan(model.Plan)).Append('\n');
 
+        // 树形闭包进文本：它与 IncludeMany 不同档——那一颗只往同一批行上缝孩子，这一颗改的是"哪些行回来"。
+        // 两条 SQL 逐字相同而 Tree 不同的链交回的是两棵不同的闭包，等价性判据必须分得开它们。
+        // 锚点按"颗数 + 每颗各自入括号"打：只拿分隔符串起来的写法会把 ["a|b"] 与 ["a","b"] 折成同一行，
+        // 而那是这句话唯一的用处。二进制键打十六进制，不然两只内容不同的 byte[] 都是 "System.Byte[]"。
+        // Slice 档不报 depth/self：那两颗旋钮在这一档没有出口，写进文本会让人去调一颗不会生效的位。
+        if (model.Tree is { } tree)
+        {
+            b.Append("  TREE ").Append(tree.Direction).Append(" parent=").Append(tree.ParentColumn.ColumnName);
+
+            if (tree.Direction != TreeDirection.Slice)
+                b.Append(" anchors=").Append(tree.Anchors.Count)
+                 .Append(string.Join("", tree.Anchors.Select(AnchorText)))
+                 .Append(" depth=").Append(tree.MaxDepth).Append(" self=").Append(tree.IncludeSelf);
+
+            b.Append('\n');
+        }
+
         if (model.Distinct)
             b.Append("  DISTINCT\n");
 
@@ -90,6 +114,15 @@ static class QueryModelPrinter
     }
 
     static string Join(IReadOnlyList<Sql.Ast.SqlExpression> nodes) => string.Join(", ", nodes.Select(Expr));
+
+    /// <summary>锚点值的一格规范形态：各自带括号（分隔符串起来的写法会把一颗含分隔符的键与两颗键折成同一行），
+    /// 二进制走十六进制，不变文化（规范文本要跨库跨机器稳定）。</summary>
+    static string AnchorText(object anchor) => anchor switch
+    {
+        null => "[NULL]",
+        byte[] bytes => "[0x" + Convert.ToHexString(bytes) + "]",
+        var value => "[" + (Convert.ToString(value, CultureInfo.InvariantCulture) ?? "NULL") + "]",
+    };
 
     /// <summary>内层那份模型的全文按四格缩进嵌进来。空行直接丢掉：外层 Print 每行都以
     /// '\n' 结尾，切出来的最后一段必然是空串，留着它就多一个尾随空行，而规范文本是按字节比的。</summary>

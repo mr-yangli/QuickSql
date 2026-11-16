@@ -625,9 +625,9 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
 
             for (var ordinal = 0; ordinal < _columns.Length; ordinal++)
             {
-                // 覆盖位先问：显式标脏与显式标不脏的列，那次 GetValue（装箱）+ Equals 的结果根本没人消费
+                // 覆盖位先问：显式标脏与显式标不脏的列，那次 GetValue（装箱）+ ValueEquals 的结果根本没人消费
                 // ——求值序调换后，这一列从"读+比"降为一次数组读，显式 Modified 的实体在每轮侦测里为每列省一笔。
-                var dirty = node.Overrides[ordinal] ?? !Equals(_schema.GetValue(entity, ordinal), node.Snapshot[ordinal]);
+                var dirty = node.Overrides[ordinal] ?? !ValueEquals(_schema.GetValue(entity, ordinal), node.Snapshot[ordinal]);
 
                 node.Dirty[ordinal] = dirty;
                 any |= dirty;
@@ -640,6 +640,14 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
                 continue;
 
             node.State = next;
+
+            // 翻回 Unmodified 时把覆盖位一并清掉，与 State 档的 Unmodified 同一条纪律（重拍快照 + 清覆盖 + 清脏）：
+            // 全列显式标不脏会走到这一岔，不清的话那颗 false 从此钉死在这一列上——之后的真实改动检不出脏、
+            // 状态也翻不回 Modified，这一列静默丢写。重拍快照同时把当前值定为新的基线（「放弃写入」的那一档
+            // 在侦测期就地结算，而不是等一个永远走不到的 PostFlush）。
+            if (!any)
+                Reset(node, entity);
+
             changed++;
 
             if (any)
@@ -648,6 +656,16 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
 
         return changed;
     }
+
+    /// <summary>脏比较的等值判据。byte[] 按内容判（与 IdentityKey 同一把尺）：varbinary 列最自然的改法
+    /// 是就地改数组内容，object.Equals 对数组是引用相等，检不出它；而快照侧在 Snapshot 里拍的是副本
+    /// （原样存引用的话快照与实体持同一只数组，内容比较恒真、乐观锁令牌也跟着就地漂移），两侧合起来
+    /// 「就地改」与「换成内容不同的新数组」都是可侦测的改法，内容相同的新数组不算改。
+    /// 其余类型 object.Equals 就是内容相等（string / decimal 都重载了）。</summary>
+    static bool ValueEquals(object? left, object? right)
+        => left is byte[] bytes && right is byte[] original
+            ? bytes.AsSpan().SequenceEqual(original)
+            : Equals(left, right);
 
     /// <summary>清数据。顺带把每个节点的状态归到 Detached：DbChangeTracker.Clear 对调用方的承诺就是
     /// "所有实例转 Detached"，而手里那只 EntityEntry 是视图不是拷贝——不改它的话这句承诺只写在文档里。</summary>
@@ -1259,8 +1277,9 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
 
             // 删哪一行以快照为准：那是当初把这一行认成「库里那一条」的依据。
             // 主键被改过就不能按快照删（会删错一行），也不能按当前值删（那一行未必存在）—— 只能拒。
+            // byte[] 主键按内容判（ValueEquals 与脏比较同一把尺）：内容相同的新数组不算改过，内容变了才算。
             foreach (var ordinal in _keyOrdinals)
-                if (!Equals(_schema.GetValue((T) node.Entity, ordinal), node.Snapshot[ordinal]))
+                if (!ValueEquals(_schema.GetValue((T) node.Entity, ordinal), node.Snapshot[ordinal]))
                     throw Unwritable(ordinal, node);
 
             object?[] key = [.. _keyOrdinals.Select(ordinal => node.Snapshot[ordinal])];
@@ -1450,7 +1469,14 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
     void Snapshot(Node node, T entity)
     {
         for (var ordinal = 0; ordinal < _columns.Length; ordinal++)
-            node.Snapshot[ordinal] = _schema.GetValue(entity, ordinal);
+        {
+            var value = _schema.GetValue(entity, ordinal);
+
+            // byte[] 拍进快照的是副本：原样存引用的话，快照与实体持有同一只数组，就地改内容两边一起变——
+            // 脏比较恒真（改了等于没改）是轻的，重的是乐观锁令牌（WhereWithTokens 与删除的主键）跟着就地漂移，
+            // 「库里那一版」从此指认的是实体当下的内容。副本让快照真正停在拍下的那一版。
+            node.Snapshot[ordinal] = value is byte[] bytes ? bytes.Clone() : value;
+        }
     }
 
     void Reset(Node node, T entity)

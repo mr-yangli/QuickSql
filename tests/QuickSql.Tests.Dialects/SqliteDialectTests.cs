@@ -1219,23 +1219,29 @@ public sealed class SqliteDialectTests
     }
 
     [Fact]
-    public void The_bulk_slot_is_the_fourth_one_to_answer_null_and_the_reason_is_a_missing_number()
+    public void The_bulk_slot_declares_a_values_budget_of_333_and_holds_the_in_list_arm_at_the_conservative_100()
     {
-        Assert.Null(Provider.Bulk);
+        // v0.41 之前这一颗交回 null（"一批能塞多少颗参数"没有读数），如今两颗读数都到账了：
+        // ① VALUES 臂 333 —— 每语句成本 ≈ 250 µs 固定 + 3 ns × 参数数²（Microsoft.Data.Sqlite 的
+        //   命名参数按名映射），三档实测 10/65/1016 行每块 → 50.5/189/2467 ms，极点在每语句 ≤300 颗参数
+        //   （docs/quicksql/plan-cross-orm-bench.md §4.4）；32766 颗是合法上限（树册探针实测）但合法不等于快。
+        // ② IN 列表臂按住在 100（InListParameterBudget 覆写）—— 同一颗平方级绑定价在谓词链上更疼，
+        //   树册 §14 实测过按硬上限翻位 → 宽闭包 45.9 → 164 ms，90 臂是那条曲线的最低点。
+        IBulkStrategy bulk = Assert.IsType<SqliteBulk>(Provider.Bulk);
+
+        Assert.Equal(333, bulk.ParameterBudget);
+        Assert.Equal(100, bulk.InListParameterBudget);
+        Assert.False(bulk.SupportsMergedStatements);
+        Assert.Null(bulk.UpsertClause(new UpsertColumns(["A"], ["A"], ["A"], static id => id)));
 
         var plan = orm().InsertRange(Enumerable.Range(1, 600).Select(static n => row(n)).ToArray()).Explain();
 
-        // 没有能举证的参数预算数字 ⇒ 交回 null，分块器走那颗 100 的保守兜底（与达梦、虚谷、GBase 8s 同档）。
-        // 本家的来路比那三家短一截：Microsoft.Data.Sqlite 确实有批量接口，而"一批能塞多少颗参数"
-        // 这一问在本家<em>没有读数</em>——IBulkStrategy.ParameterBudget 要的正是一个颗数。
-        Assert.Equal(100, plan.ParameterBudget);
+        // 7 列 ⇒ 每块 42 行（333×0.9÷7），600 行切成 15 块——预算进的是 VALUES 臂的分块公式。
+        Assert.Equal(333, plan.ParameterBudget);
         Assert.Equal(7, plan.ColumnsPerRow);
+        Assert.Equal(42, plan.RowsPerStatement);
+        Assert.Equal(15, plan.Chunks.Count);
         Assert.Equal(600, plan.Chunks.Sum(static c => c.RowCount));
-
-        var xuguPlan = Xugu.Orm().InsertRange(Enumerable.Range(1, 600).Select(static n => row(n)).ToArray()).Explain();
-
-        Assert.Equal(xuguPlan.Chunks.Count, plan.Chunks.Count);
-        Assert.Equal(xuguPlan.ParameterBudget, plan.ParameterBudget);
     }
 
     /// <summary>本家声明出来的那几颗位——<see cref="CapabilityLedgerTests"/> 用同一把尺量台账，

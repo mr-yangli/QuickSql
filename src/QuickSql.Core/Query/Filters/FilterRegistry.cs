@@ -122,13 +122,19 @@ public sealed class FilterRegistry
                 // LEFT 那一档进 ON，其余进 WHERE：把右表的过滤器写进 WHERE，未匹配的补 NULL 行会被它一起筛掉
                 //（NULL 上任何比较都是 UNKNOWN），左联就静默退化成内联。根表与 INNER 两侧等价，放 WHERE 与用户的条件同一个形状。
                 // RIGHT / FULL / CROSS 今天从链式走不到，补齐那三种联表形态时这一条判据要一起重看。
-                if (i > 0 && i <= model.Joins.Count && model.Joins[i - 1].Kind == JoinKind.Left)
+                //
+                // 对号按「join 右侧的表位序号」找，不按位置（Tables[i] ↔ Joins[i-1]）：Include 的目标表只占
+                // 表位、不进 Joins，两条链混排时位置对号会把 A 表的过滤器折进 B 表那条 join 的 ON（租户/软删
+                // 条件静默落在无关的 join 上），也会把真正的 LEFT 右表过滤器挤进 WHERE（左联静默退化内联）。
+                // 一张表最多被 join 一次（每次联表都是新表位），序号对得上唯一的那一条。
+                var at = LeftJoinAt(model.Joins, table.Index);
+
+                if (at >= 0)
                 {
                     // 从 joins 里读而不是从 model.Joins：同一张右表上两条过滤器要叠在同一份已有 ON 上，
                     // 读原文会丢掉前一条。
                     joins ??= [.. model.Joins];
 
-                    var at = i - 1;
                     var clause = joins[at];
 
                     joins[at] = clause with { On = clause.On is null ? node : And(clause.On, node) };
@@ -179,6 +185,18 @@ public sealed class FilterRegistry
                 return true;
 
         return false;
+    }
+
+    /// <summary>接到这一张表的 LEFT join 在 Joins 里的位置，没有就是 -1。判据是右侧表位序号对号：
+    /// 表位与 join 不是同一份清单（Include 的目标表只占表位不进 Joins），位置对号（Tables[i] ↔
+    /// Joins[i-1]）在两条链混排时是错的。</summary>
+    static int LeftJoinAt(IReadOnlyList<JoinClause> joins, int tableIndex)
+    {
+        for (var i = 0; i < joins.Count; i++)
+            if (joins[i].Source.Ref.Index == tableIndex && joins[i].Kind == JoinKind.Left)
+                return i;
+
+        return -1;
     }
 
     /// <summary>把 on 里那些过滤器折进对应节点的 ON，返回一份新树。

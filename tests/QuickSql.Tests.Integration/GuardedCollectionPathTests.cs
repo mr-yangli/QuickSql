@@ -112,7 +112,7 @@ public sealed class GuardedCollectionPathTests
     /// 这一格不需要也不该替写侧作保）。返回店的键给各用例自己那一行过滤。</summary>
     async Task<int> StoreShopAsync()
     {
-        var db = Session();
+        await using var db = Session();
         var shop = new GuardedShop { Id = 0, Name = slate("受保护的店") };
 
         shop.Certs.Add(new ShopCert { No = slate("证一") });

@@ -325,7 +325,16 @@ static class Gates
         /// 全数落在 ② 那半边，见 <see cref="BulkBuildBytes" />）；928 168 − 232 000 = 696 168 分毫不错，
         /// 而 ① − ② 之差从 931 144 回到 <b>2 976</b> —— 与摘前缀之前的 v0.31 账<em>逐字同一个数</em>，
         /// 这一颗对平是本笔最强的归因见证。第 11 / 12 行那四枚同属这一笔，见各自注释。</para></summary>
-        public const double BulkInsertBytes = 8_831_832;
+        /// <para><b>v0.41 重钉成 8 833 096</b>（8 831 832 → 8 833 096，+1 264；来源场 <c>obj/logs/bulk-tx-gate-1.log</c>，
+        /// 第二场 <c>bulk-tx-gate-2.log</c> 给 8 832 456——比这枚钉好 640，按 v0.26 那条"不降钉"判据留下原钉，
+        /// 抖量 0.007% 与那次的 120 B 同族）。同笔两件事一起落、两格一起动：
+        /// ① <b>InsertEngine 的多块收口</b>——16 块从"每块一条连接、各自 autocommit"改为一条事务一条连接连发
+        /// （真库上同时把每块一次提交的日志钱收成一次，读数 plan-cross-orm-bench.md §4.4），产品侧多付的是事务对象
+        /// 与收口编排、省下的是 15 条连接，净 +1 264 B；② <b>基线与产品同形重定型</b>——<c>AdoInsert</c> 从
+        /// "每块一条连接"改为"一条连接 + 一条事务 + N 条命令"，两侧同形后差值里不再有连接编排的差。
+        /// ① − ② 从 3 096 变成 4 096（执行段编排 +1 000 B：事务收口那一段），② 本身 +264（纯构建段），见
+        /// <see cref="BulkBuildBytes" />。</para></summary>
+        public const double BulkInsertBytes = 8_833_096;
 
         /// <summary>第 6 行 ②：同一批的纯构建段（16 块的文本 + AST + 参数表，不连库）。
         /// 与 ① 不是同一个自由度：① 还含执行段的编排，而这一段是"审阅用的那条 SQL"也要付的 ——
@@ -359,7 +368,10 @@ static class Gates
         /// ② <b>载体没有定位到</b>：盘上最早的 v37 门禁场就已经偏着，而 v0.34 那一场的日志不在盘上（§14「见证物」那一格记的就是这件事），
         /// 所以起点只能定在"v0.34 上册之后、现存最早一场之前"，而那正是变更记录里一句都没有的那三批产品代码所在的窗口。
         /// 这一枚与第 11 行那对 +24 是同一族欠账（重钉了而说不出哪一版多了它），一起记 §14。</para></summary>
-        public const double BulkBuildBytes = 8_828_736;
+        /// <para><b>v0.41 重钉成 8 829 000</b>（8 828 736 → 8 829 000，+264；来源场同 <see cref="BulkInsertBytes"/>，
+        /// 两场逐字同值）。+264 的落点在构建段那 16 块的发射上——多块收口本身不产文本，这一格涨的形状与 v0.26
+        /// 那次"两半之间搬家"同族：① − ② 从 3 096 变 4 096，涨的那 1 000 B 是执行段的事务收口编排，不在这格里。</para></summary>
+        public const double BulkBuildBytes = 8_829_000;
 
         /// <summary>第 10 行 ①：一条 30 列宽表的出口查询上，注册<em>一颗</em>全局过滤器比不注册多付的字节。
         /// <para>这一格与 ② 都是 v0.27 新立的钉，立它的原因写在 §10.7 约束 4 那一格与 §12.8 第 10 行。
@@ -951,8 +963,9 @@ static class Gates
             "所以这一格绿起来的形状大概是「复用引擎 + 只重建文本」而不是「一切从池里拿」——那是 §14 的一格，不是本版自决的。" +
             "两处口径要说清：① 假驱动没有存储，<c>ExecuteNonQuery</c> 返回的行数是占位（<c>OfflineCommand</c>），" +
             "本行的判据全部来自字节，行数不在这里证（集成测试按库里的数据证）；② 一次批量插入是 " + plan.Chunks.Count +
-            " 条语句，而<b>每条语句一条连接</b>（<c>AdoExecutor</c> 不跨块复用连接），这一笔在 QuickSql 侧和基线侧同时出现，" +
-            "因此不出现在差值里 —— 它是「写路径没接连接池」那一格的内容，读到这一行红的时候别把它算进这 " + N(quicksql) + " B。",
+            " 条语句，而<b>多块包在同一条事务里、在一条连接上连发</b>（InsertEngine 的多块收口，" +
+            "真库上这一颗同时把「每块一次提交」的日志钱收成一次），这一笔在 QuickSql 侧和基线侧同时出现，" +
+            "因此不出现在差值里 —— 基线那份与产品同形（一条连接 + 一条事务 + N 条命令）。",
             Pins: [
                 new Pin("每次批量插入的 QuickSql 侧字节", Baselines.BulkInsertBytes, Math.Round(quicksql)),
                 new Pin("纯构建段字节（不连库）", Baselines.BulkBuildBytes, Math.Round(build)),
@@ -961,21 +974,26 @@ static class Gates
         async Task Baseline() => await AdoInsert(plan);
     }
 
-    /// <summary>与 <see cref="AdoOnly"/> 同一立场的写侧基线：一条语句一条连接、一个命令、把同一批参数值搬进驱动参数对象、
-    /// 跑一次 <c>ExecuteNonQuery</c>、释放。<b>逐格对齐 <c>AdoExecutor.Prepare</c>/<c>Bind</c></b>（含 <c>DbType.Object</c>
+    /// <summary>与 <see cref="AdoOnly"/> 同一立场的写侧基线：<b>一条连接、一条事务、逐块一个命令</b>——
+    /// 与产品同形（InsertEngine 的多块收口在一条事务里连发，块经 RentAsync 的环境支走同一条连接），
+    /// 把同一批参数值搬进驱动参数对象、每块跑一次 <c>ExecuteNonQuery</c>、提交、释放。
+    /// <b>逐格对齐 <c>AdoExecutor.Prepare</c>/<c>Bind</c></b>（含 <c>DbType.Object</c>
     /// 那条"binder 有意不表态就不硬设"的分支），否则差值里混的是两边实现风格的差别而不是 QuickSql 的开销。
     /// 参数值取自 <paramref name="plan"/> 里那些 <c>AdoParameter</c>，所以装箱发生在窗外：这与第 1 行同一口径 ——
     /// 基线减的是"这条语句非 QuickSql 不可的那部分"，不是把整次执行都减掉。</summary>
     static async Task AdoInsert(InsertPlan plan)
     {
+        using var connection = new OfflineConnection(_ => null);
+
+        await connection.OpenAsync();
+
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
         foreach (var chunk in plan.Chunks)
         {
-            using var connection = new OfflineConnection(_ => null);
-
-            await connection.OpenAsync();
-
             using var command = connection.CreateCommand();
 
+            command.Transaction = transaction;
             command.CommandText = chunk.Sql.Text;
             command.CommandTimeout = 30;
 
@@ -994,6 +1012,8 @@ static class Gates
 
             await command.ExecuteNonQueryAsync();
         }
+
+        await transaction.CommitAsync();
     }
 
     // ---------- 第 7 行 ----------

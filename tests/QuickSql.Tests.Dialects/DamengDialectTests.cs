@@ -643,7 +643,7 @@ public sealed class DamengDialectTests
         Assert.Equal(50, plan.Chunks.Count);
         Assert.Equal(600, plan.Chunks.Sum(static c => c.RowCount));
         Checks.Has("参数预算 100", plan.Reason);
-        Checks.Has("跨块不是原子的", plan.Reason);
+        Checks.Has("跨块由执行段包一条事务整批提交", plan.Reason);
     }
 
     [Fact]

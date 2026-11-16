@@ -29,12 +29,18 @@ public sealed class QueryCompiler(IDbProvider provider)
         if (model.DerivedFrom is not null && model.Root.Table.Split is not null && model.Shards is { Count: > 1 } derivedShards)
             throw CrossShardAggregate(derivedShards.Count);
 
-        // FROM 位三种来路：派生表（内层走同一个 Compile）、覆盖源（WithSql 的文本）、照旧的根表位。
-        var from = model.DerivedFrom is { } inner
+        // FROM 位三种来路：派生表（内层走同一个 Compile）、覆盖源（WithSql 的文本 ∶ 链式合并的两条腿）、照旧的根表位。
+        // 覆盖口是模型层自己的 closed union —— 分派在这一处穷尽，没有 default 臂可漏：
+        // RawTextSource 在这一刻端成 AST 的 SourceRawText，两条腿才各自编译（腿是模型不是 AST）。
+        TableSource from = model.DerivedFrom is { } inner
             ? new SourceDerived(model.Root, Compile(inner))
-            : model.Source is SourceSetOps setOps
-                ? new SourceUnion(setOps.Ref, [Compile(setOps.First), Compile(setOps.Second)], setOps.Operation)
-                : model.Source ?? new SourceTable(model.Root);
+            : model.Source is { } overridden
+                ? overridden switch
+                {
+                    RawTextSource text => new SourceRawText(text.Ref, text.Sql, text.Parameters),
+                    SourceSetOps setOps => new SourceUnion(setOps.Ref, [Compile(setOps.First), Compile(setOps.Second)], setOps.Operation),
+                }
+                : new SourceTable(model.Root);
 
         var where = Fold(model.Predicates);
         IReadOnlyList<OrderExpression> ordering = model.StripsOrdering ? [] : [.. model.Ordering];

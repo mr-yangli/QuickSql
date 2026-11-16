@@ -84,7 +84,7 @@ public static class RawRowReader
                 type, p.Name,
                 $"{type.Name} 上没有属性 {p.Name}（刚在册，不该走到这里）",
                 $"{type.Name}.{p.Name} 没有公共写口"))];
-            factory = Expression.Lambda<Func<T>>(Expression.New(constructor)).Compile();
+            factory = Expression.Lambda<Func<T>>(Expression.New(constructor)).CompileAotSafe();
         }
 
         public T Materialize(DbDataReader reader, int[] ordinals)
@@ -147,7 +147,7 @@ public static class RawRowReader
 
         return Expression.Lambda<Func<DbDataReader, int, object>>(
             Expression.Convert(Expression.Call(read, reader, ordinal), typeof(object)),
-            reader, ordinal).Compile();
+            reader, ordinal).CompileAotSafe();
     }
 
     /// <summary>一列能装下的 CLR 形状：ContractResolver 那份可映射判定的同一闭合集合，多加一颗 byte[]

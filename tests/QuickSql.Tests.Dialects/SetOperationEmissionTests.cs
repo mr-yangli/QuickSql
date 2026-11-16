@@ -166,6 +166,33 @@ public sealed class SetOperationEmissionTests
         Assert.Contains("SOURCE EXCEPT", except.ModelText);
     }
 
+    /// <summary>守卫（2026-11-11 审查补记）：<c>As()</c> 与集合运算覆盖源的尖角。<c>QueryEngine.Alias</c>
+    /// 改写 <c>Model.Root</c> 与 <c>RawTextSource</c> 的 Ref（:420 三元只有 raw 一臂），<c>SourceSetOps</c>
+    /// 的 Ref 是链上那一刻抓住的表位、不被改写——于是合并之后点 <c>As("x")</c>，外层投影与谓词全部
+    /// 重绑成 <c>[x].*</c>，而整串的表位别名仍是 <c>AS [t0]</c>：同一句里列引用与新名配对、表位仍是
+    /// 旧名，活库侧报"无法绑定多部分标识符"一类（不点 As() 时两侧都是 <c>[t0]</c>，这句是自洽的）。
+    /// <b>钉现状不改形状</b>：改写 setOps.Ref（让新别名落到表位）或在链上当场拒 As() 属产品侧拍板，
+    /// 翻格那天本用例改判。（注：断言按 2026-11-11 实发文本逐字核对后落定，诊断场
+    /// <c>obj/logs/v41-closed-dialects-setops-probe.log</c>；首两版断言各红一场如实留痕——
+    /// 裸 <c>[o]</c> 会误伤（腿本就合法引用旧名）、<c> AS [o]</c> 在实发里根本不存在；
+    /// 钉"别名落位"要钉 <c>AS [新名]</c> 这一发射点与 <c>[新名].[列]</c> 的重绑两处。）
+    /// </summary>
+    [Fact]
+    public void As_after_a_set_ops_chain_keeps_the_chained_from_alias()
+    {
+        var dropped = Paid(SqlServerOrm).UnionAll(Recent(SqlServerOrm)).As("x").ToSql();
+
+        Assert.DoesNotContain(" AS [x]", dropped);
+        Assert.Contains(" AS [t0]", dropped);
+        Assert.Contains("[x].[Note]", dropped);
+
+        var mismatched = Paid(SqlServerOrm).UnionAll(Recent(SqlServerOrm)).As("x").Where(x => x.Amount > 200m).ToSql();
+
+        Assert.Contains("[x].[Amount]", mismatched);
+        Assert.DoesNotContain(" AS [x]", mismatched);
+        Assert.Contains(" AS [t0]", mismatched);
+    }
+
     static int CountOf(string text, string token)
     {
         var count = 0;

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using QuickSql.Aop;
+using QuickSql.Providers;
 using QuickSql.Sql;
 using QuickSql.Sql.Ast;
 
@@ -11,8 +12,10 @@ namespace QuickSql.Write;
 static class StatementEmitter
 {
     /// <summary>provider 没给参数预算时的保守值。没有任何库种事实可依，取一个低于所有已知上限的数：
-    /// 宁可多几次 round-trip，也不要撞上一次就整批失败的硬上限。SQL Server 走不到这条（它自己声明了 2100）。</summary>
-    public const int ConservativeParameterBudget = 100;
+    /// 宁可多几次 round-trip，也不要撞上一次就整批失败的硬上限。SQL Server 走不到这条（它自己声明了 2100）。
+    /// 常数本体住在 Abstractions 的 <see cref="ParameterBudgets.Conservative"/>：InListParameterBudget
+    /// 的覆写者（SQLite）引用同一个名字，单一真相。</summary>
+    public const int ConservativeParameterBudget = ParameterBudgets.Conservative;
 
     /// <summary>分块公式，两处调用共用一份：批量 INSERT 的多值语句与合并 UPDATE。
     /// 留十分之一给文本本身（表名/列名/OUTPUT/ON），再除以每行参数个数。

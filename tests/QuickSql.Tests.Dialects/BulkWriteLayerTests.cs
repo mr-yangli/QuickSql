@@ -82,47 +82,62 @@ public sealed class BulkWriteLayerTests
 
     /// <summary>十六家各自<em>应该</em>落到哪一档，这张表是手写的（不是从 provider 读回来的）：
     /// 读回来的话这条用例就只是在问 provider 自己"你怎么说"，那份产出永远是绿的。
-    /// 三档来源各一批：<c>2100</c> 只有 SQL Server，<c>65535</c> 是 MySQL 血统那三家（共用 <c>MySqlBulk</c>），
+    /// <c>Budget</c> 三档来源各一批：<c>2100</c> 只有 SQL Server，<c>65535</c> 是 MySQL 血统那三家（共用 <c>MySqlBulk</c>），
     /// <c>32767</c> 是 PG 血统那六家（共用 <c>PostgreSqlBulk</c>），<c>100</c> 是整颗 <c>Bulk</c> 交回 null
-    /// 而由共用层兜底的六家（Oracle 血统四家 + SQLite + Gbase8s）。</summary>
-    static readonly (string Family, int Budget, bool Merged, bool Upsert)[] FamilyRows =
+    /// 而由共用层兜底的五家（Oracle 血统四家 + Gbase8s），<c>333</c> 是 SQLite 那颗 SqliteBulk——
+    /// VALUES 臂报自己的实测极点。第四列 <c>InList</c> 是 IN 列表臂的预算（<c>IBulkStrategy.InListParameterBudget</c>，
+    /// DIM 默认沿用 Budget）：SQLite 在这一列按住在 100——同一颗平方级绑定价在谓词链上更疼，
+    /// 树册 §14 的实测曲线就是依据。</summary>
+    static readonly (string Family, int Budget, int InList, bool Merged, bool Upsert)[] FamilyRows =
     [
-        ("sqlserver", 2_100, true, false),
-        ("mysql", 65_535, true, true),
-        ("oceanbase", 65_535, true, true),
-        ("tidb", 65_535, true, true),
-        ("postgresql", 32_767, false, true),
-        ("kingbase", 32_767, false, true),
-        ("highgo", 32_767, false, true),
-        ("gaussdb", 32_767, false, true),
-        ("opengauss", 32_767, false, true),
-        ("gbase8c", 32_767, false, true),
-        ("oracle", 100, false, false),
-        ("dameng", 100, false, false),
-        ("shentong", 100, false, false),
-        ("xugu", 100, false, false),
-        ("sqlite", 100, false, false),
-        ("gbase8s", 100, false, false),
+        ("sqlserver", 2_100, 2_100, true, false),
+        ("mysql", 65_535, 65_535, true, true),
+        ("oceanbase", 65_535, 65_535, true, true),
+        ("tidb", 65_535, 65_535, true, true),
+        ("postgresql", 32_767, 32_767, false, true),
+        ("kingbase", 32_767, 32_767, false, true),
+        ("highgo", 32_767, 32_767, false, true),
+        ("gaussdb", 32_767, 32_767, false, true),
+        ("opengauss", 32_767, 32_767, false, true),
+        ("gbase8c", 32_767, 32_767, false, true),
+        ("oracle", 100, 100, false, false),
+        ("dameng", 100, 100, false, false),
+        ("shentong", 100, 100, false, false),
+        ("xugu", 100, 100, false, false),
+        ("sqlite", 333, 100, false, false),
+        ("gbase8s", 100, 100, false, false),
     ];
 
     public static TheoryData<string, int, bool> WriteFamilies()
     {
         var data = new TheoryData<string, int, bool>();
 
-        foreach (var (family, budget, merged, _) in FamilyRows)
+        foreach (var (family, budget, _, merged, _) in FamilyRows)
             data.Add(family, budget, merged);
 
         return data;
     }
 
-    /// <summary>同一张表的第四列单独成一条问句：<c>UpsertClause</c> 那颗槽在不在。
+    /// <summary>IN 列表臂那一条链的逐家期望：走的是第五列 <c>InList</c> 而不是 <c>Budget</c>——
+    /// SQLite 在这一列与 VALUES 臂分了家。</summary>
+    public static TheoryData<string, int, bool> InFamilies()
+    {
+        var data = new TheoryData<string, int, bool>();
+
+        foreach (var (family, _, inList, merged, _) in FamilyRows)
+            data.Add(family, inList, merged);
+
+        return data;
+    }
+
+    /// <summary>同一张表的第五列单独成一条问句：<c>UpsertClause</c> 那颗槽在不在。
     /// 带 <c>merged</c> 那一列是为了把降级期望写成推导而不是第二张表——退下来落的那一档
     /// 正是那一家 <c>Auto</c> 取的那一档。</summary>
     public static TheoryData<string, bool, bool> UpsertFamilies()
     {
         var data = new TheoryData<string, bool, bool>();
 
-        foreach (var (family, _, merged, upsert) in FamilyRows)
+        foreach (var (family, _, _, merged, upsert) in FamilyRows)
             data.Add(family, upsert, merged);
 
         return data;
@@ -204,22 +219,23 @@ public sealed class BulkWriteLayerTests
         Assert.Equal(9, FamilyRows.Count(row => row.Upsert));
 
         // 每一位名字都要在 OrmFor 里有家：默认分支会响，所以这一句挡的是"表加了、探针没加"。
-        foreach (var (family, _, _, _) in FamilyRows)
+        foreach (var (family, _, _, _, _) in FamilyRows)
             Assert.NotNull(OrmFor(family));
     }
 
     [Fact]
     public void The_family_that_reports_no_tier_at_all_still_gets_a_block_width_from_the_fallback_budget()
     {
-        // SQLite 交回的是 Bulk = null，于是预算走 StatementEmitter 那一份兜底（100）。
-        // 这一格钉两件事：兜底在写侧扩展上同样有块宽可算（100×9/10÷8 = 11），
-        // 以及"没有表态"落到的那一档是逐条而不是报错——与插入册那条兜底同一条算术。
-        var report = Sqlite.Orm().UpdateRange(rows(30)).ExplainBulk();
+        // 达梦交回的是 Bulk = null，于是预算走 StatementEmitter 那一份兜底（100）。
+        // （SQLite 在 v0.41 交出了自己的 SqliteBulk，这一格的探针从 SQLite 换到同档的达梦——
+        // "没有表态"的形状与算术两家逐字同源。）这一格钉两件事：兜底在写侧扩展上同样有块宽可算
+        // （100×9/10÷8 = 11），以及"没有表态"落到的那一档是逐条而不是报错——与插入册那条兜底同一条算术。
+        var report = Dameng.Orm().UpdateRange(rows(30)).ExplainBulk();
 
         Assert.Equal(BulkWriteMethod.SingleRow, report.Method);
         Assert.Equal(1, report.ChunkSize);
         Assert.Equal(30, report.RoundTrips);
-        Assert.Equal(100, Sqlite.Orm().UpdateRange(rows(30)).Explain().ParameterBudget);
+        Assert.Equal(100, Dameng.Orm().UpdateRange(rows(30)).Explain().ParameterBudget);
         Checks.Has("今天没有多语句批的读数", report.Reason);
         Checks.Has("Auto 取阶梯上第一个满足条件的档", report.Reason);
 
@@ -817,23 +833,25 @@ public sealed class BulkWriteLayerTests
     // ── DeleteRange 的 IN 档 ──────────────────────────────────────────
 
     [Theory]
-    [MemberData(nameof(WriteFamilies))]
+    [MemberData(nameof(InFamilies))]
     public void The_IN_tier_is_reachable_on_every_family_because_it_asks_no_multi_statement_capability(
-        string family, int budget, bool merged)
+        string family, int inList, bool merged)
     {
         // 这一条链的 Merged 是一<em>条</em>语句（WHERE 键 IN (…))，不是分号批，所以那颗
         // SupportsMergedStatements 位不参与判档：十六家全部拿 Merged、全部不降级。
         // 与上一条（Auto 在没有那颗位的十二家落逐条）恰成对照——同一个词在两条链上是两种判据。
         // merged 那颗在这里只用来把"两家拿同一颗数而档位不同"说出来：UpdateRange 上 false 的家，
         // DeleteRange 上照样是 Merged。
+        // 预算读的是 InListParameterBudget（v0.41 从 Budget 分出来的第五列）：SQLite 在这一列
+        // 按住在 100，同一颗平方级绑定价在谓词链上更疼——树册 §14 的那条曲线是它的依据。
         var report = OrmFor(family).DeleteRange(rows(3)).ExplainBulk();
 
         Assert.Equal(BulkWriteMethod.Merged, report.Method);
         Assert.False(report.Degraded);
         Assert.Equal(1, report.RoundTrips);
-        Assert.Equal(budget * 9 / 10, report.ChunkSize);
+        Assert.Equal(inList * 9 / 10, report.ChunkSize);
         Checks.Has("一句 IN 清单是单条语句", report.Reason);
-        Checks.Has($"参数预算 {budget} → 每条 {budget * 9 / 10} 颗", report.Reason);
+        Checks.Has($"参数预算 {inList} → 每条 {inList * 9 / 10} 颗", report.Reason);
         Assert.Equal(merged ? 1 : 3, OrmFor(family).UpdateRange(rows(3)).ExplainBulk().RoundTrips);
     }
 

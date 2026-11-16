@@ -1,6 +1,13 @@
 namespace QuickSql.Sql.Ast;
 
-public abstract record AstNode;
+// AST 层级对外 closed（C# 15，2026-11-11，随 net10.0 + net11.0 双档落地）：三条基不收仓外派生，也不收
+// 裸实例化——closed 隐含抽象语义，两向都有实测：仓外 `: SqlExpression` 当场 CS9382（无法使用其他程序集
+// 中的闭合类型作为基类型），仓外 `new SqlExpression()` 当场 CS0144（无法创建抽象类型的实例）。
+// 直接子孙全部 sealed 且都在本文件里（SqlExpression 14 颗 ∶ TableSource 7 颗 ∶ 另有 JoinClause /
+// Projection / OrderExpression / SetClause 四颗直叶）；「方言不派生 AST」从纪律变成编译器执行。
+// 逃生舱只能构造不能派生：表达式侧 RawExpression、表源侧 SourceRawText（WithSql 的 AST 载体）。
+// net10.0 档靠 CompilerServices/IsClosedTypeAttribute.cs 补的元数据属性。
+public closed record AstNode;
 
 // ── 表源 ──────────────────────────────────────────────────────────────
 
@@ -10,7 +17,7 @@ public sealed record TableRef(int Index, string Alias, Metadata.TableInfo Table,
     public bool IsRoot => Index == 0;
 }
 
-public abstract record TableSource(TableRef Ref) : AstNode;
+public closed record TableSource(TableRef Ref) : AstNode;
 
 public sealed record SourceTable(TableRef Ref) : TableSource(Ref);
 
@@ -69,7 +76,7 @@ public sealed record JoinClause(JoinKind Kind, TableSource Source, SqlExpression
 
 // ── 表达式 ────────────────────────────────────────────────────────────
 
-public abstract record SqlExpression : AstNode;
+public closed record SqlExpression : AstNode;
 
 public sealed record ColumnExpression(TableRef Table, Metadata.ColumnContract Column) : SqlExpression;
 

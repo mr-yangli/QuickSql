@@ -1,0 +1,105 @@
+QuickSql ToList     bal -> 1 句
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Grp" = @p0 | params=1
+
+FreeSql ToList      bal -> 1 句
+  FS | SELECT a."Id", a."Pid", a."Grp", a."Name" FROM "fs_tree" a WHERE (a."Grp" = 2) | params=0
+
+SqlSugar ToList     bal -> 1 句
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE ( `Grp` = @Grp0 )  | params=1
+
+QuickSql ToList     wide -> 1 句
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Grp" = @p0 | params=1
+
+FreeSql ToList      wide -> 1 句
+  FS | SELECT a."Id", a."Pid", a."Grp", a."Name" FROM "fs_tree" a WHERE (a."Grp" = 1) | params=0
+
+SqlSugar ToList     wide -> 1 句
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE ( `Grp` = @Grp0 )  | params=1
+
+QuickSql ToTree   bal -> 1 句
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Grp" = @p0 | params=1
+
+FreeSql ToTreeList bal -> 1 句
+  FS | SELECT a."Id", a."Pid", a."Grp", a."Name" FROM "fs_tree" a WHERE (a."Grp" = 2) | params=0
+
+SqlSugar ToTree    bal -> 1 句
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE ( `Grp` = @Grp0 )  | params=1
+
+QuickSql ToTree   wide -> 1 句
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Grp" = @p0 | params=1
+
+FreeSql ToTreeList wide -> 1 句
+  FS | SELECT a."Id", a."Pid", a."Grp", a."Name" FROM "fs_tree" a WHERE (a."Grp" = 1) | params=0
+
+SqlSugar ToTree    wide -> 1 句
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE ( `Grp` = @Grp0 )  | params=1
+
+QuickSql Descendants bal-root -> 117 句
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Pid" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Pid" IN (@p0, @p1, @p2, @p3) AND "t0"."Grp" = @p4 | params=5
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Pid" IN (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15) AND "t0"."Grp" = @p16 | params=17
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Pid" IN (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27, @p28, @p29, @p30, @p31, @p32, @p33, @p34, @p ... | params=65
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Pid" IN (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27, @p28, @p29, @p30, @p31, @p32, @p33, @p34, @p ... | params=91
+  ... 余 111 句同形
+
+FreeSql AsTreeCte    bal-root -> 1 句
+  FS | WITH "as_tree_cte" as ( SELECT 0 as cte_level, a."Name" as cte_path, a."Id", a."Pid", a."Grp", a."Name" FROM "fs_tree" a WHERE (a."Id" = 10001) union all SELECT wct1.cte_level + 1 as cte_level, wct1.cte_path || ' -> ' || wct2."Name" as cte_path, wct2."Id", wct2."Pid", wct2."Grp", wct2."Name" FROM "a ... | params=0
+
+SqlSugar ToChildList bal-root -> 1 句
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree`  | params=0
+
+QuickSql Descendants bal-mid -> 4 句
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Pid" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Pid" IN (@p0, @p1, @p2, @p3) AND "t0"."Grp" = @p4 | params=5
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Pid" IN (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15) AND "t0"."Grp" = @p16 | params=17
+
+FreeSql AsTreeCte    bal-mid -> 1 句
+  FS | WITH "as_tree_cte" as ( SELECT 0 as cte_level, a."Name" as cte_path, a."Id", a."Pid", a."Grp", a."Name" FROM "fs_tree" a WHERE (a."Id" = 10500) union all SELECT wct1.cte_level + 1 as cte_level, wct1.cte_path || ' -> ' || wct2."Name" as cte_path, wct2."Id", wct2."Pid", wct2."Grp", wct2."Name" FROM "a ... | params=0
+
+SqlSugar ToChildList bal-mid -> 1 句
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree`  | params=0
+
+QuickSql Ancestors  bal-leaf -> 9 句
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  ... 余 3 句同形
+
+FreeSql AsTreeCte up bal-leaf -> 1 句
+  FS | WITH "as_tree_cte" as ( SELECT 0 as cte_level, a."Name" as cte_path, a."Id", a."Pid", a."Grp", a."Name" FROM "fs_tree" a WHERE (a."Id" = 20000) union all SELECT wct1.cte_level + 1 as cte_level, wct2."Name" || ' -> ' || wct1.cte_path as cte_path, wct2."Id", wct2."Pid", wct2."Grp", wct2."Name" FROM "a ... | params=0
+
+SqlSugar ToParentList bal-leaf -> 16 句
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE `Id` = @InPara0  | params=1
+  SS | SELECT 1 FROM `ss_tree` WHERE `Id` = @InPara0 LIMIT 0,1 | params=1
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE `Id` = @InPara0  | params=1
+  SS | SELECT 1 FROM `ss_tree` WHERE `Id` = @InPara0 LIMIT 0,1 | params=1
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE `Id` = @InPara0  | params=1
+  SS | SELECT 1 FROM `ss_tree` WHERE `Id` = @InPara0 LIMIT 0,1 | params=1
+  ... 余 10 句同形
+
+QuickSql Ancestors  chain-leaf -> 21 句
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  QS | SELECT "t0"."Id", "t0"."Pid", "t0"."Grp", "t0"."Name" FROM "qs_tree" AS "t0" WHERE "t0"."Id" IN (@p0) AND "t0"."Grp" = @p1 | params=2
+  ... 余 15 句同形
+
+FreeSql AsTreeCte up chain-leaf -> 1 句
+  FS | WITH "as_tree_cte" as ( SELECT 0 as cte_level, a."Name" as cte_path, a."Id", a."Pid", a."Grp", a."Name" FROM "fs_tree" a WHERE (a."Id" = 20020) union all SELECT wct1.cte_level + 1 as cte_level, wct2."Name" || ' -> ' || wct1.cte_path as cte_path, wct2."Id", wct2."Pid", wct2."Grp", wct2."Name" FROM "a ... | params=0
+
+SqlSugar ToParentList chain-leaf -> 40 句
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE `Id` = @InPara0  | params=1
+  SS | SELECT 1 FROM `ss_tree` WHERE `Id` = @InPara0 LIMIT 0,1 | params=1
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE `Id` = @InPara0  | params=1
+  SS | SELECT 1 FROM `ss_tree` WHERE `Id` = @InPara0 LIMIT 0,1 | params=1
+  SS | SELECT `Id`,`Pid`,`Grp`,`Name` FROM `ss_tree` WHERE `Id` = @InPara0  | params=1
+  SS | SELECT 1 FROM `ss_tree` WHERE `Id` = @InPara0 LIMIT 0,1 | params=1
+  ... 余 34 句同形
+

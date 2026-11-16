@@ -59,6 +59,14 @@ public interface IEntitySchemaRegistry
     /// 那张票决定这一趟读里哪些列可以不装箱。</summary>
     Func<DbDataReader, ReadPlan, object> ReadDelegate(Type clrType);
 
+    /// <summary>按列序读实体成员值的非泛型口。今天的消费方只有树形闭包那一颗内核（锚点/父键的键账）：
+    /// 急切加载那一路仍按成员名走 <c>MemberAccessors</c>，挪过来是它自己的一笔，不要把这句话读成已经挪了。两侧都是取 schema 里已经编译/生成好的那份读委托，
+    /// 不在热路径上反射：G1 直接交回生成的实现，G2 交回启动期用表达式树编译好、之后只查表的那一批。
+    /// 交回的是口而不是委托：这几条路要把 ordinal 与实体配对，多包一层闭包只是每行再付一次间接调用。
+    /// 与 <see cref="Schema{T}"/> 的差别只在射程：那一颗要 <c>T</c> 在编译期已知，
+    /// 而这几条路的类型是运行期从契约上拿到的。</summary>
+    IBoxedEntityAccessor Accessors(Type clrType);
+
     /// <summary>已解析过的所有实体类型。用于 SyncStructure 等需要枚举全部实体的场景。</summary>
     IReadOnlyCollection<Type> RegisteredTypes { get; }
 }

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- TFM 由根 props 统一给（net10.0;net11.0 双目标），此处不再单钉。 -->
     <RootNamespace>QuickSql</RootNamespace>
     <Description>QuickSql ORM 内核：元数据解析、QueryModel、AST、LINQ 归约、执行、物化、事务。</Description>
   </PropertyGroup>

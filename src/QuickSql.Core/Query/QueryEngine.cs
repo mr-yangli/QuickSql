@@ -23,7 +23,7 @@ namespace QuickSql.Query;
 /// 这里也不产生任何 SQL 文本：出口在 Build，它只读 Model。</summary>
 [RequiresUnreferencedCode("lambda 归约与闭包常量求值要反射读成员。")]
 [RequiresDynamicCode("不可约子表达式的退路是编译表达式树。")]
-sealed class QueryEngine
+sealed partial class QueryEngine
 {
     readonly string[] _tables;
 
@@ -417,7 +417,7 @@ sealed class QueryEngine
 
         // 覆盖源里的 TableRef 是 WithSql 那一刻抓住的旧别名实例：不改写它，FROM 挂 "t0" 而谓词引用 "o"，
         // 得到的是一句"无法绑定多部分标识符"。与上面那颗守卫同一个理由，只是这一格的引用藏在表源里。
-        var source = Model.Source is SourceRawText raw ? raw with { Ref = root } : Model.Source;
+        var source = Model.Source is RawTextSource raw ? raw with { Ref = root } : Model.Source;
 
         return Derive(Model with { Tables = [root, .. Model.Tables.Skip(1)], Source = source });
     }
@@ -439,7 +439,7 @@ sealed class QueryEngine
                     $"WithSql 的参数名 {parameter.Name} 占了生成 SQL 的号段（前缀 {prefix} + p + 数字，那里按项目参数集合的长度编号）：" +
                     "同名的两颗会让外层生成的参数与原生文本里的这颗抢同一个绑定。请把它改成不叫 p<数字> 的名字。");
 
-        return Derive(Model with { Source = new SourceRawText(Model.Root, folded.Text, folded.Parameters) });
+        return Derive(Model with { Source = new RawTextSource(Model.Root, folded.Text, folded.Parameters) });
     }
 
     static bool IsGeneratedName(string name, char prefix)
@@ -1431,7 +1431,9 @@ sealed class QueryEngine
     /// <summary>「按一批键 IN 捞子行」的共用发射段（IncludeMany、拆分 Include 与 DbSet.Load 两条补载路，全仓四处调用）。
     /// IN 的值按 provider 的参数预算分块（公式与 Insert 链共用 StatementEmitter.RowsPerStatement，没声明预算的走同一颗保守值），
     /// 每块一条子 SELECT，结果按块序串接；复合键发逐行等值的 OR 链（(fk1=@0 AND fk2=@1) OR …），不发"每列各一个 IN"——
-    /// 那是值的叉积，缝合会静默配错行。行读取器在循环外只建一份，跨块复用；空键集一条语句都不发。</summary>
+    /// 那是值的叉积，缝合会静默配错行。行读取器在循环外只建一份，跨块复用；空键集一条语句都不发。
+    /// extraPredicate 是树形闭包递进来的"每一句都要过"的那一份谓词（链上 Where 与全局过滤器折叠后的整段）：
+    /// 既有四处调用一律不递，句子与本参数存在之前逐字节同形。</summary>
     internal async Task<List<object>> QueryInBatchesAsync(
         IReadOnlyList<object> keyValues,
         IReadOnlyList<ColumnContract> inColumns,
@@ -1440,9 +1442,10 @@ sealed class QueryEngine
         Func<DbDataReader, object> rowMap,
         IReadOnlyList<OrderExpression> ordering,
         ExecutionTag tag,
-        CancellationToken ct)
+        CancellationToken ct,
+        SqlExpression? extraPredicate = null)
     {
-        var budget = Orm.Provider.Bulk?.ParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
+        var budget = Orm.Provider.Bulk?.InListParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
         var perChunk = StatementEmitter.RowsPerStatement(budget, Math.Max(1, inColumns.Count));
 
         var projections = new Projection[targetContract.Columns.Length];
@@ -1498,7 +1501,9 @@ sealed class QueryEngine
             {
                 Columns = projections,
                 From = new SourceTable(targetTable),
-                Where = where,
+                Where = extraPredicate is null
+                    ? where
+                    : where is null ? extraPredicate : new SqlBinaryExpression(BinaryOperator.And, where, extraPredicate),
                 OrderBy = ordering,
             };
 
@@ -1529,7 +1534,12 @@ sealed class QueryEngine
         public new bool Equals(object? x, object? y)
         {
             if (x is object[] ax && y is object[] ay)
-                return ax.SequenceEqual(ay);
+                return ax.SequenceEqual(ay, this);
+
+            // 二进制主键/父键：物化每一趟都新建一只 byte[]，按引用比就永远命不中。
+            // 这一格不只服务树形——任何拿 byte[] 当字典键的账（复合键里混一颗 binary 也算）都是同一死法。
+            if (x is byte[] xb && y is byte[] yb)
+                return xb.SequenceEqual(yb);
 
             return object.Equals(x, y);
         }
@@ -1540,13 +1550,23 @@ sealed class QueryEngine
             {
                 var hash = new HashCode();
 
-                foreach (var item in arr)
-                    hash.Add(item);
+                for (var i = 0; i < arr.Length; i++)
+                    hash.Add(arr[i] is byte[] bytes ? Bytes(bytes) : arr[i]);
 
                 return hash.ToHashCode();
             }
 
-            return obj.GetHashCode();
+            return obj is byte[] b ? Bytes(b) : obj.GetHashCode();
+
+            static int Bytes(byte[] value)
+            {
+                var hash = new HashCode();
+
+                for (var i = 0; i < value.Length; i++)
+                    hash.Add(value[i]);
+
+                return hash.ToHashCode();
+            }
         }
     }
 
@@ -1923,14 +1943,21 @@ sealed class QueryEngine
         if (model.CacheKey is not { Length: > 0 } key || Orm.Aop.Cache is not { } cache)
             return null;
 
-        return cache.TryGet<List<TResult>>(key, out var hit) ? hit : null;
+        return cache.TryGet<List<TResult>>(CacheKey(model, key), out var hit) ? hit : null;
     }
 
     void Store<TResult>(QueryModel model, List<TResult> rows)
     {
         if (model.CacheKey is { Length: > 0 } key && model.CacheTtl is { } ttl && Orm.Aop.Cache is { } cache)
-            cache.Set(key, rows, ttl);
+            cache.Set(CacheKey(model, key), rows, ttl);
     }
+
+    /// <summary>缓存条目的完整键 = 用户给的键 + 执行位。Offset/Limit 是执行口在派生模型上叠的
+    /// （ToPagedAsync 的页位、CappedAsync/First 的帽位），CacheKey 原样带过来，不带进键的话
+    /// 第 2 页会命中第 1 页的结果、First 会命中全量的结果——翻页静默返回旧数据，是最难查的那一类。
+    /// 链上自己的 Skip/Take 同样落在这两格：同一条链对同一个键位次一致，键也一致。</summary>
+    static string CacheKey(QueryModel model, string key)
+        => model.Offset is null && model.Limit is null ? key : $"{key}|o{model.Offset}|l{model.Limit}";
 }
 
 /// <summary>算子的稳定标识：链式方法与 Queryable.* 调用都归到这里，所以两侧不可能各写一套语义。</summary>

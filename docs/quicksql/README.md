@@ -2,7 +2,7 @@
 
 **QuickSql** 是一个面向 .NET 10 的 ORM：**一套实体与 LINQ 风格链式 API，覆盖 19 家数据库**（SQL Server、PostgreSQL、MySQL、Oracle、SQLite、达梦、人大金仓、虚谷、GBase 等国产库），源生成器在编译期生成实体契约实现零反射物化，内置工作单元、乐观锁、全局过滤器、软删除、AOP 审计、分表分库与读写分离、CodeFirst 结构同步。
 
-> - 目标框架 `net10.0`，包版本跟 .NET 主版本走（.NET 10 → 10.x），发的是稳定档；MIT 协议。
+> - 目标框架 `net10.0` / `net11.0`（单包双目标，按宿主框架自动还原），包版本跟 .NET 主版本走（.NET 10 → 10.x），发的是稳定档；MIT 协议。
 > - 各家改了什么见仓库根 [CHANGELOG.md](../../CHANGELOG.md)。
 > - 安装与快速上手直接看本页下半部分；分功能详解看下面的目录。
 
@@ -26,6 +26,7 @@
 | [14 原生 SQL](14-raw-sql.md) | `orm.Ado` 字符串口全家、参数规则、行装配、`WithSql` 表源替换 |
 | [15 多数据库支持](15-multi-database.md) | 19 家 provider 总表、驱动安装、标识符策略、能力差异、跨库迁移五坑 |
 | [16 诊断与常见问题](16-diagnostics-and-faq.md) | Explain/ToSql、离线产 SQL、异常对照表、高频踩坑 FAQ |
+| [17 树形查询](17-tree-queries.md) | 子集/父级/整树三颗口、Depth 与 Path、句数账与税单、环与孤儿、拒档清单、19 家通用的根据 |
 
 ## 五分钟上手
 

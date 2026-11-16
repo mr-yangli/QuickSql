@@ -12,7 +12,7 @@ namespace QuickSql.Schema;
 /// G1 源生成器产出同样形状的代码，两者由对拍用例断言行为一致。</summary>
 [RequiresUnreferencedCode("G2 兜底实现：按成员名反射定位属性/字段并读取注解。")]
 [RequiresDynamicCode("G2 兜底实现：用表达式树编译读写器。")]
-public sealed class ReflectionEntitySchema<T> : IEntityTypeSchema<T> where T : class
+public sealed class ReflectionEntitySchema<T> : IEntityTypeSchema<T>, IBoxedEntityAccessor where T : class
 {
     readonly Func<T> _factory;
     readonly Action<T, object?>[] _setters;
@@ -27,7 +27,7 @@ public sealed class ReflectionEntitySchema<T> : IEntityTypeSchema<T> where T : c
                    ?? throw new QuickSqlException(
                        $"实体 {typeof(T).Name} 没有无参构造器，无法物化（公共与内部、受保护、私有都查过）");
 
-        _factory = Expression.Lambda<Func<T>>(Expression.New(ctor)).Compile();
+        _factory = Expression.Lambda<Func<T>>(Expression.New(ctor)).CompileAotSafe();
         _setters = new Action<T, object?>[contract.Columns.Length];
         _getters = new Func<T, object?>[contract.Columns.Length];
 
@@ -47,6 +47,9 @@ public sealed class ReflectionEntitySchema<T> : IEntityTypeSchema<T> where T : c
 
     public object? GetValue(T entity, int ordinal) => _getters[ordinal](entity);
 
+    /// <summary>非泛型那一颗只是转一次箱：委托体还是启动期编译好的那一只，没有第二轮反射。</summary>
+    object? IBoxedEntityAccessor.GetValue(object entity, int ordinal) => _getters[ordinal]((T)entity);
+
     public T Read(DbDataReader reader, ReadPlan plan) => Reader(reader, plan);
 
     (Action<T, object?>, Func<T, object?>) BuildAccessors(string memberName)
@@ -56,8 +59,8 @@ public sealed class ReflectionEntitySchema<T> : IEntityTypeSchema<T> where T : c
         var value = Expression.Parameter(typeof(object), "v");
         var converted = Expression.Call(ConvertMethod.MakeGenericMethod(MemberType(member)), value);
 
-        var setter = Expression.Lambda<Action<T, object?>>(Expression.Assign(MemberAccess(entity, member), converted), entity, value).Compile();
-        var getter = Expression.Lambda<Func<T, object?>>(Expression.Convert(MemberAccess(entity, member), typeof(object)), entity).Compile();
+        var setter = Expression.Lambda<Action<T, object?>>(Expression.Assign(MemberAccess(entity, member), converted), entity, value).CompileAotSafe();
+        var getter = Expression.Lambda<Func<T, object?>>(Expression.Convert(MemberAccess(entity, member), typeof(object)), entity).CompileAotSafe();
 
         return (setter, getter);
     }
@@ -106,7 +109,7 @@ public sealed class ReflectionEntitySchema<T> : IEntityTypeSchema<T> where T : c
 
         body.Add(entity);
 
-        return Expression.Lambda<Func<DbDataReader, ReadPlan, T>>(Expression.Block([entity], body), reader, plan).Compile();
+        return Expression.Lambda<Func<DbDataReader, ReadPlan, T>>(Expression.Block([entity], body), reader, plan).CompileAotSafe();
     }
 
     /// <summary>给 SetValue 那一档用的：那里的值已经是 object（外面递进来什么就是什么），

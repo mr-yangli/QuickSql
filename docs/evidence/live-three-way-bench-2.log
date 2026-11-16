@@ -1,0 +1,57 @@
+# 第一场读数（对表用；MaterializeWide 由守门修正后的补跑给出，见册子 §口径）
+# 场次：2026-11-11 00:59-01:15，机器与口径同 live-three-way-bench-1.log
+
+===== QuickSql.Benchmarks.Live.LiveEmptyFixedBench
+| Method                       | Mean      | Error    | StdDev   | Ratio | RatioSD | Gen0   | Gen1   | Allocated | Alloc Ratio |
+|----------------------------- |----------:|---------:|---------:|------:|--------:|-------:|-------:|----------:|------------:|
+| 'EmptyFixed · QuickSql（基准臂）' |  72.93 μs | 0.624 μs | 0.583 μs |  1.00 |    0.01 | 0.7324 |      - |   6.56 KB |        1.00 |
+| 'EmptyFixed · Dapper（业界锚点）'  |  59.64 μs | 0.406 μs | 0.380 μs |  0.82 |    0.01 | 0.1831 |      - |   1.63 KB |        0.25 |
+| 'EmptyFixed · FreeSql'       | 115.30 μs | 0.623 μs | 0.582 μs |  1.58 |    0.01 | 1.2207 | 0.9766 |  10.53 KB |        1.60 |
+| 'EmptyFixed · SqlSugar'      | 153.01 μs | 1.084 μs | 1.014 μs |  2.10 |    0.02 | 3.4180 |      - |   28.6 KB |        4.36 |
+| 'EmptyFixed · 裸 ADO（地板）'     |  56.66 μs | 0.288 μs | 0.269 μs |  0.78 |    0.01 | 0.1221 |      - |   1.09 KB |        0.17 |
+
+===== QuickSql.Benchmarks.Live.LiveMaterializeWideBench
+| Method                            | Mean     | Error     | StdDev    | Ratio | Gen0     | Gen1    | Allocated  | Alloc Ratio |
+|---------------------------------- |---------:|----------:|----------:|------:|---------:|--------:|-----------:|------------:|
+| 'MaterializeWide · QuickSql（基准臂）' | 4.879 ms | 0.0234 ms | 0.0219 ms |  1.00 | 148.4375 | 54.6875 | 1213.25 KB |        1.00 |
+| 'MaterializeWide · Dapper（业界锚点）'  | 4.212 ms | 0.0335 ms | 0.0313 ms |  0.86 | 164.0625 | 78.1250 | 1365.45 KB |        1.13 |
+| 'MaterializeWide · FreeSql'       | 4.258 ms | 0.0162 ms | 0.0135 ms |  0.87 | 125.0000 | 46.8750 |    1080 KB |        0.89 |
+| 'MaterializeWide · SqlSugar'      | 7.847 ms | 0.0359 ms | 0.0336 ms |  1.61 | 187.5000 | 62.5000 | 1568.02 KB |        1.29 |
+| 'MaterializeWide · 裸 ADO（地板）'     | 3.337 ms | 0.0154 ms | 0.0129 ms |  0.68 | 109.3750 | 50.7813 |  919.52 KB |        0.76 |
+
+===== QuickSql.Benchmarks.Live.LiveSelectJoin3Bench
+| Method                        | Mean       | Error   | StdDev  | Ratio | Gen0     | Gen1    | Allocated | Alloc Ratio |
+|------------------------------ |-----------:|--------:|--------:|------:|---------:|--------:|----------:|------------:|
+| 'SelectJoin3 · QuickSql（基准臂）' |   631.4 μs | 2.58 μs | 2.42 μs |  1.00 |  17.5781 |  2.9297 | 146.07 KB |        1.00 |
+| 'SelectJoin3 · Dapper（业界锚点）'  |   596.2 μs | 1.48 μs | 1.31 μs |  0.94 |  16.6016 |  2.9297 |  141.8 KB |        0.97 |
+| 'SelectJoin3 · FreeSql'       | 1,829.8 μs | 6.71 μs | 6.28 μs |  2.90 | 101.5625 | 23.4375 | 833.92 KB |        5.71 |
+| 'SelectJoin3 · SqlSugar'      |   899.9 μs | 2.93 μs | 2.74 μs |  1.43 |  17.5781 |  1.9531 | 154.53 KB |        1.06 |
+| 'SelectJoin3 · 裸 ADO（地板）'     |   477.4 μs | 1.67 μs | 1.56 μs |  0.76 |   9.2773 |  1.9531 |  78.23 KB |        0.54 |
+
+===== QuickSql.Benchmarks.Live.LiveSelectSimpleBench
+| Method                         | Mean     | Error     | StdDev    | Ratio | Gen0    | Gen1    | Allocated | Alloc Ratio |
+|------------------------------- |---------:|----------:|----------:|------:|--------:|--------:|----------:|------------:|
+| 'SelectSimple · QuickSql（基准臂）' | 1.485 ms | 0.0066 ms | 0.0058 ms |  1.00 | 52.7344 | 13.6719 | 433.43 KB |        1.00 |
+| 'SelectSimple · Dapper（业界锚点）'  | 1.363 ms | 0.0088 ms | 0.0082 ms |  0.92 | 54.6875 | 15.6250 | 452.69 KB |        1.04 |
+| 'SelectSimple · FreeSql'       | 1.663 ms | 0.0055 ms | 0.0049 ms |  1.12 | 46.8750 | 13.6719 | 385.48 KB |        0.89 |
+| 'SelectSimple · SqlSugar'      | 2.317 ms | 0.0070 ms | 0.0059 ms |  1.56 | 58.5938 | 15.6250 | 493.25 KB |        1.14 |
+| 'SelectSimple · 裸 ADO（地板）'     | 1.142 ms | 0.0043 ms | 0.0040 ms |  0.77 | 35.1563 | 11.7188 | 298.71 KB |        0.69 |
+
+===== QuickSql.Benchmarks.Live.LiveSqlBuildBench
+| Method                        | Mean         | Error      | StdDev     | Ratio | RatioSD | Gen0     | Gen1    | Allocated | Alloc Ratio |
+|------------------------------ |-------------:|-----------:|-----------:|------:|--------:|---------:|--------:|----------:|------------:|
+| 'SqlBuild100 · QuickSql（基准臂）' |   110.621 μs |  2.0655 μs |  2.0286 μs |  1.00 |    0.02 |  30.2734 |  0.9766 | 248.53 KB |        1.00 |
+| 'SqlBuild100 · FreeSql'       | 1,204.463 μs |  5.3837 μs |  5.0359 μs | 10.89 |    0.20 |  50.7813 | 15.6250 | 421.14 KB |        1.69 |
+| 'SqlBuild100 · SqlSugar'      | 1,130.451 μs | 11.0663 μs | 10.3514 μs | 10.22 |    0.20 | 136.7188 | 19.5313 | 1140.2 KB |        4.59 |
+| 'SqlBuild1（截距）· QuickSql'     |     1.454 μs |  0.0287 μs |  0.0330 μs |  0.01 |    0.00 |   0.5035 |       - |   4.23 KB |        0.02 |
+| 'SqlBuild1（截距）· FreeSql'      |    17.291 μs |  0.1188 μs |  0.1112 μs |  0.16 |    0.00 |   0.8850 |  0.8545 |   7.34 KB |        0.03 |
+| 'SqlBuild1（截距）· SqlSugar'     |    69.435 μs |  1.0446 μs |  0.9771 μs |  0.63 |    0.01 |   6.5918 |       - |  54.46 KB |        0.22 |
+
+===== QuickSql.Benchmarks.Live.LiveWriteBench
+| Method                                          | Mean      | Error    | StdDev   | Ratio | Gen0      | Allocated | Alloc Ratio |
+|------------------------------------------------ |----------:|---------:|---------:|------:|----------:|----------:|------------:|
+| 'BulkInsert 1000×30 · QuickSql（基准臂，默认装配口 29 列）' | 603.09 ms | 6.255 ms | 5.224 ms |  1.00 | 1000.0000 |  14.18 MB |        1.00 |
+| 'BulkInsert 1000×30 · Dapper（逐行参数化 + 一条事务）'     |  18.54 ms | 0.114 ms | 0.174 ms |  0.03 | 1000.0000 |  11.88 MB |        0.84 |
+| 'BulkInsert 1000×30 · FreeSql'                  | 246.38 ms | 1.362 ms | 1.274 ms |  0.41 | 2000.0000 |  22.98 MB |        1.62 |
+| 'BulkInsert 1000×30 · SqlSugar'                 |  27.59 ms | 0.534 ms | 1.217 ms |  0.05 | 1000.0000 |  12.92 MB |        0.91 |
+

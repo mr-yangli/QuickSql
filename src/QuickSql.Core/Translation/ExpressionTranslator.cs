@@ -5,6 +5,7 @@ using QuickSql.Query.Model;
 using QuickSql.Schema;
 using QuickSql.Sql;
 using QuickSql.Sql.Ast;
+using QuickSql.Materialization;
 using QuickSql.Write;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
@@ -154,7 +155,7 @@ public sealed class ExpressionTranslator(IDbProvider provider, IEntitySchemaRegi
     static Func<object> CompiledEvaluator(Expression node)
         => CompiledEvaluators.GetValue(node,
             static n => new StrongBox<Func<object>>(
-                Expression.Lambda<Func<object>>(Expression.Convert(n, typeof(object))).Compile())).Value!;
+                Expression.Lambda<Func<object>>(Expression.Convert(n, typeof(object))).CompileAotSafe())).Value!;
 
     static object? Coerce(object? value, Type target)
     {
@@ -707,7 +708,9 @@ public sealed class ExpressionTranslator(IDbProvider provider, IEntitySchemaRegi
         // 会让大集合直接在驱动侧炸——Include 那条路早就按预算分块了，唯独用户谓词这条最高频的 IN 是漏网的。
         // 超预算发 x IN (…) OR x IN (…)：发射侧对混嵌 AND/OR 自动加括号（EmitLogical / EmitBooleanOperand），
         // NOT 包整个链条也括得对。
-        var budget = Provider.Bulk?.ParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
+        // 谓词链臂读 InListParameterBudget（与 VALUES 臂分开的槽）：SQLite 那一族驱动在这一形状上
+        // 是平方级的参数绑定，硬上限会把它翻进树册 §14 量过的那条输掉的曲线。
+        var budget = Provider.Bulk?.InListParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
         var perChunk = Math.Max(1, StatementEmitter.RowsPerStatement(budget, 1));
 
         if (values.Count <= perChunk)

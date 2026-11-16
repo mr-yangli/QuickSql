@@ -5,7 +5,11 @@
          根 props 的「netstandard2.0 就关掉 trim/AOT 分析器」那条开关救不了这里：
          Directory.Build.props 先于本文件的 TargetFramework 求值，那时它还是空的，
          于是 NETSDK1210（IsAotCompatible 在 netstandard2.0 上无意义）会直接变成错误。
-         所以这四个值必须在这里显式压掉，注释里的那条根 props 只对将来的 netstandard2.0 项目有效。 -->
+         所以这四个值必须在这里显式压掉，注释里的那条根 props 只对将来的 netstandard2.0 项目有效。
+         根 props 翻成 TargetFrameworks（2026-11-11 双 TFM）之后，restore 认复数、build 认单数 ——
+         只钉单数会把 assets 写成 netstandard2.0 夹 net10.0/net11.0 的三明治，build 这边炸 NETSDK1005
+         （QuickJob.Generators 2026-11-11 实测过的那一格），所以复数也一起钉死。 -->
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <TargetFramework>netstandard2.0</TargetFramework>
     <IsAotCompatible>false</IsAotCompatible>
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using QuickSql;
 using QuickSql.Metadata;
@@ -96,6 +97,65 @@ public sealed class ApplicationKeyConventionTests
 
         Checks.Absent("[Id]", insert.ToSql());
         Checks.Has("OUTPUT inserted.[Id]", insert.ExplainKeys().ToSql());
+    }
+
+    // ── 声明说"不是"那一半（与上面三颗对称）──────────────────────────
+
+    /// <summary>靶：成员名正好命中命名约定（裸 <c>Id</c>，没写 <c>[Key]</c>），而声明说了"不归库给号"。
+    ///
+    /// <para>修之前这一格是反的：<c>ApplyKeyConvention</c> 补「谁是键」时顺手把约定自增 <c>||</c> 回去，
+    /// 盖掉了 <c>Complete</c> 已经按声明算出的 <c>false</c> —— 症状是 <c>INSERT</c> 少一列 <c>[Id]</c>、
+    /// 号由库给，而 :353 那句分表门禁提示叫用户写的正是这一句声明。键那一半照旧归约定，
+    /// 所以 <c>IsPrimary</c> 仍应是 <c>true</c>。</para></summary>
+    [Fact]
+    public void A_declared_non_identity_on_the_convention_key_beats_the_integral_convention()
+    {
+        var column = SqlServer.Orm().Schemas.Contract<GivenKeyRow>().Columns
+            .Single(c => c.MemberName == nameof(GivenKeyRow.Id));
+
+        Assert.True(column.IsPrimary);
+        Assert.False(column.IsIdentity);
+
+        var sql = SqlServer.Orm().Insert(new GivenKeyRow { Id = 1_987_654_321, Sku = "A-1" }).ToSql(out var parameters);
+
+        // 声明赢的具体形状：客户端那个号原样发出去，不是被吞成库的产出。
+        Checks.Has("[Id]", sql);
+        Assert.Equal(1_987_654_321, Convert.ToInt64(parameters[0].Value));
+    }
+
+    /// <summary>门禁与文案自洽那一格：分表实体的整型主键按 :353 的提示写声明之后，契约真的不再算自增，
+    /// 于是那张表建得出契约而不是被门禁挡回。修之前提示与门禁互相打架——照提示写完还是"自增主键"。</summary>
+    [Fact]
+    public void The_split_table_advice_in_the_identity_error_message_actually_lands()
+    {
+        var contract = SqlServer.Orm().Schemas.Contract<SplitGivenKeyLog>();
+
+        Assert.True(contract.PrimaryKey[0].IsPrimary);
+        Assert.False(contract.PrimaryKey[0].IsIdentity);
+    }
+
+    /// <summary>命名约定 + 声明说不是的靶实体（不写 <c>[Key]</c>，键那一半故意留给约定）。</summary>
+    public class GivenKeyRow
+    {
+        [QuickColumn(IsIdentity = TriState.No)]
+        public int Id { get; set; }
+
+        [QuickColumn(Length = 32)]
+        public string? Sku { get; set; }
+    }
+
+    /// <summary>同一句声明用在分表实体上：门禁要的就是"跨片唯一性由客户端给"。</summary>
+    [Table("QuickSqlGivenKeyLog_{year}{month}")]
+    [SplitTable(SplitKind.Month, nameof(OccurredAt))]
+    public class SplitGivenKeyLog
+    {
+        [QuickColumn(IsIdentity = TriState.No)]
+        public int Id { get; set; }
+
+        public DateTime OccurredAt { get; set; }
+
+        [QuickColumn(Length = 32)]
+        public string? Note { get; set; }
     }
 
     // ── 建表那一句跟着同一把尺子走 ─────────────────────────────────

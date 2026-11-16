@@ -1,0 +1,68 @@
+QuickSql 树形闭包（内存路）落地读数 — 2026-11-10（同日第二次刷新：键读接缝落地后）
+册子 docs/quicksql/plan-tree-query.md；代码 src/QuickSql.Core/Query/QueryEngine.Tree.cs + 按列序读口 IBoxedEntityAccessor
+用例 TreeQueryTests(离线 20) + MetadataEquivalenceTests 接缝 1 + ApplicationKeyConventionTests 约定 2 + TreePathTests(活库 13×6)
+
+sqlserver  [tree-tax] provider=sqlserver rows=10000 slice_sql=1 slice_ms=50 crawl_sql=8 crawl_max_params=1890 crawl_ms=1748    QuickSql.Tests.Integration  Total: 13, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 11.592s 
+xugu  [tree-tax] provider=xugu rows=10000 slice_sql=1 slice_ms=75 crawl_sql=114 crawl_max_params=90 crawl_ms=916    QuickSql.Tests.Integration  Total: 13, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 6.419s 
+sqlite  [tree-tax] provider=sqlite rows=10000 slice_sql=1 slice_ms=71 crawl_sql=114 crawl_max_params=90 crawl_ms=160    QuickSql.Tests.Integration  Total: 13, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 2.287s 
+postgresql  [tree-tax] provider=postgresql rows=10000 slice_sql=1 slice_ms=51 crawl_sql=3 crawl_max_params=9999 crawl_ms=99    QuickSql.Tests.Integration  Total: 13, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 1.947s 
+mysql  [tree-tax] provider=mysql rows=10000 slice_sql=1 slice_ms=78 crawl_sql=3 crawl_max_params=9999 crawl_ms=99    QuickSql.Tests.Integration  Total: 13, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 1.586s 
+oceanbase  [tree-tax] provider=oceanbase rows=10000 slice_sql=1 slice_ms=105 crawl_sql=3 crawl_max_params=9999 crawl_ms=184    QuickSql.Tests.Integration  Total: 13, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 2.547s 
+
+=== 离线全量 ===
+   QuickSql.Tests.Dialects  Total: 1624, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 2.175s
+
+=== 虚谷全量册的七~八颗红：分档与出处（2026-11-10 复核）===
+方法：`git worktree add --detach ../QuickSql-head-check HEAD`（工作区一字不动），把连接配置复制过去，
+在 HEAD 原版上单跑四类；回来再在工作树上单跑同一批，最后整册两跑对比红集合。
+
+稳定红 6 颗（HEAD 原版同样红 ⇒ 本笔之前就在）：
+- DefaultValuePathTests ×2（Assert.NotNull 值为 null，列默认值那一格虚谷不回填）
+- MaterializationAllocationTests ×2（其一即既有的「NULL 绑定」旧账）
+- BulkWritePathTests.InsertOrUpdate_* ×2
+
+换人红（同一支二进制、同一台实例，两跑各不相同）：ThreadConcurrencyPathTests / LeakPathTests / SoakPathTests /
+本笔的 TreePathTests.Ten_thousand_nodes_*。其中树形那颗的失败消息是
+`[E34304] System.InValidConnectionException: 指定的Ip,Port无效` → `SocketException: 每个套接字地址…只允许使用一次`，
+栈在 XuguClient.XGConnection.Open() → AdoExecutor.RentAsync（TreePathTests.cs:384 那次万行插入），
+即邻居的 soak 用例把本机临时端口/连接耗光时的驱动侧拒绝，不是被测逻辑。
+旁证：LeakPathTests 不带任何树用例照样红。
+
+=== SQLite 整册那颗并发用例（同一方法复核）===
+现象：整册第一次跑 `ThreadConcurrencyPathTests.Threads_hitting_shape_agree` 红；该类单跑 3/3 绿；
+随后整册再跑 2 次（同一支二进制、同样带 QUICKSQL_TEST_PROVIDER=sqlite）皆绿，共 1 红 / 3 跑。
+HEAD 原版（临时 worktree，跑完已删）整册 3 跑：3/3 绿（267 颗，比树上少 14 颗树用例）。
+判读：树上多出 14 颗用例改变了调度时长与连接压力，把一颗本来就timing-dependent 的用例推过界的概率提高了；
+但它不是确定性破坏——单跑全绿、重跑全绿。这颗列在"待观察"，不当作已修，也不当作回归。
+样本：`ThreadConcurrency` 的 SQLite 判定依赖并发写与 busy timeout 的交互，
+本仓既有的并行度设置（xunit.runner.json 串行）在两类负载下都会漂移。
+
+（更正一处：本节早先写的"TreePathTests 单跑 13/13 绿"是刷新前的颗数；
+加二进制键那颗后是 14 颗，其中 SQL Server/MySQL/OceanBase/虚谷 各 skip 1 颗——理由见下。）
+
+=== 独立审查与反验（同场）===
+判据：每个"修好了"都做一次反向实验（把修复撤掉，看该用例是否翻红），不接受只跑绿。
+
+1) 键表按引用比（P1，byte[] 主键/父键）
+   修复在场：SQLite `Binary_keys_stitch_by_content_not_by_reference` 绿（14 颗类内）。
+   撤掉 `StructuralComparer` 的 byte[] 一支 → `Assert.Single() ... collection contained 3 items`：
+   三个节点全成根，扁平化——正是该用例守的形状。恢复后回绿。
+
+2) 命名约定盖掉显式 IsIdentity（P2）
+   修复在场：`ApplicationKeyConventionTests` 7 绿（新 2 + 既有 5）。
+   把 `declared is null` 那一支撤掉 → 恰好新 2 翻红、既有 5 不动。
+
+3) 会话身份映射（G11）
+   修复在场：`The_session_surfaces_one_instance_per_row_on_both_take_shapes` 绿。
+   撤掉逐层爬收尾的 `Track(model, rows)` → 该颗翻红（说明判据咬得住，不是空跑）。
+
+4) 整册里的间歇红（两次现场，都不在本笔代码）
+   - SQLite `ThreadConcurrencyPathTests`：一次整册红，单跑 3/3 绿，随后整册两跑绿。
+   - SQL Server `MaterializationAllocationTests`：一次整册红，单跑 3/3 绿，随后整册 3 跑全绿。
+   - Xugu 6 颗：在 HEAD 原版（临时 worktree）同样红，判为既有；另有 3 颗在
+     ThreadConcurrency/LeakPath/Soak 之间换人，失败消息是驱动侧
+     `InValidConnectionException`（临时端口耗尽），非被测逻辑。
+
+5) CodeFirst 的另一格（本笔只记录，不改）
+   SQL Server/MySQL/OceanBase/虚谷 上 `byte[]` 列即使标 `Length` 也发 `varbinary(max)`/BLOB，
+   不能当索引键，二进制键用例在这四家显式 skip。这是类型映射的账，与树形无关。

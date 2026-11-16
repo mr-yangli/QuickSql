@@ -76,7 +76,7 @@ public sealed class OrderingPathTests
         // 带着原因原文；库可用时它是 <c>SkipUnless(null)</c>，一个字节都不改判据。
         Database.Ready();
 
-        var db = Session();
+        await using var db = Session();
 
         var project = NewProject("父");
         var milestone = NewMilestone(project, "子");
@@ -107,7 +107,7 @@ public sealed class OrderingPathTests
         // 于是有一种形状只在整体上成立：子行的 UPDATE 改的就是外键那一格，而它指向的新父行要在同一批里插进去。
         // <b>这一格由三档的固定次序保证，掐掉档内排序它照样绿</b>（证伪过），留在这里判的是另一件事：
         // 报告把三档平铺成一条序列，所以"改外键的那一句排在插父行之后"是看得见的、而库里那句约束也确实认它。
-        var first = Session();
+        await using var first = Session();
 
         var old = NewProject("旧父");
         var milestone = NewMilestone(old, "过继");
@@ -117,7 +117,7 @@ public sealed class OrderingPathTests
         first.Add(milestone);
         await first.SaveChangesAsync(ct);
 
-        var db = Session();
+        await using var db = Session();
 
         var id = int.Parse(MilestoneId(milestone));
 
@@ -147,7 +147,7 @@ public sealed class OrderingPathTests
     {
         Database.Ready();
 
-        var first = Session();
+        await using var first = Session();
 
         var project = NewProject("父");
         var milestone = NewMilestone(project, "子");
@@ -156,7 +156,7 @@ public sealed class OrderingPathTests
         first.Add(milestone);
         await first.SaveChangesAsync(ct);
 
-        var db = Session();
+        await using var db = Session();
 
         // 读的顺序把"首次出现序"摆成 [Milestone, Project] —— 于是<em>只</em>靠"删除走逆序"这一条老规矩
         // 会得到 [Project, Milestone]，先删父、当场撞约束。救回这一句的只能是拓扑排序本身。

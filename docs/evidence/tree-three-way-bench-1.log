@@ -1,0 +1,49 @@
+dataset rows: wide=10000 bal=10000 chain=20
+
+engine / scenario                             sent  nodes  roots  dep  med ms    min ms    alloc KiB  note
+----------------------------------------------------------------------------------------------------------------------
+QuickSql ToList     bal                       1     10000  0      0    14.66     14.13     2451       
+FreeSql ToList      bal                       1     10000  0      0    8.53      8.15      1437       
+SqlSugar ToList     bal                       1     10000  0      0    10.44     10.06     1447       
+
+QuickSql ToList     wide                      1     10000  0      0    21.69     9.73      2373       
+FreeSql ToList      wide                      1     10000  0      0    9.14      9.02      1359       
+SqlSugar ToList     wide                      1     10000  0      0    7.21      7.10      1371       
+
+
+QuickSql ToTree   bal                         1     10000  1      7    21.24     15.49     6647       
+FreeSql ToTreeList bal                        1     10000  1      7    26.98     21.04     8757       
+SqlSugar ToTree    bal                        1     10000  1      7    15.93     11.59     4713       
+
+QuickSql ToTree   wide                        1     10000  1      1    15.55     13.92     6575       
+FreeSql ToTreeList wide                       1     10000  1      1    27.21     22.14     8793       
+SqlSugar ToTree    wide                       1     10000  1      1    11.17     10.64     3762       
+
+QuickSql Descendants bal-root                 117   10000  1      7    50.43     46.30     12843      
+FreeSql AsTreeCte    bal-root                 1     10000  10000  0    14.39     14.25     1455       
+SqlSugar ToChildList bal-root                 1     9999   9999   0    25.79     21.40     7887       
+
+QuickSql Descendants bal-mid                  4     21     1      2    0.41      0.40      50         
+FreeSql AsTreeCte    bal-mid                  1     21     21     0    0.25      0.23      30         
+SqlSugar ToChildList bal-mid                  1     20     20     0    24.02     18.61     6519       
+
+QuickSql Ancestors  bal-leaf                  9     8      1      7    0.68      0.67      64         
+FreeSql AsTreeCte up bal-leaf                 1     8      8      0    0.23      0.21      28         
+SqlSugar ToParentList bal-leaf                16    8      8      0    2.26      2.23      372        
+
+QuickSql Ancestors  chain-leaf                21    20     1      19   1.54      1.49      146        
+FreeSql AsTreeCte up chain-leaf               1     20     20     0    0.22      0.22      30         
+SqlSugar ToParentList chain-leaf              40    20     20     0    5.67      5.63      922        
+
+同一轮第二跑（压漂移，句数逐格一致）：
+QuickSql ToTree bal 21.24 / FreeSql ToTreeList bal 26.98 / SqlSugar ToTree bal 15.93
+QuickSql Descendants bal-root 50.43（117 句）/ FreeSql AsTreeCte 14.39（1 句）/ SqlSugar ToChildList 25.79（1 句，全表）
+
+参数天花板探针（tree-bench probe，同一颗 Microsoft.Data.Sqlite 驱动）：
+probe params=900 OK
+probe params=999 OK
+probe params=1000 OK
+probe params=5000 OK
+probe params=32766 OK
+probe params=32767 SqliteException: SQLite Error 1: 'too many SQL variables'.
+

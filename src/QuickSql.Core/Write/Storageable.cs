@@ -385,7 +385,9 @@ internal sealed class StorageableChain<T> : IStorageable<T> where T : class
 
     internal static int ChunkSize(int columns, QuickSqlOrm orm)
     {
-        var budget = orm.Provider.Bulk?.ParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
+        // 这一格只喂两处谓词链（删除与存在性对账的 MatchesAny OR 平铺），读 InListParameterBudget
+        // 而不是 ParameterBudget：链臂在 SQLite 族驱动上是平方级绑定（树册 §14），宽块是输的形状。
+        var budget = orm.Provider.Bulk?.InListParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
 
         return Math.Max(1, (budget - 16) / columns);
     }

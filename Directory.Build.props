@@ -11,7 +11,11 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- 多目标 net10.0 + net11.0（2026-11-11，随 QuickJob 10.1.0 的先例）：25 颗库包单包双资产，
+         消费方按宿主 TFM 自动还原。两档都是现代 .NET，§2「不做 netstandard2.0 / .NET Framework /
+         .NET 6/8 兼容层」的向下口径不变；生成器仍 netstandard2.0（Roslyn 主机约束）。
+         tests / benchmarks 一并继承双档，scripts 里钉的 bin/…/net10.0 路径不受影响。 -->
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

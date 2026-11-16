@@ -125,7 +125,7 @@ public sealed class TpPathTests
     {
         FixturesReady();
 
-        var db = Session();
+        await using var db = Session();
 
         var customer = NewCustomer("父");
         var order = NewOrder("子");
@@ -166,7 +166,7 @@ public sealed class TpPathTests
         // 两型同号（各档自己发号）时它照样判得住：换错档就是把甲子的外键换成了乙父的键。
         FixturesReady();
 
-        var db = Session();
+        await using var db = Session();
 
         var first = NewCustomer("甲父");
         var second = NewCustomer("乙父");
@@ -204,7 +204,7 @@ public sealed class TpPathTests
         // 既不报错也不回填。读回来的值就是这条分叉的判据。
         FixturesReady();
 
-        var db = Session();
+        await using var db = Session();
 
         var parent = new TpPrincipal { Note = tagged("长键父") };
         var child = new TpDependent { Note = tagged("短键子") };
@@ -248,7 +248,7 @@ public sealed class TpPathTests
         // 现场用不跟踪的那条链准备：会话的用例不该依赖会话自己的写口（同 TrackingPathTests）。
         var seededId = (int) await Orm.Insert(settled).ExecuteIdentityAsync(ct);
 
-        var db = Session();
+        await using var db = Session();
 
         var fresh = NewCustomer("新父");
 
@@ -284,7 +284,7 @@ public sealed class TpPathTests
         // 换不出真实键又不是"别人的键"，所以只有一条路可走 —— 拒，并且一行都不写。
         FixturesReady();
 
-        var db = Session();
+        await using var db = Session();
 
         var parent = NewCustomer("要撤的父");
         var child = NewOrder("孤儿引用");
@@ -312,7 +312,7 @@ public sealed class TpPathTests
         // 所以这一档今天换不出（正解是"先插行、再补自己的上级"那两句，欠在 §14）。拒的是一整批，不是半行。
         FixturesReady();
 
-        var db = Session();
+        await using var db = Session();
 
         var boss = new TpPeer { Note = tagged("上级") };
         var minion = new TpPeer { Note = tagged("下级") };
@@ -339,7 +339,7 @@ public sealed class TpPathTests
     {
         FixturesReady();
 
-        var db = Session();
+        await using var db = Session();
 
         var customer = NewCustomer("父");
         var order = NewOrder("子");

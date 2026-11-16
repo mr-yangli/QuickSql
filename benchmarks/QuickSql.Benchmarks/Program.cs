@@ -1,5 +1,6 @@
 using System.Text;
 using QuickSql.Benchmarks;
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
 Console.OutputEncoding = Encoding.UTF8;
@@ -21,7 +22,14 @@ if (args.Contains("--gate", StringComparer.Ordinal))
 }
 
 // 两种跑法共用同一批调用形状：判据与报告不能各长一套，否则半年后比的不是同一件事。
-BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+// <para>DisableOptimizationsValidator 不是绕检查，是检查的前提变了：BDN 会拒绝执行引用了 Debug 构建
+// 的程序集，而 Live 三方对照组要引的 FreeSql 3.5.311 与 SqlSugarCore 5.1.4.221，官方 NuGet 交回来的
+// 就是 Debug 构建（两家的 DLL 都带 DebuggableAttribute=263，DisableOptimizations，JIT 对它们关优化；
+// Dapper 是正常 Release，实测对照）。Live 对照量的恰恰是"用户从 NuGet 拿到的那一份"——所以校验放行，
+// "这两臂的时间列偏悲观"记成口径边界，专格写在 plan-cross-orm-bench.md。Offline 那片没有这个前提，
+// 但闸门开在同一颗开关上：关掉的只是"拒绝跑"，量具本身一分没动。</para>
+BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args,
+    DefaultConfig.Instance.WithOptions(ConfigOptions.DisableOptimizationsValidator));
 
 return 0;
 

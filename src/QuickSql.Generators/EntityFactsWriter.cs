@@ -46,7 +46,7 @@ static class EntityFactsWriter
 
         b.AppendLine("/// <summary>实体的物化与读写器：属性直读直写，没有 PropertyInfo、没有表达式树、")
          .AppendLine("/// 也没有「委托数组按下标取」那一层间接（§12.7 A）。读取按票走：有臂的列不进装箱口（§16.21）。</summary>")
-         .AppendLine("sealed class " + m.Name + "Schema : " + Schema + "IEntityTypeSchema<" + type + ">, " + Schema + "IBoxedEntityTypeSchema")
+         .AppendLine("sealed class " + m.Name + "Schema : " + Schema + "IEntityTypeSchema<" + type + ">, " + Schema + "IBoxedEntityTypeSchema, " + Schema + "IBoxedEntityAccessor")
          .AppendLine("{")
          .AppendLine("    readonly " + Metadata + "EntityContract _contract;")
          .AppendLine("    readonly global::System.Func<" + Reader + ", " + Plan + ", " + type + "> _reader;")
@@ -89,6 +89,8 @@ static class EntityFactsWriter
          .AppendLine("    public global::System.Func<" + Reader + ", " + Plan + ", " + type + "> Reader => _reader;")
          .AppendLine()
          .AppendLine("    global::System.Func<" + Reader + ", " + Plan + ", object> " + Schema + "IBoxedEntityTypeSchema.BoxedReader => _boxed;")
+         .AppendLine()
+         .AppendLine("    object? " + Schema + "IBoxedEntityAccessor.GetValue(object entity, int ordinal) => GetValue((" + type + ")entity, ordinal);")
          .AppendLine()
          .AppendLine("    " + type + " FromRow(" + Reader + " reader, " + Plan + " plan)")
          .AppendLine("    {");

@@ -212,8 +212,9 @@ public sealed class SqlServerInsertTests
         Checks.Has("-- 块 1：第 0~269 行", log);
         Checks.Has("-- 块 3：第 540~599 行", log);
 
-        // 跨块不原子（§12.4 第 8 项）：不写进 Reason 的话，只有出事的那天才会知道要包事务。
-        Checks.Has("跨块不是原子的", plan.Reason);
+        // 跨块由执行段包一条事务整批提交（§12.4 第 8 项在 v0.41 改判）：文本上写明这一颗，
+        // 交付给 DBA 的东西才能读出"失败会整批回滚"。
+        Checks.Has("跨块由执行段包一条事务整批提交", plan.Reason);
     }
 
     [Fact]

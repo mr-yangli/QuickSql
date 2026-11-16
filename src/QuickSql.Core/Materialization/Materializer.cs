@@ -25,6 +25,10 @@ public static class ValueConverter
 
     public static T To<T>(object? value)
     {
+        // NULL 落声明型自己的 default：可空那一族给 null（摊平是那一版的回归，第七笔钉过），
+        // 非空值类型给 0——这一半是故意留在门里的：直读臂靠驱动抛（不付 IsDBNull 那一趟），
+        // 装箱臂是收容所那条宽进的路。两扇门各答各的，钉在 ZeroBoxingTests / TypedReadTests /
+        // ScalarExitTests / MaterializerCacheTests 四处，谁想单方面改口径先把四处一起过。
         if (value is null or DBNull)
             return default!;
 
@@ -477,6 +481,6 @@ public static class Materializer
         body.Add(Expression.Assign(result, creation));
         body.Add(projection.ResultType == typeof(T) ? result : (Expression)Expression.Convert(result, typeof(T)));
 
-        return Expression.Lambda<Func<DbDataReader, T>>(Expression.Block(locals, body), reader).Compile();
+        return Expression.Lambda<Func<DbDataReader, T>>(Expression.Block(locals, body), reader).CompileAotSafe();
     }
 }

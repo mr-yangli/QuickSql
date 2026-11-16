@@ -52,7 +52,7 @@ tests/QuickSql.Tests.Dialects/bin/Debug/net10.0/QuickSql.Tests.Dialects.exe
 
 ## 文档
 
-- [文档中心（按功能 16 篇）](docs/quicksql/README.md)
+- [文档中心（按功能 17 篇）](docs/quicksql/README.md)
 - [设计规格](docs/quicksql-orm-design.md)
 - [更新日志](CHANGELOG.md)
 

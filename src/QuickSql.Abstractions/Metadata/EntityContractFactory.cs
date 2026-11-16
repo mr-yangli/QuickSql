@@ -186,7 +186,7 @@ public static class EntityContractFactory
             resolved[i] = Complete(columns[i], table, types, integralPrimaryKeyAutoIncrement, defaultStringLength);
 
         if (!Array.Exists(resolved, static c => c.IsPrimary))
-            ApplyKeyConvention(resolved, clrType.Name, integralPrimaryKeyAutoIncrement);
+            ApplyKeyConvention(resolved, columns, clrType.Name, integralPrimaryKeyAutoIncrement);
 
         CheckDefaultAgainstKeys(resolved);
 
@@ -423,7 +423,7 @@ public static class EntityContractFactory
         return value;
     }
 
-    static void ApplyKeyConvention(ColumnContract[] columns, string entityName, bool integralPrimaryKeyAutoIncrement)
+    static void ApplyKeyConvention(ColumnContract[] columns, IReadOnlyList<ColumnFacts> facts, string entityName, bool integralPrimaryKeyAutoIncrement)
     {
         var index = Array.FindIndex(columns, c =>
             string.Equals(c.MemberName, "Id", StringComparison.OrdinalIgnoreCase)
@@ -434,13 +434,16 @@ public static class EntityContractFactory
 
         var found = columns[index];
 
+        // 命中 Id/{Entity}Id 形态只补「谁是键」这一半。自增那一半要问声明侧原话：Complete 已经按
+        // DeclaredIdentity 算过一次（说过"不是"的就是 false），约定只许往"没表过态"的那一格添 ——
+        // 否则 [QuickColumn(IsIdentity=No)] 在这一族形状上被静默抹平，症状是插入语句少了 Id 列、
+        // 号由库给，而 :353 那句分表提示叫用户写的正是这一句。
+        var declared = facts[index].DeclaredIdentity;
+
         columns[index] = found with
         {
             IsPrimary = true,
-            // 命中 Id/{Entity}Id 形态只补「谁是键」这一半；自增那一半不许把高优先层的声明盖掉 ——
-            // 上面那一档（Complete）已经按声明算过一次，这里只允许约定往"归库给"的方向添，
-            // 装配口说这一族库归客户端给号时，只有真表过态自增的列才留得下来。
-            IsIdentity = found.IsIdentity || (integralPrimaryKeyAutoIncrement && IsIntegral(found.ClrType)),
+            IsIdentity = found.IsIdentity || (declared is null && integralPrimaryKeyAutoIncrement && IsIntegral(found.ClrType)),
             Origin = new OriginTrace(MetadataLayer.Convention, $"{found.MemberName} 命中 Id/{{Entity}}Id 形态"),
         };
     }

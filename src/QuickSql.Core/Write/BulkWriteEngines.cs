@@ -739,7 +739,7 @@ sealed class DeleteBulkEngine<T> : IDeleteBulk<T> where T : class
                 $"{_contract.Table.Name} 的 DeleteRange 不接 Upsert 档：那一句是 INSERT … 冲突子句，缺键的那一支写进去的是一个新行，" +
                 "而这一条链要的恰好是没有那一行。删整批键用 Merged 档（一句 IN 清单），逐条用 SingleRow 档。");
 
-        var budget = _orm.Provider.Bulk?.ParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
+        var budget = _orm.Provider.Bulk?.InListParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
         var rows = _rows.Length;
         var method = requested == BulkWriteMethod.SingleRow ? BulkWriteMethod.SingleRow : BulkWriteMethod.Merged;
         var width = method == BulkWriteMethod.SingleRow ? 1 : StatementEmitter.RowsPerStatement(budget, 1);
@@ -762,7 +762,7 @@ sealed class DeleteBulkEngine<T> : IDeleteBulk<T> where T : class
     BulkWritePlan Build(BulkWriteMethod method)
     {
         var dialect = _orm.Provider.Dialect;
-        var budget = _orm.Provider.Bulk?.ParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
+        var budget = _orm.Provider.Bulk?.InListParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
         var width = method == BulkWriteMethod.SingleRow ? 1 : StatementEmitter.RowsPerStatement(budget, 1);
 
         var traces = new List<HookTrace>();

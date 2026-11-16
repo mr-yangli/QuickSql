@@ -65,7 +65,7 @@ public sealed class ConcurrencyPathTests
     {
         Database.Ready();
 
-        var db = Session();
+        await using var db = Session();
         var item = row(tagged(1), 3);
 
         // 列名恰好叫 Exception：写进去再读回来，确认它没有被当成类型名。
@@ -102,7 +102,7 @@ public sealed class ConcurrencyPathTests
 
         var sku = tagged(2);
         var id = await Seed(sku);
-        var db = Session();
+        await using var db = Session();
         var item = await Read(db, id);
 
         for (var round = 1; round <= 3; round++)
@@ -133,7 +133,7 @@ public sealed class ConcurrencyPathTests
 
         var sku = tagged(3);
         var id = await Seed(sku, 5);
-        var db = Session();
+        await using var db = Session();
         var item = await Read(db, id);
 
         item.Quantity = 6;
@@ -156,7 +156,7 @@ public sealed class ConcurrencyPathTests
         var mine = await Seed(sku + "/a");
         var clashed = await Seed(sku + "/b");
 
-        var db = Session();
+        await using var db = Session();
         var first = await Read(db, mine);
         var second = await Read(db, clashed);
 
@@ -200,7 +200,7 @@ public sealed class ConcurrencyPathTests
         var sku = tagged(5);
         var id = await Seed(sku);
 
-        var db = Session();
+        await using var db = Session();
         var item = await Read(db, id);
 
         Database.Execute("DELETE FROM [dbo].[QuickSqlInventoryItem] WHERE [Id] = @id", ("@id", id));
@@ -228,7 +228,7 @@ public sealed class ConcurrencyPathTests
         var moved = await Seed(sku + "/moved");
         var still = await Seed(sku + "/still");
 
-        var db = Session();
+        await using var db = Session();
         var first = await Read(db, moved);
         var second = await Read(db, still);
 
@@ -265,7 +265,7 @@ public sealed class ConcurrencyPathTests
         var sku = tagged(7);
         var id = await Seed(sku);
 
-        var db = Session();
+        await using var db = Session();
         var item = await Read(db, id);
 
         Assert.Null(item.CheckedAt);
@@ -315,7 +315,7 @@ public sealed class ConcurrencyPathTests
         var sku = tagged(8);
         var id = await Seed(sku, 12);
 
-        var db = Session();
+        await using var db = Session();
         var item = await Read(db, id);
 
         item.Version = 99;
@@ -367,7 +367,7 @@ public sealed class ConcurrencyPathTests
         var sku = tagged(10);
         var id = await Seed(sku);
 
-        var db = Session();
+        await using var db = Session();
         var item = await Read(db, id);
 
         item.Quantity = 14;

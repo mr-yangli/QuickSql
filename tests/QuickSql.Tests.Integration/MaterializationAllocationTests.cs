@@ -116,6 +116,13 @@ public sealed class MaterializationAllocationTests
                 // 第三家（T-SQL）与第四家（postgresql）留下面那一支：那两家的 <c>TOP</c> ∶ <c>OFFSET..FETCH</c>
                 // 两形在本仓库早有真库读数，而本家的 <c>TOP</c> 也量过是红的【实测·Z-03】。
                 Database.Target.MySql => "LIMIT 3 OFFSET 0",
+
+                // OceanBase 是 MySQL 血统的叶子（<see cref="Database"/> 的 Target 枚举注释那格），分页形与
+                // MySQL 同一颗 LIMIT n OFFSET m。它自己的读数出处：第一轮全套跑在这家时落进了下面那颗
+                // _ 兜底臂、当场红在 near 'OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY'（四颗同一句，
+                // obj/logs/v41-closed-int-oceanbase-1.log），换 LIMIT 后交回三行的见证记在
+                // obj/logs/v41-closed-int-oceanbase-2.log。照旧不与 MySql 那颗共用同一颗臂：读数出处各家各记。
+                Database.Target.OceanBase => "LIMIT 3 OFFSET 0",
                 _ => "OFFSET 0 ROWS FETCH FIRST 3 ROWS ONLY",
             }));
 
@@ -237,6 +244,14 @@ public sealed class MaterializationAllocationTests
             // 钉住它等于把三家的巧合钉成一条约定 —— 上面两支各写一句的理由在这里一个字不改。
             Assert.True(textDoor > 0,
                 $"第五族读一颗文本列不再每次分配（实测 {textDoor} B/次）：MySqlConnector 换行了，这一格的读数与 §12.7 C 末尾那份要一起重看。");
+        else if (Database.Family == Database.Target.OceanBase)
+            // <b>第六族（OceanBase）落在与第五族同一支，而它今天只有一跑一个数</b>：本家第一次全套跑在
+            // 这一家时落进了 else 的 Assert.Equal(0)，红在 Expected: 0 / Actual: 32
+            // （obj/logs/v41-closed-int-oceanbase-2.log）——与第五族首跑那一红同形（上注）而非同源：
+            // 两家走的是同一颗 MySqlConnector，但 OceanBase 的叶子身份、租户与实例是另一台的，
+            // 判据照旧取地板而不钉 32，理由与上面两支逐字相同。
+            Assert.True(textDoor > 0,
+                $"第六族读一颗文本列不再每次分配（实测 {textDoor} B/次）：MySqlConnector 换行了，这一格的读数与 §12.7 C 末尾那份要一起重看。");
         else
             Assert.Equal(0, textDoor);
     }

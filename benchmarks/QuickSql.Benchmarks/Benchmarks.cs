@@ -235,8 +235,15 @@ public class MaterializeBench : BenchBase
 }
 
 /// <summary>三列投影的落地形状。<b>不用匿名类型</b>：BDN 的返回值校验与字段计数都要一个具名类型，
-/// 而匿名类型跨方法签名会把它自己摊平成 <c>object</c>。</summary>
-public sealed record Line(int Id, string? City, int Quantity);
+/// 而匿名类型跨方法签名会把它自己摊平成 <c>object</c>。
+/// <para>Live 三方对照（Live/LiveReadBench.cs）也用这个类型，于是多了一颗无参构造器：
+/// SQLite 把 INTEGER 列交回 <see cref="long"/>，Dapper 与 SqlSugar 的物化器要求
+/// "无参构造器或与列类型逐字匹配的构造器"，<c>(int, string?, int)</c> 那颗匹配不上 ——
+/// 交回的数是 long。QuickSql 与裸 ADO 的构造调用不受影响（int 实参照旧命中主构造器）。</para></summary>
+public sealed record Line(int Id, string? City, int Quantity)
+{
+    public Line() : this(0, null, 0) { }
+}
 
 /// <summary>基准名 <c>BulkInsert10k</c>（§12.8 第 6 行，v0.12 写路径落地后才有可跑的东西）。
 /// <b>名字里的 10k 与门禁行的 1000 行不一致，这一条按门禁行走</b>：那两半（<c>1000 行 × 30 列 批量插入</c>

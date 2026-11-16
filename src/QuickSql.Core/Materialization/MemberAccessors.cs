@@ -58,7 +58,7 @@ public static class MemberAccessors
                     Expression.Call(Expression.Convert(entity, read.DeclaringType!), read),
                     typeof(object)),
                 entity)
-            .Compile();
+            .CompileAotSafe();
     }
 
     /// <summary>给一颗公共实例属性写值。写入前把 object 转成成员的声明类型，传错类型进来当场抛
@@ -89,7 +89,7 @@ public static class MemberAccessors
                     Expression.Convert(entity, write.DeclaringType!), write,
                     Expression.Convert(value, property.PropertyType)),
                 entity, value)
-            .Compile();
+            .CompileAotSafe();
     }
 
     /// <summary>集合导航的级联入口：把「拿这只集合送进子端会话」那一次泛型调用编译成委托。
@@ -117,7 +117,7 @@ public static class MemberAccessors
                     Expression.Convert(Expression.Call(parent, read), typeof(IEnumerable<>).MakeGenericType(childType)),
                     Expression.Constant(memberName, typeof(string))),
                 sink, owner)
-            .Compile();
+            .CompileAotSafe();
     }
 
     /// <summary>集合导航的一整套访问器：读集合位当前的值、写回一只新集合、往里追加一颗、按元素型建一只空集合。
@@ -223,7 +223,7 @@ public static class MemberAccessors
                     Expression.Convert(collection, add.DeclaringType!), add,
                     Expression.Convert(item, elementType)),
                 collection, item)
-            .Compile();
+            .CompileAotSafe();
     }
 
     /// <summary>按类型建一只实例（用它的无参构造器），编译期就把 Activator 那次查找换成一次 new。</summary>
@@ -235,7 +235,7 @@ public static class MemberAccessors
 
         var body = Expression.Convert(Expression.New(ctor), typeof(object));
 
-        return Expression.Lambda<Func<object>>(body).Compile();
+        return Expression.Lambda<Func<object>>(body).CompileAotSafe();
     }
 
     /// <summary>无参构造器：装配用的那一颗，不问可见性——公共查不到就退到内部/受保护/私有。

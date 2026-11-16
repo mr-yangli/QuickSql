@@ -12,11 +12,18 @@
     <PackageReference Include="BenchmarkDotNet" />
     <!-- §12.8 第二行的对照组。见 Directory.Packages.props 里那句"不是引入第二个 ORM"。 -->
     <PackageReference Include="Dapper" />
+    <!-- Live/ 一片的三方对照组（树册 §13 同款装置）。Offline/ 的门禁不碰它们：
+         离线那片量"编排 + 物化"的分配账，Live 那片量"真驱动上的时间账"，两片的口径在册子里分着写。 -->
+    <PackageReference Include="FreeSql" />
+    <PackageReference Include="FreeSql.Provider.Sqlite" />
+    <PackageReference Include="SqlSugarCore" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\QuickSql.Core\QuickSql.Core.csproj" />
     <ProjectReference Include="..\..\src\QuickSql.Providers.SqlServer\QuickSql.Providers.SqlServer.csproj" />
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Sqlite\QuickSql.Providers.Sqlite.csproj" />
   </ItemGroup>
 
   <!-- G1 在这里是真的：基准实体带 [Table]，编译期就生成 schema，

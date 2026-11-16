@@ -82,6 +82,13 @@ public sealed class GeneratedEntitySchemaRegistry : IEntitySchemaRegistry
             ? _fallback.ReadDelegate(clrType)
             : _readers.GetOrAdd(clrType, static (type, self) => ((IBoxedEntityTypeSchema)self.BuildSchema(type)).BoxedReader, this);
 
+    /// <summary>按列序读值那一颗在两侧同形：G1 交回生成的 schema（它的 GetValue 是编译期写死的强转），
+    /// G2 交回启动期编译好的委托表。树形闭包与急切加载的回填都走这一颗，热路径上不再有按名字反射读成员这一步。</summary>
+    public IBoxedEntityAccessor Accessors(Type clrType)
+        => Find(clrType) is null
+            ? _fallback.Accessors(clrType)
+            : (IBoxedEntityAccessor)_schemas.GetOrAdd(clrType, static (type, self) => self.BuildSchema(type), this);
+
     GeneratedEntityMetadata? Find(Type clrType)
         => _lookup(clrType, out var metadata) && Resolver.Configuration.Find(clrType) is null ? metadata : null;
 

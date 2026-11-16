@@ -80,7 +80,7 @@ public sealed class CascadePathTests
         Database.Ready();
         Database.JudgeWrittenFor(Database.Target.SqlServer, "裁判 SQL 是 [dbo] 三段式 T-SQL");
 
-        var db = Session();
+        await using var db = Session();
         var bill = Bill("单", "甲", "乙");
 
         db.Add(bill);
@@ -117,7 +117,7 @@ public sealed class CascadePathTests
         Database.Ready();
         Database.JudgeWrittenFor(Database.Target.SqlServer, "裁判 SQL 是 [dbo] 三段式 T-SQL");
 
-        var db = Session();
+        await using var db = Session();
         var first = Bill("甲父", "甲子");
         var second = Bill("乙父", "乙子");
 
@@ -145,7 +145,7 @@ public sealed class CascadePathTests
         EnsureTable(typeof(Rack));
         EnsureTable(typeof(ShelfSlot));
 
-        var db = Session();
+        await using var db = Session();
         var rack = new Rack { Id = 0, Label = slate("架"), Slots = [new ShelfSlot { Bin = slate("位") }] };
 
         db.Add(rack);
@@ -169,7 +169,7 @@ public sealed class CascadePathTests
         EnsureTable(typeof(Board));
         EnsureTable(typeof(Card));
 
-        var db = Session();
+        await using var db = Session();
         var board = new Board { Title = tagged("看板"), Cards = [new Card { Text = tagged("卡片") }] };
 
         db.Add(board);
@@ -202,7 +202,7 @@ public sealed class CascadePathTests
             await Orm.Insert(item).ExecuteAffrowsAsync(ct);
         }
 
-        var db = Session();
+        await using var db = Session();
 
         var read = await db.Set<Order>().Where(o => o.Id == parentId).ToListAsync(ct);
         var stored = Assert.Single(read);
@@ -243,7 +243,7 @@ public sealed class CascadePathTests
 
         await Orm.Insert(new OrderItem { OrderId = parentId, Sku = tagged("戊"), Quantity = 1, Price = 2m }).ExecuteAffrowsAsync(ct);
 
-        var db = Session();
+        await using var db = Session();
 
         var stored = Assert.Single(await db.Set<Order>().Where(o => o.Id == parentId).ToListAsync(ct));
 
@@ -282,7 +282,7 @@ public sealed class CascadePathTests
             await Orm.Insert(item).ExecuteAffrowsAsync(ct);
         }
 
-        var db = Session();
+        await using var db = Session();
 
         var already = await db.Set<OrderItem>().Where(i => i.OrderId == parentId).ToListAsync(ct);
         Assert.Equal(2, already.Count);
@@ -324,7 +324,7 @@ public sealed class CascadePathTests
             await Orm.Insert(item).ExecuteAffrowsAsync(ct);
         }
 
-        var db = Session();
+        await using var db = Session();
 
         var stored = Assert.Single(await db.Set<Order>().Where(o => o.Id == parentId).ToListAsync(ct));
 
@@ -355,7 +355,7 @@ public sealed class CascadePathTests
         Database.Ready();
         Database.JudgeWrittenFor(Database.Target.SqlServer, "裁判 SQL 是 [dbo] 三段式 T-SQL");
 
-        var db = Session();
+        await using var db = Session();
         var bill = Bill("摘新", "甲", "乙");
 
         db.Add(bill);
@@ -386,7 +386,7 @@ public sealed class CascadePathTests
         EnsureTable(typeof(ShelfSlot));
         EnsureTable(typeof(SlotHook));
 
-        var db = Session();
+        await using var db = Session();
         var rack = new Rack
         {
             Id = 0,
@@ -403,7 +403,7 @@ public sealed class CascadePathTests
 
         Assert.Equal(2, Count("[dbo].[QuickSqlSlotHook]", "[SlotId] IN (SELECT [Id] FROM [dbo].[QuickSqlShelfSlot] WHERE [Bin] = @bin)", ("@bin", slotBin)));
 
-        var again = Session();
+        await using var again = Session();
 
         // 现场手续：会话的跟踪档由 Set<T>() 建，而 IncludeMany 往会话里登记<em>子型</em>时不会自己建档
         // （会话里没见过的类型就没有档，那一句"内核不变量被破"是它给的响）。先摸一下位那一档，
@@ -464,7 +464,7 @@ public sealed class CascadePathTests
         EnsureTable(typeof(Pallet));
         EnsureTable(typeof(PalletLine));
 
-        var db = Session();
+        await using var db = Session();
         var pallet = new Pallet
         {
             Id = 0,
@@ -484,7 +484,7 @@ public sealed class CascadePathTests
         var lineA = slate("线甲");
         var lineB = slate("线乙");
 
-        var again = Session();
+        await using var again = Session();
 
         // 这一句就是全部：IncludeMany 缝出来的子行自己进会话，调用方不碰子型那一档。
         var loaded = Assert.Single(await again.Set<Pallet>()
@@ -504,7 +504,7 @@ public sealed class CascadePathTests
         Assert.Contains("QuickSqlPalletLine", Written(report));
 
         // ② 摘掉的那一只出库了，另一只与父都还在（读回走另一只会话，不写裁判 SQL）。
-        var check = Session();
+        await using var check = Session();
 
         Assert.Empty(await check.Set<PalletLine>().Where(l => l.Name == lineA).ToListAsync(ct));
         Assert.Single(await check.Set<PalletLine>().Where(l => l.Name == lineB).ToListAsync(ct));
@@ -532,7 +532,7 @@ public sealed class CascadePathTests
         EnsureTable(typeof(ShelfSlot));
         EnsureTable(typeof(SlotHook));
 
-        var db = Session();
+        await using var db = Session();
         var rack = new Rack
         {
             Id = 0,
@@ -600,7 +600,7 @@ public sealed class CascadePathTests
         EnsureTable(typeof(PalletLine));
         EnsureTable(typeof(Material));
 
-        var db = Session();
+        await using var db = Session();
         var kept = new Material { Spec = slate("物资甲") };
         var sold = new Material { Spec = slate("物资乙") };
 

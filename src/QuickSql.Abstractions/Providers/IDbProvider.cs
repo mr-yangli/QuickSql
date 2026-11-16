@@ -299,6 +299,16 @@ public interface IChangeGuard
 /// 反射面之间有四格形状差），每一家都要在真库上跑一次才算接上。三家的差别只记在两格里：
 /// 闸门（只有 MySQL 家欠连接串一颗参数）与载体（两家交 DataTable、一家逐行推）。
 /// 各槽位默认值就是"不接"，接一家不必改其余各家。</summary>
+/// <summary>参数预算的公共常数。放 Abstractions 而不是内核：InListParameterBudget 的覆写者
+/// （SQLite 是第一颗）要引用"保守值"这个名字，而它不能反向引用内核。</summary>
+public static class ParameterBudgets
+{
+    /// <summary>Bulk 槽缺位时的兜底预算，也是 IN 列表臂的按住值：没有任何库种事实可依，
+    /// 取一个低于所有已知上限的数——宁可多几次 round-trip，也不要撞上一次就整批失败的硬上限。
+    /// 内核的 StatementEmitter.ConservativeParameterBudget 改指这里，两处不许各写一个 100。</summary>
+    public const int Conservative = 100;
+}
+
 public interface IBulkStrategy
 {
     int ParameterBudget { get; }
@@ -334,4 +344,17 @@ public interface IBulkStrategy
     /// 缺键就插是这一档与 Merged 档的语义差而不是速度差，所以 Auto 永远不取它。
     /// 两道拒收（全局过滤器在场、主键由库给值而调用方没给键）不在这一颗里：那一半是这条链的形状，由内核拒。</summary>
     string? UpsertClause(UpsertColumns columns) => null;
+
+    /// <summary>IN 列表臂的参数预算：多值 VALUES 臂与"键的清单"臂是两种形状，预算从这一颗起分开。
+    /// <para><b>为什么要分</b>：VALUES 臂的参数按序 <c>Parameters.Add</c>，宽块没有隐藏的单价；
+    /// IN/谓词链臂在 SQLite 这一族驱动上是"命名参数按下标线性扫 ⇒ 整批平方级"（树册实测：宽闭包的
+    /// IN 臂按硬上限翻位之后句数 117 → 9 而耗时 45.9 → 164 ms，臂宽 90 才落在曲线最低点——
+    /// docs/quicksql/plan-tree-query.md §14）。内核里读这一颗的是四处谓词链分块：读侧补载
+    /// （QueryEngine.QueryInBatchesAsync）、用户谓词的 IN 链（ExpressionTranslator）、Storageable 的
+    /// 删除与存在性对账两处（MatchesAny 的 OR 平铺）、DeleteRange 的键块。</para>
+    /// <para><b>默认沿用 <see cref="ParameterBudget"/></b> = 今天读这些点的三家（SQL Server 2100 /
+    /// PG 32767 / MySQL 65535）逐字零变化；要"VALUES 翻位而谓词链按住不动"的 provider（SQLite 是第一颗）
+    /// 才覆写它。这颗槽 2026-11 那次以"无人翻位"撤过一回，重开时带的就是上面那份树册读数——
+    /// 槽位本身的形状与那次一致。</para></summary>
+    int InListParameterBudget => ParameterBudget;
 }

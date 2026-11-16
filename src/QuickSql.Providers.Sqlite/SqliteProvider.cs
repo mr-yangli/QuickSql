@@ -79,11 +79,13 @@ public sealed class SqliteProvider : IDbProvider
 
     public IChangeGuard ChangeGuard { get; } = new SqliteChangeGuard();
 
-    /// <summary>没有批量策略，与 XuguProvider、Gbase8sProvider 同档同因：那颗驱动给不出一个可报的
-    /// 高速通道（没有装载类形状的 API，它的高速面是"一条事务包住一批语句"，那是执行编排不是装载通道），
-    /// 也给不出一个可报的参数预算。Merged 档不接：驱动"看起来"收得下分号批，但"看起来收得下"
-    /// 与"一条批被它逐句执行、行数按句回报"之间差的是一场没跑过的读数——集成册补一场多语句批即可当场改判。</summary>
-    public IBulkStrategy? Bulk => null;
+    /// <summary>批量声明（SqliteBulk）：没有装载通道、不声明 Merged 档——这两格的理由与原来"交 null"
+    /// 时逐字相同（分号批"看起来收得下"与"一条批被它逐句执行、行数按句回报"之间差的还是那场没跑过的
+    /// 读数，集成册补一场多语句批即可当场改判）。交出去的东西换了：一颗可报的参数预算。原来那句
+    /// "它的高速面是一条事务包住一批语句，那是执行编排不是装载通道"今天兑现了两半——预算由这一颗报
+    /// （1000 行 × 29 列 334 块 → 1 块），事务由 InsertEngine 的多块收口包（执行编排本来就该住在内核）。
+    /// 静态共享一颗：策略无状态，每次读 Bulk 不再新建。</summary>
+    public IBulkStrategy? Bulk { get; } = new SqliteBulk();
 
     /// <summary>SQLite 打开连接即创建文件，所以支持自动建库。</summary>
     public bool CanCreateDatabase => true;

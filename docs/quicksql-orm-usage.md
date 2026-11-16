@@ -2,7 +2,7 @@
 
 一套实体与 LINQ 风格链式 API，覆盖 **19 家数据库**（SQL Server、PostgreSQL、MySQL、Oracle、SQLite、达梦、人大金仓、虚谷、GBase 等），源生成器编译期生成实体契约实现零反射物化。内置工作单元（变更跟踪 + `SaveChanges`）、乐观锁、全局过滤器、软删除、AOP 审计、分表分库与读写分离、CodeFirst 结构同步、原生 SQL 逃生舱。
 
-> 目标框架 `net10.0`；包版本跟 .NET 主版本走（nuget.org 当前可还原的是 10.0.0）；MIT 协议；除 ADO.NET 驱动外零第三方依赖。
+> 目标框架 `net10.0` / `net11.0`（单包双目标，按宿主框架自动还原）；包版本跟 .NET 主版本走（nuget.org 当前可还原的是 10.0.0）；MIT 协议；除 ADO.NET 驱动外零第三方依赖。
 
 ## 安装
 
@@ -80,7 +80,7 @@ builder.Services.AddQuickSqlOrm(DbKind.SqlServer, connectionString, b =>
 ## 功能一览
 
 - **查询**：条件/排序/投影/Distinct、分页与总数、存在性探针、联表与 `Include`/`IncludeMany` 导航、引用导航自动联表、分组聚合、子查询、流式读取
-- **写入**：单行/批量（按参数预算分块）、自增键回填、批量高速层（SQL Server 装载通道）、`InsertOrUpdate` upsert、按实体稀疏/整行更新
+- **写入**：单行/批量（按参数预算分块；多块包一条事务整批提交，失败整批回滚）、自增键回填、批量高速层（SQL Server 装载通道）、`InsertOrUpdate` upsert、按实体稀疏/整行更新
 - **工作单元**：`DbContext`/`DbSet`/`ChangeTracker`/`SaveChanges`（脏列判定、三档顺序、级联新增/摘行/到位）
 - **事务**：四种形态（显式/包段/环境/会话）、保存点嵌套、集群事务
 - **过滤与行为**：全局查询过滤器（支持接口键与 mandatory）、软删除（四个删除出口一起改写）、AOP 钩子全家（审计/日志/改写/取消）

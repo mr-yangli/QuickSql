@@ -71,6 +71,10 @@ public sealed class EntitySchemaRegistry : IEntitySchemaRegistry
                 .Invoke(null, [self.SchemaHandle(type)])!,
             this);
 
+    /// <summary>G2 侧这一颗不付 <c>MakeGenericMethod</c>：schema 实例本来就实现了
+    /// <see cref="IBoxedEntityAccessor"/>，取出来转个口即可，而 schema 按类型缓存在 <c>_schemas</c> 里。</summary>
+    public IBoxedEntityAccessor Accessors(Type clrType) => (IBoxedEntityAccessor)SchemaHandle(clrType);
+
     /// <summary>跟踪器里存的是 object，所以校验也要一个非泛型口。反射只在第一次取用时发生，
     /// 之后与泛型口走同一条已编译路径。</summary>
     public Action<object, List<ValidationFailure>> ValidateDelegate(Type clrType)

@@ -52,7 +52,7 @@ public sealed class IncludeManyOrderingPathTests
         EnsureTable(typeof(ShelfSlot));
         EnsureTable(typeof(SlotHook));
 
-        var db = Session();
+        await using var db = Session();
         var rack = ScrambledRack();
 
         db.Add(rack);
@@ -100,7 +100,7 @@ public sealed class IncludeManyOrderingPathTests
         EnsureTable(typeof(ShelfSlot));
         EnsureTable(typeof(SlotHook));
 
-        var db = Session();
+        await using var db = Session();
         var rack = ScrambledRack();
 
         db.Add(rack);

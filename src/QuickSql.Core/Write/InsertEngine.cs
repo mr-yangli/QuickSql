@@ -1,3 +1,4 @@
+using System.Data;
 using System.Globalization;
 using System.Text;
 using System.Diagnostics.CodeAnalysis;
@@ -104,8 +105,11 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         var tag = Tag();
         var affrows = 0;
 
-        foreach (var chunk in plan.Chunks)
-            affrows += await _orm.Ado.NonQueryAsync(chunk.Sql, tag, ct).ConfigureAwait(false);
+        await SendAtomicallyAsync(plan, tag.Cluster, async () =>
+        {
+            foreach (var chunk in plan.Chunks)
+                affrows += await _orm.Ado.NonQueryAsync(chunk.Sql, tag, ct).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
         return affrows;
     }
@@ -168,8 +172,11 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
 
         written = 0;
 
-        foreach (var chunk in plan.Chunks)
-            written += await _orm.Ado.NonQueryAsync(chunk.Sql, tag, ct).ConfigureAwait(false);
+        await SendAtomicallyAsync(plan, tag.Cluster, async () =>
+        {
+            foreach (var chunk in plan.Chunks)
+                written += await _orm.Ado.NonQueryAsync(chunk.Sql, tag, ct).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
         return report;
     }
@@ -458,38 +465,79 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         var expected = ordinals.Length;
         var tag = Tag();
 
-        foreach (var chunk in plan.Chunks)
+        await SendAtomicallyAsync(plan, tag.Cluster, async () =>
         {
-            var rowOrdinals = chunk.RowOrdinals;
-            var first = chunk.FirstRow;
-            var backfilled = 0;
-
-            await _orm.Ado.WriteWithResultAsync(chunk.Sql, tag, (reader, index) =>
+            foreach (var chunk in plan.Chunks)
             {
-                if (index == 0 && reader.FieldCount != expected)
-                    throw new QuickSqlException($"{_orm.Provider.Kind} 的回填结果集有 {reader.FieldCount} 列，期望 {expected} 列：发射层与键策略对不上，不能假设回填可用。");
+                var rowOrdinals = chunk.RowOrdinals;
+                var first = chunk.FirstRow;
+                var backfilled = 0;
 
-                // 回包第 index 行 ↔ 这一块的第 index 行（回填映射的全部内容）。
-                // 分表时那一块行在入参数组里不连续，块自带那份下标表；不分表时是 null，
-                // 走 FirstRow + 行号（不多一次数组分配）。
-                var entity = _rows[rowOrdinals is null ? first + index : rowOrdinals[index]];
+                await _orm.Ado.WriteWithResultAsync(chunk.Sql, tag, (reader, index) =>
+                {
+                    if (index == 0 && reader.FieldCount != expected)
+                        throw new QuickSqlException($"{_orm.Provider.Kind} 的回填结果集有 {reader.FieldCount} 列，期望 {expected} 列：发射层与键策略对不上，不能假设回填可用。");
 
-                for (var column = 0; column < expected; column++)
-                    preparation.Schema.SetValue(entity, ordinals[column], reader.GetValue(column));
+                    // 回包第 index 行 ↔ 这一块的第 index 行（回填映射的全部内容）。
+                    // 分表时那一块行在入参数组里不连续，块自带那份下标表；不分表时是 null，
+                    // 走 FirstRow + 行号（不多一次数组分配）。
+                    var entity = _rows[rowOrdinals is null ? first + index : rowOrdinals[index]];
 
-                backfilled++;
-            }, ct).ConfigureAwait(false);
+                    for (var column = 0; column < expected; column++)
+                        preparation.Schema.SetValue(entity, ordinals[column], reader.GetValue(column));
 
-            // 上面那句列数检查只在"至少回来一行"时才走得到：有的驱动执行成功、行也真进去了，
-            // 回包却是 FIELDS=0 ROWS=0，实体上的自增列留在 default。少一行比少一列更危险：
-            // 少一列当场红，少几行是绿着把错值交出去，调用方拿到的是"看着合法"的 0 而不是异常。
-            if (backfilled != chunk.RowCount)
-                throw new QuickSqlException(
-                    $"{_orm.Provider.Kind} 的插入执行成功却只回填了 {backfilled}/{chunk.RowCount} 行：" +
-                    "这一家的回填形态没有把键发回客户端，不能假设回填可用。虚谷实测：语句收下、行进去了、结果集是空的。");
-        }
+                    backfilled++;
+                }, ct).ConfigureAwait(false);
+
+                // 上面那句列数检查只在"至少回来一行"时才走得到：有的驱动执行成功、行也真进去了，
+                // 回包却是 FIELDS=0 ROWS=0，实体上的自增列留在 default。少一行比少一列更危险：
+                // 少一列当场红，少几行是绿着把错值交出去，调用方拿到的是"看着合法"的 0 而不是异常。
+                if (backfilled != chunk.RowCount)
+                    throw new QuickSqlException(
+                        $"{_orm.Provider.Kind} 的插入执行成功却只回填了 {backfilled}/{chunk.RowCount} 行：" +
+                        "这一家的回填形态没有把键发回客户端，不能假设回填可用。虚谷实测：语句收下、行进去了、结果集是空的。");
+            }
+        }, ct).ConfigureAwait(false);
 
         return [.. _rows];
+    }
+
+    /// <summary>多块的原子收口：三条同时成立才自开一条事务——块数 &gt; 1（单块本来就是一次原子提交），
+    /// 外面没有环境事务（<see cref="QuickSqlTransaction.For"/> 在场时块经 RentAsync 的环境支自动并进
+    /// 那条事务的连接，再套一颗只会多出一次保存点），provider 声明了事务位（"事务可选"条款与
+    /// DbContext.SaveChangesAsync 同一句：没声明就走 autocommit 直发）。事务钉的集群就是块的 tag
+    /// 所带的集群（RentAsync 的环境支对不上集群会当场拒，所以两处必须是同一个出处）。
+    /// <para><b>这一颗收的是两笔账</b>：一是语义——以前多块各自 autocommit，中途失败半批已提交、
+    /// 半批丢失（§12.4 第 8 项"跨块不是原子的"那一格），现在整批一次提交、失败整批回滚；
+    /// 二是价格——活库三方对照（docs/quicksql/plan-cross-orm-bench.md §4.4）量出 1000 行 × 29 列在
+    /// SQLite 上 604 ms，主项就是 334 次各自 autocommit 的提交价（每次 ~1.8 ms 日志 fsync），
+    /// 合成一条提交后那一笔只付一次。兜底回滚走 <c>RollbackQuiet</c>（SaveChangesCore 同一式）：
+    /// 回滚自己可能抛（锁冲突、连接断了），不能让它把 SQL 异常换掉。
+    /// 提交本身是同步口（<see cref="QuickSqlTransaction"/> 按 AsyncLocal 传播的约束不设 async 成员，
+    /// 类头注有记）：这一笔在异步路径上付的是一次线程池阻塞，每批一次而不是每块一次；
+    /// 要 async 提交属改公开形状那一类，判据可回答那天再立编号，重开条件记在设计册 §12.4。</para></summary>
+    async Task SendAtomicallyAsync(InsertPlan plan, string cluster, Func<Task> send, CancellationToken ct)
+    {
+        if (plan.Chunks.Count <= 1 || QuickSqlTransaction.For(_orm.Ado) is not null
+            || !TransactionCapability.Declared(_orm.Provider))
+        {
+            await send().ConfigureAwait(false);
+            return;
+        }
+
+        using var tran = _orm.Ado.BeginTransaction(cluster, IsolationLevel.ReadCommitted);
+
+        try
+        {
+            await send().ConfigureAwait(false);
+            tran.Commit();
+        }
+        catch
+        {
+            tran.RollbackQuiet();
+
+            throw;
+        }
     }
 
     // ── 构建 ──────────────────────────────────────────────────────────
@@ -760,7 +808,7 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
             reason += $" 这批行分布在 {shards.Count} 张片上：块按片切，跨片不共用一条语句（一条 INSERT 只有一个目标表）。";
 
         if (chunks.Count > 1)
-            reason += " 跨块不是原子的（§12.4 第 8 项）：要整批原子就包 §6 的事务。";
+            reason += " 跨块由执行段包一条事务整批提交，中途失败整批回滚（§12.4 第 8 项；环境事务在场时并入在场那条，未声明事务位的 provider 仍 autocommit 直发）。";
 
         return new InsertPlan(chunks, _rows.Length, columns.Length, rowsPerStatement, budget, reason, traces) { Provider = provider };
     }

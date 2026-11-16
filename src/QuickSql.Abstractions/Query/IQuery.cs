@@ -166,6 +166,30 @@ public interface IQuery<T> : IAsyncEnumerable<T>
     IIncludableCollectionQuery<T, TDetail> IncludeMany<TDetail>(Expression<Func<T, IEnumerable<TDetail>>> navigation)
         where TDetail : class;
 
+    /// <summary>自引用父键上的子集闭包：给一个或一批锚点主键，取它下面的全部后代。
+    /// 取数是逐层爬（每层一句 WHERE 父键 IN 上一层键集，按参数预算分块），缝合在内存：
+    /// 这一档不要求库端有任何递归语法，所以 19 家 provider 同一份语义。
+    /// 深度上限缺省 32，与已访问键集一起拦环——库里成环时句子数与行数都有界。
+    /// 接树之前的 Where 与全局过滤器落到每一层句子上，因此链上被筛掉的行会让它的子树整段读不到
+    /// （与软删父节点同一形状，这是行为不是缺陷）。锚点为空不发 SQL；锚点不存在交回空集。
+    /// 锚点数组在接链那一刻拷贝进模型：调用方此后就地改数组不影响这条链（规范文本与执行期的 IN 臂都按接链时的锚点算）。
+    /// 只落在单表实体链这一档：投影/联表/分组/分页/分表/急切加载在场时当场拒。</summary>
+    ITreeQuery<T> Descendants<TKey>(Expression<Func<T, TKey>> parentSelector, params object[] roots);
+
+    /// <summary>自引用父键上的父级闭包：给一个或一批节点主键，取它到根的全部祖先（面包屑）。
+    /// 与 Descendants 同一颗内核，方向翻过来：每层一句 WHERE 主键 IN 上一层父键集。
+    /// 输出森林的根是最上层祖先，所以面包屑序 = Depth 升序。其余纪律同 Descendants。</summary>
+    ITreeQuery<T> Ancestors<TKey>(Expression<Func<T, TKey>> parentSelector, params object[] nodes);
+
+    /// <summary>整片嵌成森林：一句 SELECT 取片（片界定来自链上的 Where 与全局过滤器），
+    /// 回来按父键一次遍历分桶，O(n)。片内找不到父的行升为根（孤儿即根），环上的行同样升为根，
+    /// 一行都不静默丢。没有 Where 也没有任何全局过滤器时当场拒——那等于把整表搬进内存，
+    /// 要从锚点取一小片就用 Descendants。兄弟序 = 链上的 OrderBy，不给就按取数序。</summary>
+    Task<List<TreeNode<T>>> ToTreeAsync<TKey>(Expression<Func<T, TKey>> parentSelector, CancellationToken ct = default);
+
+    /// <summary>ToTreeAsync 的同步形态，同一颗咽喉（sync-over-async，口径同 ToList）。</summary>
+    List<TreeNode<T>> ToTree<TKey>(Expression<Func<T, TKey>> parentSelector);
+
     /// <summary>显式别名，取代按形参名找表。</summary>
     IQuery<T> As(string alias);
 

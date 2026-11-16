@@ -31,6 +31,24 @@ public sealed class MetadataEquivalenceTests
     static QuickSqlOrm Orm(IEntitySchemaRegistry schemas)
         => new(new QuickSqlOrmOptions { Provider = Provider, ConnectionString = SqlServer.OfflineConnectionString }, schemas);
 
+    /// <summary>按列序读值那一颗非泛型口（树形闭包的键账与急切加载的回填都走它）：两侧必须交回同一个值，
+    /// 而值本身还要钉绝对断言——与下面同一把尺子，两侧同时退化成同一个错值也算"相等"。
+    /// G1 侧交回生成期写死的强转，G2 侧交回启动期编译好的委托；热路径上都不再按名字反射读成员。</summary>
+    [Fact]
+    public void The_boxed_value_getter_reads_the_same_cells_on_both_sides()
+    {
+        var order = new Order { Id = 7, CustomerName = "甲", Amount = 12.5m };
+        var contract = Generated().Contract<Order>();
+
+        var key = Array.IndexOf(contract.Columns, contract.PrimaryKey[0]);
+        var name = Array.IndexOf(contract.Columns, contract.Columns.Single(c => c.MemberName == nameof(Order.CustomerName)));
+
+        Assert.Equal(7, Generated().Accessors(typeof(Order)).GetValue(order, key));
+        Assert.Equal(7, Reflected().Accessors(typeof(Order)).GetValue(order, key));
+        Assert.Equal("甲", Generated().Accessors(typeof(Order)).GetValue(order, name));
+        Assert.Equal("甲", Reflected().Accessors(typeof(Order)).GetValue(order, name));
+    }
+
     /// <summary>只比「生成的 == 反射的」不够：两条路径同时退化成同一个错误值也会通过。
     /// 所以每个实体还钉了一条绝对值断言（<see cref="Contract_carries_the_layer_it_claims"/>）。</summary>
     [Theory]

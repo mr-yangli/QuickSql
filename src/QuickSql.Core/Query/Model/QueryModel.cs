@@ -9,10 +9,11 @@ public sealed record QueryModel
 {
     public required IReadOnlyList<TableRef> Tables { get; init; }
 
-    /// <summary>FROM 位的覆盖口。null 说的是"照旧：根表位就是那张实体表"；非 null 时编译器把它原样端出去
-    /// （今天两种：WithSql 交回的一段用户自己的 SELECT，与派生表折出来的表源）。这一格里有东西，
-    /// 模型规范文本就必须有对应的一行，否则等价性判据会漏掉一整类差异（打印在 QueryModelPrinter）。</summary>
-    public TableSource? Source { get; init; }
+    /// <summary>FROM 位的覆盖口。null 说的是"照旧：根表位就是那张实体表"；非 null 时编译器把
+    /// OverriddenSource（模型层自有的 closed union：WithSql 的 RawTextSource ∶ 链式合并的 SourceSetOps）
+    /// 端成 AST 再发。这一格里有东西，模型规范文本就必须有对应的一行，否则等价性判据会漏掉
+    /// 一整类差异（打印在 QueryModelPrinter）。</summary>
+    public OverriddenSource? Source { get; init; }
 
     /// <summary>派生表入口：整份模型先编译成内层 SELECT，再作为外层唯一的表位。
     /// 与 Source 的分工是谁写内层：这一格的内层由库自己规划（键、聚合、页都在内层，外层只剩一个
@@ -55,6 +56,11 @@ public sealed record QueryModel
     /// <summary>集合导航的批量加载意图。不改写主查询 SQL，执行层在主查询完成后
     /// 发第二条查询拿子实体，内存缝合回父实体的集合属性。</summary>
     public IReadOnlyList<IncludeManyNode> IncludeManys { get; init; } = [];
+
+    /// <summary>树形闭包的意图（Descendants / Ancestors / ToTree 三颗口）。null = 这条链不是树查询。
+    /// 与 IncludeManys 互斥：两者都要在执行期另发句子，叠在同一句链上句数就读不出账。
+    /// 进规范文本（QueryModelPrinter 的 TREE 行）：它是查询形状，不是执行策略。</summary>
+    public TreeRequest? Tree { get; init; }
 
     /// <summary>拆分查询标志。为 true 时引用导航不走 LEFT JOIN，
     /// 而是主查询之后单独发查询再内存缝合。不进规范文本：与跟不跟踪一样是执行策略而非查询形状。</summary>
