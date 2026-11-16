@@ -211,7 +211,17 @@ public class ReadPathTests
             .ToListAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(Database.Orders.Length, rows.Count);
-        Assert.Equal(Database.Orders[0].Amount * 2, rows[0].Doubled);
+
+        // 期望值的口径按家族分岔：decimal 真列（SQL Server/PG/MySQL/OceanBase/虚谷）库侧与物化全程 decimal，
+        // 期望就是纯 decimal 算术；SQLite 的 Amount 是 REAL（double），×2 在库侧走双精度，物化那一步还要过一次
+        // double→decimal 转换——这一格 .NET 11 变了行为（.NET 10 出最短往返形 24.6912，.NET 11 出全展开
+        // 24.691199999999998482280716416），所以期望值让同一颗转换原语算出来：期望与实际同一条路，
+        // 这条判的是"投影只读了选中的槽位"，不是 BCL 的转换行为（最小复现钉过，2026-11）。
+        var doubled = Database.Family == Database.Target.Sqlite
+            ? (decimal)((double)Database.Orders[0].Amount * 2)
+            : Database.Orders[0].Amount * 2;
+
+        Assert.Equal(doubled, rows[0].Doubled);
         Assert.Null(rows[1].CustomerName);
     }
 
