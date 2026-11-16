@@ -152,6 +152,24 @@ public sealed class TreeQueryTests
     public void Null_anchor_is_rejected()
         => Assert.Throws<QuickSqlException>(() => orm().Select<OrgNode>().Descendants(n => n.ParentId, (object)null!));
 
+    /// <summary>锚点值的运行期型与主键不同：接链就拒，与父键/主键那格同一把尺。宽窄两型在库侧多半能比，
+    /// 但 SQL Server 会对列做隐式转换把主键的 seek 退化成 scan，别家行为又不一致——静默空集或静默慢
+    /// 都发生在结果里看不出形状，所以这一格只能响在链上。</summary>
+    [Fact]
+    public void Anchor_value_of_a_different_clr_kind_than_the_primary_key_is_rejected()
+    {
+        var down = Assert.Throws<QuickSqlException>(
+            () => orm().Select<OrgNode>().Descendants(n => n.ParentId, 42L));
+
+        Assert.Contains("Int64", down.Message);
+        Assert.Contains("Int32", down.Message);
+
+        Assert.Throws<QuickSqlException>(() => orm().Select<OrgNode>().Ancestors(n => n.ParentId, 42L));
+
+        // 同型照旧放行：拒的是"不同种值"，不是锚点这一格本身。
+        Assert.Contains(" IN ", orm().Select<OrgNode>().Descendants(n => n.ParentId, 42).ToSql());
+    }
+
     /// <summary>整片那一档没有片界定就是全表搬进内存：这不是查询是事故，所以接链就响。
     /// 有 Where 的那一半要真行才判得出来（集成册），离线只钉拒的那一侧。</summary>
     [Fact]

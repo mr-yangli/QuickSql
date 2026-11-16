@@ -81,9 +81,22 @@ sealed partial class QueryEngine
                 $"与主键 {contract.PrimaryKey[0].MemberName}（{UnderlyingType(contract.PrimaryKey[0].ClrType).Name}）不是同一种值：" +
                 "闭包靠两边同型的键互认，宽窄不同的两列在库里能连、在内存里对不上。把父键列改成与主键同型（可空性不计这一格）。");
 
+        // 锚点值的运行期型也要与主键同一种（与上面父键/主键那格同一把尺，可空性不计）：宽窄不同的两型
+        // 在库侧多半能比，但 SQL Server 对列做隐式转换会把主键的 seek 退化成 scan，别家行为又不一致；
+        // 规范文本、StableKey 与 IN 臂都按锚点原值算。报错响在接链那一刻，不是执行期交回一棵残树。
+        var anchorClrType = UnderlyingType(contract.PrimaryKey[0].ClrType);
+
         foreach (var anchor in anchors)
+        {
             if (anchor is null)
                 throw new QuickSqlException("树形查询的锚点主键不能为 null：null 不是键，IN 臂里它也永远命不中行。");
+
+            if (UnderlyingType(anchor.GetType()) != anchorClrType)
+                throw new QuickSqlException(
+                    $"树形查询的锚点值是 {anchor.GetType().Name}，主键 {contract.ClrType.Name}.{contract.PrimaryKey[0].MemberName} 是 {contract.PrimaryKey[0].ClrType.Name}：" +
+                    "锚点与主键要同一种值（可空性不计这一格）。宽窄不同的两型在库侧多半能比，SQL Server 却会对列做隐式转换、" +
+                    "把主键的 seek 退化成 scan，别家行为又不一致。在调用点把锚点写成与主键同型（int 主键传 42，long 主键传 42L）。");
+        }
 
         // 整片那一档必须有片界定：没有 Where 也没有过滤器就是全表搬进内存，那不是查询是事故。
         if (direction == TreeDirection.Slice && Filtered().Predicates.Count == 0)
@@ -236,6 +249,11 @@ sealed partial class QueryEngine
         QueryModel model, TreeRequest tree, EntityContract contract,
         Schema.IBoxedEntityAccessor accessors, int keyOrdinal, int parentOrdinal, CancellationToken ct)
     {
+        // 物化之前先 DetectChanges：与 Rows 同一条次序——发查询之前把会话里已有的意图算清楚，
+        // 末尾 TrackAll 往身份映射登记时拿到的才是「会话里那一只」。空锚点早退也过这一格：
+        // 它只看会话不看查询，走不走爬层都该跑。
+        Detect(model);
+
         var rows = new List<T>();
 
         if (tree.Anchors.Count == 0)
@@ -288,8 +306,6 @@ sealed partial class QueryEngine
             pending = DistinctKeys(next);
             anchorLevel = false;
         }
-
-        Detect(model);
 
         // 会话身份映射就在这一步里：TrackAll 就地写回列表元素（「会话里的那一只」可能与物化出来的那只
         // 不是同一只），所以这里不要再自己问一次 CanonicalOf——问了也不改变结果，只会让人以为
@@ -371,7 +387,7 @@ sealed partial class QueryEngine
     static void Walk<T>(TreeNode<T> root, HashSet<TreeNode<T>> seen, Dictionary<object, List<TreeNode<T>>> byParent)
     {
         root.Depth = 0;
-        root.Path = KeyText(root.Key);
+        root.Path = KeyText.Of(root.Key);
 
         var queue = new Queue<TreeNode<T>>();
         queue.Enqueue(root);
@@ -390,7 +406,7 @@ sealed partial class QueryEngine
                     continue;
 
                 child.Depth = node.Depth + 1;
-                child.Path = node.Path + "/" + KeyText(child.Key);
+                child.Path = node.Path + "/" + KeyText.Of(child.Key);
                 node.AddChild(child);
                 queue.Enqueue(child);
             }
@@ -425,14 +441,6 @@ sealed partial class QueryEngine
 
         return rows;
     }
-
-    /// <summary>键进 Path 串的那一格：二进制按十六进制写，否则每一段都是 "System.Byte[]"，
-    /// Path 就成了看不出层级的装饰。与 QueryModelPrinter.AnchorText 同一口径（两处都是"键的规范形态"）。</summary>
-    static string KeyText(object key) => key switch
-    {
-        byte[] bytes => Convert.ToHexString(bytes),
-        var value => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? "NULL",
-    };
 
     static List<object> DistinctKeys(IReadOnlyList<object> keys)
     {

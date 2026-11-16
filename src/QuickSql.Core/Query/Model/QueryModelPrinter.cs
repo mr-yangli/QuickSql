@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using QuickSql.Sql.Ast;
 
@@ -116,13 +115,9 @@ static class QueryModelPrinter
     static string Join(IReadOnlyList<Sql.Ast.SqlExpression> nodes) => string.Join(", ", nodes.Select(Expr));
 
     /// <summary>锚点值的一格规范形态：各自带括号（分隔符串起来的写法会把一颗含分隔符的键与两颗键折成同一行），
-    /// 二进制走十六进制，不变文化（规范文本要跨库跨机器稳定）。</summary>
-    static string AnchorText(object anchor) => anchor switch
-    {
-        null => "[NULL]",
-        byte[] bytes => "[0x" + Convert.ToHexString(bytes) + "]",
-        var value => "[" + (Convert.ToString(value, CultureInfo.InvariantCulture) ?? "NULL") + "]",
-    };
+    /// 本体取 <see cref="KeyText.Of"/>（二进制十六进制 + 不变文化；与树形缝合的 Path 同一颗实现，不许两处各长一份）。</summary>
+    static string AnchorText(object anchor)
+        => anchor is byte[] ? "[0x" + KeyText.Of(anchor) + "]" : "[" + KeyText.Of(anchor) + "]";
 
     /// <summary>内层那份模型的全文按四格缩进嵌进来。空行直接丢掉：外层 Print 每行都以
     /// '\n' 结尾，切出来的最后一段必然是空串，留着它就多一个尾随空行，而规范文本是按字节比的。</summary>

@@ -497,6 +497,29 @@ public sealed class ClickHouseDialectTests
         Checks.Absent("OUTPUT", sql);
     }
 
+    /// <summary>多块收口的 Reason 按 provider 的事务位分支（与 SendAtomicallyAsync 同一颗判据）：
+    /// 本家没声明 Transactions，逐块 autocommit 直发、中途失败半批已提交——这一格要写在明处，
+    /// 不许出现"整批回滚"那一支（那是声明了事务位的家才有的承诺）。</summary>
+    [Fact]
+    public void A_multi_chunk_insert_reason_says_autocommit_because_the_transactions_bit_is_absent()
+    {
+        var rows = Enumerable.Range(0, 70).Select(static n => new SessionToken
+        {
+            Id = Guid.NewGuid(),
+            Value = "v" + n,
+            ExpiresAt = new DateTime(2026, 3, 4, 5, 6, 7, 890),
+        }).ToArray();
+
+        var plan = orm().InsertRange(rows).Explain();
+
+        // 3 列 × 保守预算 100 → 每块 30 行，70 行切成 3 块：多块才走到 Reason 里那一句。
+        Assert.True(plan.Chunks.Count > 1, plan.Reason);
+
+        Checks.Has("跨块不是原子的", plan.Reason);
+        Checks.Has("未声明事务位", plan.Reason);
+        Checks.Absent("整批回滚", plan.Reason);
+    }
+
     [Fact]
     public void The_key_readback_has_whole_no_shape_and_says_so()
     {

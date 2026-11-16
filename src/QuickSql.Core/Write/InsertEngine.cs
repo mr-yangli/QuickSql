@@ -808,7 +808,15 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
             reason += $" 这批行分布在 {shards.Count} 张片上：块按片切，跨片不共用一条语句（一条 INSERT 只有一个目标表）。";
 
         if (chunks.Count > 1)
-            reason += " 跨块由执行段包一条事务整批提交，中途失败整批回滚（§12.4 第 8 项；环境事务在场时并入在场那条，未声明事务位的 provider 仍 autocommit 直发）。";
+        {
+            // 文案按 provider 的实际行为分支，不写一句两可的：声明了事务位的家，执行段真的包一条
+            // 事务整批提交（SendAtomicallyAsync 与这里的判据是同一颗 TransactionCapability.Declared）；
+            // 没声明的家（ClickHouse、TDengine）逐块 autocommit，中途失败半批已提交——行为诚实条款
+            // 在这一格与 §12.4 的台账说同一句话。
+            reason += TransactionCapability.Declared(provider)
+                ? " 跨块由执行段包一条事务整批提交，中途失败整批回滚（§12.4 第 8 项；环境事务在场时并入在场那条）。"
+                : " 跨块不是原子的（§12.4 第 8 项）：这一家未声明事务位，逐块 autocommit 直发，中途失败半批已提交；要整批原子就包 §6 的事务。";
+        }
 
         return new InsertPlan(chunks, _rows.Length, columns.Length, rowsPerStatement, budget, reason, traces) { Provider = provider };
     }
