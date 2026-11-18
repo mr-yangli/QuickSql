@@ -132,16 +132,20 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         => (await WriteChannelAsync(decision, preparation, Tag(), ct).ConfigureAwait(false)).Written;
 
     /// <summary>文本层出口本体（不带修剪税）：SaveChanges 的插入档直调这一颗——它的报告要回放 plan 的语句文本，
-    /// 装载通道没有文本可回放；链式默认出口在钩子在场 / 量少 / 点名文本档时也落这里。</summary>
+    /// 装载通道没有文本可回放；链式默认出口在钩子在场 / 量少 / 点名文本档时也落这里。
+    /// v11.0.0 起走执行路快路径：文本与值无关（纯占位符）按 (表, 契约, 块宽, 回填档, namer) 缓存，
+    /// 每批只从 Cells 直登记 facts，不再建每格 ParameterValue AST record 与重走 Emit（Explain/回放路照旧全量）。</summary>
     internal async Task<int> ExecuteAffrowsTextAsync(CancellationToken ct = default)
     {
-        var plan = Plan(Backfill.None);
+        var preparation = Prepare();
+        var traces = new List<HookTrace>(preparation.Traces);
+        var (chunks, _) = ExecPlan(preparation, Backfill.None, traces);
         var tag = Tag();
         var affrows = 0;
 
-        await SendAtomicallyAsync(plan, tag.Cluster, async () =>
+        await SendAtomicallyAsync(chunks, tag.Cluster, async () =>
         {
-            foreach (var chunk in plan.Chunks)
+            foreach (var chunk in chunks)
                 affrows += await _orm.Ado.NonQueryAsync(chunk.Sql, tag, ct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
@@ -169,16 +173,17 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
             return report with { ChunkSize = width, RoundTrips = trips };
         }
 
-        // 文本层：把决策里的估算换成发射段的实数（块数与每块行数都由 Build 算，两处不许各算一遍）。
-        var plan = Plan(Backfill.None);
+        // 文本层：把决策里的估算换成执行段的实数（块宽与块数由 ChunkMath/ExecPlan 算，与 Build 同一颗公式）。
+        var traces = new List<HookTrace>(preparation.Traces);
+        var (chunks, chunkWidth) = ExecPlan(preparation, Backfill.None, traces);
 
-        report = report with { ChunkSize = plan.RowsPerStatement, RoundTrips = plan.Chunks.Count };
+        report = report with { ChunkSize = chunkWidth, RoundTrips = chunks.Count };
 
         var written = 0;
 
-        await SendAtomicallyAsync(plan, tag.Cluster, async () =>
+        await SendAtomicallyAsync(chunks, tag.Cluster, async () =>
         {
-            foreach (var chunk in plan.Chunks)
+            foreach (var chunk in chunks)
                 written += await _orm.Ado.NonQueryAsync(chunk.Sql, tag, ct).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
@@ -498,7 +503,10 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         if (preparation.Keys.Length == 0)
             throw new QuickSqlException($"{preparation.Table} 没有自增列：没有键可回填。要受影响行数请用 ExecuteAffrowsAsync。");
 
-        return ReadBackAsync(preparation, preparation.KeyOrdinals, Plan(Backfill.Keys), ct);
+        var traces = new List<HookTrace>(preparation.Traces);
+        var (chunks, _) = ExecPlan(preparation, Backfill.Keys, traces);
+
+        return ReadBackAsync(preparation, preparation.KeyOrdinals, chunks, ct);
     }
 
     /// <summary>把「值归库管的那几列」读回实体。rowversion 支持已移除，这一档今天与
@@ -510,19 +518,22 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         if (preparation.GeneratedOrdinals.Length == 0)
             throw new QuickSqlException($"{preparation.Table} 既没有自增列也没有并发列：没有任何一列的值归库管，回填那一档无事可做。");
 
-        return ReadBackAsync(preparation, preparation.GeneratedOrdinals, Plan(Backfill.Generated), ct);
+        var traces = new List<HookTrace>(preparation.Traces);
+        var (chunks, _) = ExecPlan(preparation, Backfill.Generated, traces);
+
+        return ReadBackAsync(preparation, preparation.GeneratedOrdinals, chunks, ct);
     }
 
     /// <summary>回填的那一段。ordinals 已经按 Returning 的列序排好，
     /// 回包的第 column 列直接落进实体的对应槽位，不需要再查一次名字。</summary>
-    async Task<List<T>> ReadBackAsync(Preparation preparation, int[] ordinals, InsertPlan plan, CancellationToken ct)
+    async Task<List<T>> ReadBackAsync(Preparation preparation, int[] ordinals, IReadOnlyList<ExecChunk> chunks, CancellationToken ct)
     {
         var expected = ordinals.Length;
         var tag = Tag();
 
-        await SendAtomicallyAsync(plan, tag.Cluster, async () =>
+        await SendAtomicallyAsync(chunks, tag.Cluster, async () =>
         {
-            foreach (var chunk in plan.Chunks)
+            foreach (var chunk in chunks)
             {
                 var rowOrdinals = chunk.RowOrdinals;
                 var first = chunk.FirstRow;
@@ -571,9 +582,9 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
     /// 提交本身是同步口（<see cref="QuickSqlTransaction"/> 按 AsyncLocal 传播的约束不设 async 成员，
     /// 类头注有记）：这一笔在异步路径上付的是一次线程池阻塞，每批一次而不是每块一次；
     /// 要 async 提交属改公开形状那一类，判据可回答那天再立编号，重开条件记在设计册 §12.4。</para></summary>
-    async Task SendAtomicallyAsync(InsertPlan plan, string cluster, Func<Task> send, CancellationToken ct)
+    async Task SendAtomicallyAsync(IReadOnlyList<ExecChunk> chunks, string cluster, Func<Task> send, CancellationToken ct)
     {
-        if (plan.Chunks.Count <= 1 || QuickSqlTransaction.For(_orm.Ado) is not null
+        if (chunks.Count <= 1 || QuickSqlTransaction.For(_orm.Ado) is not null
             || !TransactionCapability.Declared(_orm.Provider))
         {
             await send().ConfigureAwait(false);
@@ -772,32 +783,15 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
 
         RequireColumns(preparation);
 
-        // 回填集为空就没有那一档：带 Returning 的文本会生成一条「看着像在回填」的普通 INSERT。
-        // 执行口自己会拒（ReadBackAsync 之前先查），但离线口是给人审阅用的，读到一条假 OUTPUT 就已经误导。
-        ColumnContract[] returning = backfill switch
-        {
-            Backfill.None => [],
-            Backfill.Keys => Require(preparation.Keys, "没有自增列：回填主键那一档根本没有东西可回。主键由调用方自己生成的话直接用 Explain()/ExecuteAffrowsAsync。"),
-            _ => Require(preparation.Generated, "既没有自增列也没有并发列：没有任何一列的值归库管，回填那一档无事可做。"),
-        };
+        var cm = ChunkMath(preparation, backfill);
+        var rowsPerStatement = cm.RowsPerStatement;
+        var returning = cm.Returning;
+        var postRead = cm.PostRead;
+        var degraded = cm.Degraded;
 
         // 参数预算先留十分之一的余量（文本里还有表名/列名/OUTPUT），再除以每行参数个数，至少 1 行。
         // 请求把块宽压下来或按请求逐条，都走同一个出口取数（见 ChunkRows）。
         var budgetRows = StatementEmitter.RowsPerStatement(budget, columns.Length);
-        var rowsPerStatement = ChunkRows(preparation, _requested ?? BulkMethod.MultiValue);
-        var degraded = false;
-
-        // L3 → L5 的那一跳：没有批量 RETURNING/OUTPUT 的库要回填，只能逐条。
-        // SQL Server 走不到（SupportsBulkKeyRetrieval = true），达梦/Oracle 系必然走到。
-        if (backfill != Backfill.None && !provider.Keys.SupportsBulkKeyRetrieval)
-        {
-            rowsPerStatement = 1;
-            degraded = true;
-        }
-
-        // 逐条之后键落在哪里：资格收窄到三件同时成立——这一家没有批量 RETURNING、声明了"语句后回读"、
-        // 而回填集恰好是一颗自增列。并发列与多颗键不在回读句给得出的东西里，照旧走拒绝路径，不假装覆盖。
-        var postRead = degraded && provider.Keys.SupportsPostStatementKeyRead && returning is [{ IsIdentity: true }];
 
         var chunks = new List<InsertChunk>((_rows.Length + rowsPerStatement - 1) / rowsPerStatement);
 
@@ -874,6 +868,152 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         }
 
         return new InsertPlan(chunks, _rows.Length, columns.Length, rowsPerStatement, budget, reason, traces) { Provider = provider };
+    }
+
+    readonly record struct Chunking(int RowsPerStatement, ColumnContract[] Returning, bool PostRead, bool Degraded, Backfill Backfill);
+
+    /// <summary>分块数学：Build 与执行路快路径共用同一颗，两处不许各算一遍。
+    /// 回填集为空就没有那一档：带 Returning 的文本会生成一条「看着像在回填」的普通 INSERT；
+    /// 执行口自己会拒（ReadBackAsync 之前先查），但离线口是给人审阅用的，读到一条假 OUTPUT 就已经误导。</summary>
+    Chunking ChunkMath(Preparation preparation, Backfill backfill)
+    {
+        var provider = _orm.Provider;
+
+        RequireColumns(preparation);
+
+        ColumnContract[] returning = backfill switch
+        {
+            Backfill.None => [],
+            Backfill.Keys => Require(preparation.Keys, "没有自增列：回填主键那一档根本没有东西可回。主键由调用方自己生成的话直接用 Explain()/ExecuteAffrowsAsync。"),
+            _ => Require(preparation.Generated, "既没有自增列也没有并发列：没有任何一列的值归库管，回填那一档无事可做。"),
+        };
+
+        var budget = provider.Bulk?.ParameterBudget ?? StatementEmitter.ConservativeParameterBudget;
+        var rowsPerStatement = ChunkRows(preparation, _requested ?? BulkMethod.MultiValue);
+        var degraded = false;
+
+        // L3 → L5 的那一跳：没有批量 RETURNING/OUTPUT 的库要回填，只能逐条。
+        // SQL Server 走不到（SupportsBulkKeyRetrieval = true），达梦/Oracle 系必然走到。
+        if (backfill != Backfill.None && !provider.Keys.SupportsBulkKeyRetrieval)
+        {
+            rowsPerStatement = 1;
+            degraded = true;
+        }
+
+        // 逐条之后键落在哪里：资格收窄到三件同时成立——这一家没有批量 RETURNING、声明了"语句后回读"、
+        // 而回填集恰好是一颗自增列。并发列与多颗键不在回读句给得出的东西里，照旧走拒绝路径，不假装覆盖。
+        var postRead = degraded && provider.Keys.SupportsPostStatementKeyRead && returning is [{ IsIdentity: true }];
+
+        return new Chunking(rowsPerStatement, returning, postRead, degraded, backfill);
+    }
+
+    /// <summary>执行路计划：CudBuilding 在场时走全量 Build（整句改写钩子要看得见真发射，缓存绕开）；
+    /// 否则文本按 WriteTextKey 缓存、每批只从 Cells 直登记 facts——省掉每格 ParameterValue AST record
+    /// 与整遍 Emit 走树（v11.0.0 第二笔写侧分配杠杆；Explain/ToSql/回放路照旧全量 Build，门禁②不动）。</summary>
+    (List<ExecChunk> Chunks, int RowsPerStatement) ExecPlan(
+        Preparation preparation, Backfill backfill, List<HookTrace> traces)
+    {
+        var cm = ChunkMath(preparation, backfill);
+
+        if (_rows.Length == 0)
+            return ([], cm.RowsPerStatement);
+
+        if (_orm.Aop.CudBuilding is not null)
+        {
+            var plan = Plan(backfill);
+
+            return ([.. plan.Chunks.Select(static c => new ExecChunk(c.FirstRow, c.RowCount, c.RowOrdinals, c.Sql))], plan.RowsPerStatement);
+        }
+
+        return (ExecChunks(preparation, cm, traces), cm.RowsPerStatement);
+    }
+
+    List<ExecChunk> ExecChunks(Preparation preparation, Chunking cm, List<HookTrace> traces)
+    {
+        var provider = _orm.Provider;
+        var dialect = provider.Dialect;
+        var binder = provider.Values;
+        var columns = preparation.Columns;
+        var rowsPerStatement = cm.RowsPerStatement;
+        var step = traces.Count;
+        var chunks = new List<ExecChunk>((_rows.Length + rowsPerStatement - 1) / rowsPerStatement);
+
+        if (_orm.WriteTextCache.Count > 256)
+            _orm.WriteTextCache.Clear();
+
+        void One(TableInfo table, int[]? ordinals, int first, int count)
+        {
+            var key = new WriteTextKey(table, preparation.Contract, count, cm.Backfill, cm.PostRead, dialect.ParameterNamer, dialect.ParameterPrefix);
+            var text = _orm.WriteTextCache.GetOrAdd(key, _ => EmitTextOnce(preparation, table, ordinals, first, count, cm));
+
+            // 丢文本的书写器共享同一张参数表：编号纪律（NextParameterName 长在表上）与缓存文本里的占位符同源。
+            var parameters = new ParameterTable(count * columns.Length + (cm.PostRead ? 1 : 0));
+            var scratch = new SqlWriter(new StringBuilder(), parameters, dialect.ParameterPrefix, dialect.ParameterNamer);
+
+            for (var row = 0; row < count; row++)
+            {
+                var source = preparation.Cells[ordinals is null ? first + row : ordinals[row]];
+
+                for (var column = 0; column < columns.Length; column++)
+                {
+                    var name = scratch.NextParameterName();
+                    scratch.AppendParameter(name, binder.FactsOf(name, source[column], columns[column]), columns[column]);
+                }
+            }
+
+            if (cm.PostRead)
+                provider.Keys.EmitPostStatementKeyRead(scratch, cm.Returning[0]);
+
+            var sql = StatementEmitter.ApplyBinding(_orm, new DialectSql(text, parameters), traces, ref step);
+
+            chunks.Add(new ExecChunk(first, count, ordinals, sql));
+        }
+
+        if (preparation.Groups is null)
+        {
+            for (var first = 0; first < _rows.Length; first += rowsPerStatement)
+                One(preparation.Contract.Table, null, first, Math.Min(rowsPerStatement, _rows.Length - first));
+        }
+        else
+        {
+            foreach (var (table, rows) in preparation.Groups)
+                for (var first = 0; first < rows.Length; first += rowsPerStatement)
+                {
+                    var count = Math.Min(rowsPerStatement, rows.Length - first);
+                    One(table, rows[first..(first + count)], 0, count);
+                }
+        }
+
+        return chunks;
+    }
+
+    /// <summary>缓存 miss 时的一次性发射：AST + writer 走老路一遍，只取文本（参数随 writer 丢弃）。
+    /// 缓存路保证 CudBuilding 未订阅（订阅走全量），ApplyBinding 不改文本，故两钩子都不在这里过。</summary>
+    string EmitTextOnce(Preparation preparation, TableInfo table, int[]? ordinals, int first, int count, Chunking cm)
+    {
+        var dialect = _orm.Provider.Dialect;
+        var columns = preparation.Columns;
+
+        var ast = new InsertStatement
+        {
+            Table = new TableRef(0, QuickSqlOrm.AliasAt(0), table, preparation.Contract),
+            Columns = columns,
+            Rows = ordinals is null
+                ? RowsOf(preparation.Cells, first, count, columns)
+                : RowsOf(preparation.Cells, ordinals, columns),
+            Returning = cm.PostRead ? [] : cm.Returning,
+        };
+
+        var writer = new SqlWriter(new StringBuilder(EstimateLength(columns, count)), count * columns.Length, dialect.ParameterPrefix, dialect.ParameterNamer);
+        dialect.Emit(in ast, writer);
+
+        if (cm.PostRead)
+        {
+            writer.Append(" ; ");
+            _orm.Provider.Keys.EmitPostStatementKeyRead(writer, cm.Returning[0]);
+        }
+
+        return writer.ToSqlString();
     }
 
     ColumnContract[] Require(ColumnContract[] columns, string whyEmpty)
@@ -963,17 +1103,28 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
 
         public string Table => Contract.Table.Name;
     }
-
-    /// <summary>发射段要不要带 Returning，以及带哪几列。三档而不是布尔：「回填主键」（公开口那一档）与
-    /// 「回填库里给的那些列」（跟踪器那一档）是两件事，只有后者在 OUTPUT 里多出并发列一列。</summary>
-    enum Backfill
-    {
-        None,
-
-        /// <summary>只有自增列。</summary>
-        Keys,
-
-        /// <summary>rowversion 支持移除后与 <see cref="Keys"/> 同集：只回填自增列，保留这一档是为了公开口不破。</summary>
-        Generated,
-    }
 }
+
+/// <summary>发射段要不要带 Returning，以及带哪几列。三档而不是布尔：「回填主键」（公开口那一档）与
+/// 「回填库里给的那些列」（跟踪器那一档）是两件事，只有后者在 OUTPUT 里多出并发列一列。
+/// 顶层 internal：文本缓存键（WriteTextKey）要拿它当维度，嵌套私有 enum 够不着。</summary>
+internal enum Backfill
+{
+    None,
+
+    /// <summary>只有自增列。</summary>
+    Keys,
+
+    /// <summary>rowversion 支持移除后与 <see cref="Keys"/> 同集：只回填自增列，保留这一档是为了公开口不破。</summary>
+    Generated,
+}
+
+/// <summary>执行路的一块：只要文本 + 参数表 + 行映射，不要 AST（AST 是 Explain/回放路的产物，
+/// 执行路不读它；公开 InsertChunk.Ast 形状因此一字不动）。</summary>
+internal sealed record ExecChunk(int FirstRow, int RowCount, int[]? RowOrdinals, DialectSql Sql);
+
+/// <summary>文本缓存键：文本与值无关（纯占位符 + 表名/列名 + 回填尾巴），只随这些维度变。
+/// 契约用引用相等（同一只 orm 内稳定）；列清单每批是新数组但由契约确定性派生，故不进键。</summary>
+internal sealed record WriteTextKey(
+    TableInfo Table, EntityContract Contract, int Width, Backfill Backfill, bool PostRead,
+    Func<int, string>? Namer, char Prefix);

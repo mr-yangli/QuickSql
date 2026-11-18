@@ -63,6 +63,74 @@ public sealed class NormalizeValueParityTests
             Assert.Equal(binder.CreateParameter(string.Empty, value, hint).Value, binder.NormalizeValue(value, hint));
     }
 
+    /// <summary>FactsOf 与 CreateParameter 的逐字对拍（v11.0.0 零 record 快路径的口径钉）：
+    /// 值/型别/宽度/驱动名四颗逐家逐值对，含 hint 路。FactsOf 是执行路直登记的事实来源，
+    /// 它与 CreateParameter 分叉就等于缓存路/宽表路与钩子物化路写出不同的参数——那种错绿得最安静。</summary>
+    [Theory]
+    [InlineData("sqlserver")]
+    [InlineData("postgresql")]
+    [InlineData("kingbase")]
+    [InlineData("opengauss")]
+    [InlineData("gaussdb")]
+    [InlineData("highgo")]
+    [InlineData("gbase8c")]
+    [InlineData("duckdb")]
+    [InlineData("mysql")]
+    [InlineData("tidb")]
+    [InlineData("oceanbase")]
+    [InlineData("oracle")]
+    [InlineData("dameng")]
+    [InlineData("shentong")]
+    [InlineData("gbase8s")]
+    [InlineData("tdengine")]
+    [InlineData("xugu")]
+    [InlineData("sqlite")]
+    [InlineData("clickhouse")]
+    public void FactsOf_matches_CreateParameter_on_every_provider(string name)
+    {
+        var provider = ProviderOf(name);
+        var binder = provider.Values;
+
+        var orm = new QuickSqlOrm(new QuickSqlOrmOptions
+        {
+            Provider = provider,
+            ConnectionString = SqlServer.OfflineConnectionString,
+        });
+
+        var columns = orm.Schemas.Contract<Order>().Columns;
+
+        foreach (var value in Values())
+        {
+            var viaRecord = binder.CreateParameter("@p0", value, null);
+            var viaFacts = binder.FactsOf("@p0", value, null);
+
+            Assert.Equal(viaRecord.Value, viaFacts.Value);
+            Assert.Equal(viaRecord.DbType, viaFacts.DbType);
+            Assert.Equal(viaRecord.Size, viaFacts.Size);
+            Assert.Equal(viaRecord.DriverName, viaFacts.DriverName);
+        }
+
+        (object? Value, ColumnContract Hint)[] hinted =
+        [
+            ("文本", columns.Single(c => c.MemberName == nameof(Order.CustomerName))),
+            (null, columns.Single(c => c.MemberName == nameof(Order.CustomerName))),
+            (new DateTime(2026, 3, 4, 5, 6, 7), columns.Single(c => c.MemberName == nameof(Order.CreatedAt))),
+            (null, columns.Single(c => c.MemberName == nameof(Order.CreatedAt))),
+            (OrderState.Paid, columns.Single(c => c.MemberName == nameof(Order.State))),
+        ];
+
+        foreach (var (value, hint) in hinted)
+        {
+            var viaRecord = binder.CreateParameter("@p0", value, hint);
+            var viaFacts = binder.FactsOf("@p0", value, hint);
+
+            Assert.Equal(viaRecord.Value, viaFacts.Value);
+            Assert.Equal(viaRecord.DbType, viaFacts.DbType);
+            Assert.Equal(viaRecord.Size, viaFacts.Size);
+            Assert.Equal(viaRecord.DriverName, viaFacts.DriverName);
+        }
+    }
+
     static object?[] Values() =>
     [
         null,

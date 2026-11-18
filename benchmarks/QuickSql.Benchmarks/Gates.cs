@@ -389,8 +389,16 @@ static class Gates
         /// 热路径每格不再 new 一颗 <c>AdoParameter</c> record（56 B/格），record 只在钩子/日志/公开消费读表时懒物化；
         /// 宽表 48 B/格 替掉窄指针表 8 B/格 + 零容量 List 的倍增垃圾。净室探针 <c>obj/factspath</c> 隔离：
         /// 旧机制 88.0 B/格 vs 准容量宽表 72.3 B/格（剥文本后）。小表 legacy 档（查询/单行写）价格逐字未动
-        /// （每查询 5 840 一致）——宽表最小数组在颗数小时反而贵，故双模。判据仍红（ArrayPool 0 处那条没动）。</para></summary>
-        public const double BulkInsertBytes = 5_520_920;
+        /// （每查询 5 840 一致）——宽表最小数组在颗数小时反而贵，故双模。判据仍红（ArrayPool 0 处那条没动）。</para>
+        /// <para><b>v11.0.0 第二笔再重钉成 3 724 392</b>（5 520 920 → 3 724 392，<b>−1 796 528，−32.5%，改进</b>；
+        /// 来源场 <c>gate-textcache-1/2/3.log</c> 三场逐字）。归属：写侧执行路文本缓存 + 直登记 facts——
+        /// 文本与值无关（纯占位符 + 表名/列名 + 回填尾巴），按 (表, 契约, 块宽, 回填档, 语句后回读, namer, 前缀)
+        /// 缓存在 orm 级有界表（256，溢出整表清）；每批只从 Cells 直登记 facts，<b>不再建每格 ParameterValue
+        /// AST record（32 B/格）与重走 Emit 走树</b>（≈62 B/格 × 29 000）。Explain/ToSql/回放路照旧全量 Build，
+        /// 故 ② 纯构建段一字未动（5 517 464）；① − ② 转负是诚实的：执行不付 AST，Explain 为回放付。
+        /// CudBuilding 订阅时绕开缓存走全量（整句改写钩子要看得见真发射）。A/B 红证：强制走全量路门禁回 5 520 920 一带。
+        /// 判据仍红（ArrayPool 0 处那条没动）。</para></summary>
+        public const double BulkInsertBytes = 3_724_392;
 
         /// <summary>第 6 行 ②：同一批的纯构建段（16 块的文本 + AST + 参数表，不连库）。
         /// 与 ① 不是同一个自由度：① 还含执行段的编排，而这一段是"审阅用的那条 SQL"也要付的 ——
@@ -1097,7 +1105,8 @@ static class Gates
             $"{BulkRows:N0} 行 × {plan.ColumnsPerRow} 列 批量插入",
             "参数数组全部来自 ArrayPool，稳态 0 分配",
             $"{N(quicksql)} B/次（全路径 {N(batch)} B − 同形 ADO 基线 {N(ado)} B）= 每行 {N(quicksql / BulkRows)} B；"
-            + $"其中纯构建（{plan.Chunks.Count} 块的文本 + AST + 参数表，不连库）{N(build)} B，剩下的 {N(batch - ado - build)} B 在执行段编排；"
+            + $"其中纯构建（{plan.Chunks.Count} 块的文本 + AST + 参数表，不连库）{N(build)} B，剩下的 {N(batch - ado - build)} B 在执行段编排"
+            + "（v11.0.0 第二笔起执行路走文本缓存 + 直登记 facts、不建 AST，故这一段可以比纯构建段小甚至为负——Explain 要为回放付 AST，执行不付）；"
             + $"分块 {plan.Chunks.Count} 块、每块 {plan.RowsPerStatement} 行（参数预算 {plan.ParameterBudget}，每行 {plan.ColumnsPerRow} 颗参数）；"
             + $"src/ 里 ArrayPool {pooled} 处",
             quicksql <= 0 && pooled > 0 ? Verdict.Green : Verdict.Red,

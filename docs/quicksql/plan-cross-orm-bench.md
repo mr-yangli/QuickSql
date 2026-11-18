@@ -231,6 +231,7 @@ Auto 门槛设计生效：1000 行（门槛下）选 L3 多值省往返，5 万�
   FreeSql 虚谷臂驱动兼容未验暂不入。踩坑：残留非自增 ID 旧表（Create 先 DROP 再 SyncStructure）、虚谷参数前缀 `:`（非 @，Dapper 裸 SQL 须 :Name1）、
   标识符折大写（列名 CODE1 等）。驱动 XuguClient 厂商 4.0.0.8 经 DriverRegistry 解析（drivers/ 拷贝，编译期不引用）。
   集成册虚谷红皆环境非代码：TreePathTests 万节点撞夹具表 24907 残留行（历史跑 finally 撞 E14024 没删掉），
-  重置后 14/14 绿（万节点批的内容对拍即由其读回断言承担）；端口耗尽 flake 在全量跑里轮换落点
-  （LeakPathTests 或 ThreadConcurrencyPathTests，谁赶上端口耗尽谁红），单跑复绿（终值跑 287 格 1 环境红，
-  并发册单跑 4/4 绿；v41-xugu300-int-xugu.log）。
+  重置后 14/14 绿（万节点批的内容对拍即由其读回断言承担）；其余红是**本机 ephemeral 端口耗尽**
+  （SocketException WSAEADDRINUSE「每个套接字地址只允许使用一次」；Xugu 驱动每操作开新连接不池化，
+  TIME_WAIT 峰值顶到 16384 动态上限时落在窗口里的用例随机红，Leak/ReadPath/UpdateDelete/Concurrency 都中过；
+  与虚谷服务端重启无关——重启后首跑 7 红、端口回落（TIME_WAIT 81）后复跑 287/0 绿坐实；恢复约 4 分钟）。

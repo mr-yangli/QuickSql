@@ -234,6 +234,12 @@ public sealed class QuickSqlOrm
     /// <summary>根模型：一个表位 + 实体投影。取契约经注册表接口（G1-only 实现零反射），构造期零动态代码。
     /// tracker 是会话的跟踪器，null 就是这条链不跟踪——它不进模型，所以 orm.Select〈T〉() 与
     /// db.Set〈T〉().AsNoTracking() 的模型文本逐字节相等。gate 是会话的并发闸，null 就是根链，不进闸。</summary>
+    /// <summary>写侧执行路文本缓存（v11.0.0 第二笔）：文本与值无关（纯占位符 + 表名/列名 + 回填尾巴），
+    /// 按 (表, 契约, 块宽, 回填档, 语句后回读, namer, 前缀) 缓存；miss 时老路发射一遍只取文本。
+    /// 有界 256：溢出整表清（良性竞态，miss 代价只是一次重发射）；CudBuilding 订阅时绕开缓存
+    /// （整句改写钩子要看得见真发射）。Explain/回放路不读这颗缓存，照旧全量 Build。</summary>
+    internal System.Collections.Concurrent.ConcurrentDictionary<WriteTextKey, string> WriteTextCache { get; } = new();
+
     internal QueryEngine RootEngine(Type clrType, ChangeTracker? tracker = null, SessionGate? gate = null, Schema.IEntitySchemaRegistry? schemas = null)
     {
         var table = NewTableRef(clrType, 0, schemas);
