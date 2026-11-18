@@ -15,9 +15,9 @@
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="QuickSql.Core" Version="10.0.0" />
-  <PackageReference Include="QuickSql.Providers.SqlServer" Version="10.0.0" />
-  <PackageReference Include="QuickSql.Generators" Version="10.0.0" />
+  <PackageReference Include="QuickSql.Core" Version="11.0.0" />
+  <PackageReference Include="QuickSql.Providers.SqlServer" Version="11.0.0" />
+  <PackageReference Include="QuickSql.Generators" Version="11.0.0" />
   <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
 </ItemGroup>
 ```
@@ -33,7 +33,7 @@ dotnet add package Microsoft.Data.SqlClient
 
 版本说明：
 
-- 版本跟 .NET 主版本走（.NET 10 → 10.x），发的是稳定档；安装时以 [nuget.org](https://www.nuget.org/packages/QuickSql.Core) 上实际可得的最新一颗为准（写作时点为 `10.0.0`，本仓源码版本见 [Directory.Build.props](../../Directory.Build.props)，各版本改了什么见 [CHANGELOG.md](../../CHANGELOG.md)）。
+- 版本跟 .NET 主版本走（.NET 11 → 11.x），发的是稳定档；11.0.0 起单目标 `net11.0`（`net10.0` 资产下线，见 CHANGELOG 破坏性条目）。安装时以 [nuget.org](https://www.nuget.org/packages/QuickSql.Core) 上实际可得的最新一颗为准（写作时点为 `11.0.0`，本仓源码版本见 [Directory.Build.props](../../Directory.Build.props)，各版本改了什么见 [CHANGELOG.md](../../CHANGELOG.md)）。
 - 刚推送的新版本装不到时，先清本机 NuGet HTTP 缓存：`dotnet nuget locals http-cache --clear`；或直接把版本号写死。
 - `QuickSql.Providers.PostgreSqlBase` / `OracleBase` / `MySqlBase` 三颗是血统基类包，由叶子包传递引入，**应用侧不直接装**。
 

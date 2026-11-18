@@ -47,7 +47,7 @@ dotnet build QuickSql.slnx
 
 # 离线方言册（构建后直接跑 exe）
 dotnet build tests/QuickSql.Tests.Dialects/QuickSql.Tests.Dialects.csproj
-tests/QuickSql.Tests.Dialects/bin/Debug/net10.0/QuickSql.Tests.Dialects.exe
+tests/QuickSql.Tests.Dialects/bin/Debug/net11.0/QuickSql.Tests.Dialects.exe
 ```
 
 ## 文档
