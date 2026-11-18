@@ -1,5 +1,5 @@
-using System.Linq.Expressions;
 using QuickSql.Sql;
+using System.Linq.Expressions;
 
 namespace QuickSql.Query;
 

@@ -1,6 +1,5 @@
-using System.Collections.Frozen;
 using QuickSql.Metadata;
-using QuickSql.Providers;
+using System.Collections.Frozen;
 
 namespace QuickSql.Providers.DuckDb;
 

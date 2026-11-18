@@ -1,6 +1,5 @@
 using System.Data.Common;
 using QuickSql.Metadata;
-using QuickSql.Providers;
 
 namespace QuickSql.Providers.ClickHouse;
 

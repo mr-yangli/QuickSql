@@ -1,10 +1,9 @@
+using QuickSql.Metadata;
+using QuickSql.Sql;
+using QuickSql.Values;
 using System.Data;
 using System.Globalization;
 using System.Text;
-using QuickSql.Metadata;
-using QuickSql.Providers;
-using QuickSql.Sql;
-using QuickSql.Values;
 
 namespace QuickSql.Providers.Gbase8s;
 
@@ -21,6 +20,10 @@ public sealed class Gbase8sValues : IValueBinder
 
     public AdoParameter CreateParameter(string name, object? value, ColumnContract? hint)
         => new(name, Normalize(value), DbTypeOf(value, hint), SizeOf(value, hint), hint);
+
+    /// <summary>文本层零 record 快路径（与 CreateParameter 同口径：DbTypeOf/SizeOf 喂原始值而非归一值）。</summary>
+    public ParameterFacts FactsOf(string name, object? value, ColumnContract? hint)
+        => new(Normalize(value), DbTypeOf(value, hint), SizeOf(value, hint));
 
     static object? Normalize(object? value) => value switch
     {

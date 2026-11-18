@@ -67,7 +67,8 @@ public sealed class TDengineDialect(TDengineTypes types, TDengineKeys keys, TDen
     /// ParameterCollection 的顺序 BindRow，没有第二道名字校验可兜。</summary>
     protected override void EmitParameter(ParameterValue parameter, SqlWriter writer)
     {
-        writer.RegisterParameter(Values.CreateParameter(writer.NextParameterName(), parameter.Value, parameter.Hint));
+        var name = writer.NextParameterName();
+        writer.RegisterParameter(name, Values.FactsOf(name, parameter.Value, parameter.Hint), parameter.Hint);
 
         writer.Append('?');
     }

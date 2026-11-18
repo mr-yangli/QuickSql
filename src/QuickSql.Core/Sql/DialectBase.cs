@@ -753,9 +753,14 @@ public abstract class DialectBase(IdentifierPolicy identifiers, IValueBinder val
     }
 
     /// <summary>参数化的唯一收口：名字由 writer 发号，形状由 IValueBinder 决定。
-    /// 谁在这里自己 AddParameter，谁就会造出「文本里有 @p3、集合里没有 p3」这种只能执行期炸的 SQL。</summary>
+    /// 谁在这里自己 AddParameter，谁就会造出「文本里有 @p3、集合里没有 p3」这种只能执行期炸的 SQL。
+    /// 走 FactsOf 零 record 快路径：每格一颗 AdoParameter 是增/改/删/读参数四路共付的分配主项，
+    /// record 只在钩子/日志/公开消费读 ParameterTable 时懒物化。</summary>
     protected virtual void EmitParameter(ParameterValue parameter, SqlWriter writer)
-        => writer.AppendParameter(Values.CreateParameter(writer.NextParameterName(), parameter.Value, parameter.Hint));
+    {
+        var name = writer.NextParameterName();
+        writer.AppendParameter(name, Values.FactsOf(name, parameter.Value, parameter.Hint), parameter.Hint);
+    }
 
     void EmitCase(CaseExpression @case, SqlWriter writer)
     {

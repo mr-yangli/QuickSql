@@ -27,6 +27,10 @@ public sealed class MySqlValues : IValueBinder
     /// <summary>装载通道直取归一值（与 CreateParameter 的 .Value 同口径 Normalize），不分配 AdoParameter record。</summary>
     public object? NormalizeValue(object? value, ColumnContract? hint) => Normalize(value);
 
+    /// <summary>文本层零 record 快路径（与 CreateParameter 同口径 Normalize/DbTypeOf/SizeOf）。</summary>
+    public ParameterFacts FactsOf(string name, object? value, ColumnContract? hint)
+        => new(Normalize(value), DbTypeOf(value, hint), SizeOf(value));
+
     static object? Normalize(object? value) => value switch
     {
         null => DBNull.Value,

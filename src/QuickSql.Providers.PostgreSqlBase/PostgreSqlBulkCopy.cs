@@ -1,9 +1,9 @@
+using QuickSql.Metadata;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-using QuickSql.Metadata;
 
 namespace QuickSql.Providers.PostgreSqlBase;
 

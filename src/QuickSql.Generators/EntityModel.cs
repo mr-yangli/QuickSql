@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace QuickSql.Generators;
 
 /// <summary>一个实体的 G1 产出计划。存的是语义值，不是代码文本：转义与排版全在 EntityFactsWriter，

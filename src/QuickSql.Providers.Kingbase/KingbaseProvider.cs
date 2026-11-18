@@ -1,5 +1,4 @@
 using System.Data.Common;
-using QuickSql.Metadata;
 using QuickSql.Providers.PostgreSqlBase;
 
 namespace QuickSql.Providers.Kingbase;

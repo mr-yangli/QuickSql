@@ -1,5 +1,4 @@
 using System.Data.Common;
-using QuickSql.Providers;
 
 namespace QuickSql.Providers.Xugu;
 

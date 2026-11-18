@@ -1,9 +1,9 @@
-using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
 using QuickSql.Metadata;
 using QuickSql.Sql;
 using QuickSql.Sql.Ast;
 using QuickSql.Values;
+using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 
 namespace QuickSql.Providers;
 

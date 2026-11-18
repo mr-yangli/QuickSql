@@ -643,34 +643,43 @@ public sealed partial class AdoExecutor
         command.CommandText = sql.Text;
         command.CommandTimeout = CommandTimeoutSeconds;
 
-        foreach (var parameter in sql.Parameters)
-            Bind(command, parameter);
+        // 热路径直绑 struct entry（ParameterTable 懒物化表）：不为每格物化一颗 AdoParameter record。
+        // 退路（消费方自造的 IReadOnlyList<AdoParameter>，如 WithSql _raw 折叠产物）照旧逐颗读。
+        if (sql.Parameters is ParameterTable table)
+        {
+            foreach (var entry in table.Entries)
+                Bind(command, entry.Name, entry.DriverName, entry.Value, entry.DbType, entry.Size);
+        }
+        else
+        {
+            foreach (var parameter in sql.Parameters)
+                Bind(command, parameter.Name, parameter.DriverName, parameter.Value, parameter.DbType, parameter.Size);
+        }
 
         return command;
     }
 
-    /// <summary>把 provider 已经算好的 AdoParameter 搬进驱动参数对象。DbType.Object 表示 binder 有意不表态，
+    /// <summary>把 provider 已经算好的参数事实搬进驱动参数对象。DbType.Object 表示 binder 有意不表态，
     /// 硬设会让部分驱动连非 DBNull 的值也拒掉。名字在搬进去之前摘掉方言前缀——只对没有声明
     /// DriverAcceptsPrefixedParameterNames 的驱动成立；SqlWriter 造的是"文本占位符与驱动参数名同形"的两用名，
     /// 有的驱动只认不带前缀的名字。摘前缀只发生在跨进驱动对象那一步，文本与日志里的名字仍是带前缀的原样。</summary>
-    void Bind(DbCommand command, AdoParameter parameter)
+    void Bind(DbCommand command, string name, string? driverName, object? value, DbType dbType, int size)
     {
         var ado = command.CreateParameter();
 
         var prefix = Provider.Dialect.ParameterPrefix;
-        var name = parameter.Name;
 
-        ado.ParameterName = parameter.DriverName
+        ado.ParameterName = driverName
             ?? (Provider.Dialect.DriverAcceptsPrefixedParameterNames
                 ? name
                 : name.Length > 0 && name[0] == prefix ? name.Substring(1) : name);
-        ado.Value = parameter.Value ?? DBNull.Value;
+        ado.Value = value ?? DBNull.Value;
 
-        if (parameter.DbType != DbType.Object)
-            ado.DbType = parameter.DbType;
+        if (dbType != DbType.Object)
+            ado.DbType = dbType;
 
-        if (parameter.Size > 0)
-            ado.Size = parameter.Size;
+        if (size > 0)
+            ado.Size = size;
 
         command.Parameters.Add(ado);
     }

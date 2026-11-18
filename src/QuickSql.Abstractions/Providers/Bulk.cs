@@ -1,6 +1,6 @@
+using QuickSql.Metadata;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
-using QuickSql.Metadata;
 
 namespace QuickSql.Providers;
 

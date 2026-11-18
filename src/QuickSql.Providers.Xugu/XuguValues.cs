@@ -23,6 +23,10 @@ public sealed class XuguValues : IValueBinder
         return new AdoParameter(name, Normalize(value), DbTypeOf(value, hint), SizeOf(value), hint);
     }
 
+    /// <summary>文本层零 record 快路径（与 CreateParameter 同口径 Normalize/DbTypeOf/SizeOf）。</summary>
+    public ParameterFacts FactsOf(string name, object? value, ColumnContract? hint)
+        => new(Normalize(value), DbTypeOf(value, hint), SizeOf(value));
+
     static object? Normalize(object? value) => value switch
     {
         null => DBNull.Value,

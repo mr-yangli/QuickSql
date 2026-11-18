@@ -2,7 +2,6 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
-using QuickSql.Providers;
 
 namespace QuickSql.Providers.MySqlBase;
 

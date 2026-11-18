@@ -1,8 +1,7 @@
-using System.Collections.Frozen;
 using QuickSql.Metadata;
-using QuickSql.Providers;
 using QuickSql.Sql;
 using QuickSql.Sql.Ast;
+using System.Collections.Frozen;
 
 namespace QuickSql.Providers.Gbase8s;
 

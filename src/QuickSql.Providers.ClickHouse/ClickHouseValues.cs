@@ -1,10 +1,9 @@
+using QuickSql.Metadata;
+using QuickSql.Sql;
+using QuickSql.Values;
 using System.Data;
 using System.Globalization;
 using System.Text;
-using QuickSql.Metadata;
-using QuickSql.Providers;
-using QuickSql.Sql;
-using QuickSql.Values;
 
 namespace QuickSql.Providers.ClickHouse;
 
@@ -25,6 +24,14 @@ public sealed class ClickHouseValues : IValueBinder
         var normalized = Normalize(value);
 
         return new(name, normalized, DbTypeOf(normalized, hint), SizeOf(normalized, hint), hint);
+    }
+
+    /// <summary>文本层零 record 快路径（与 CreateParameter 同口径：型别/尺寸跟归一化后的形状走）。</summary>
+    public ParameterFacts FactsOf(string name, object? value, ColumnContract? hint)
+    {
+        var normalized = Normalize(value);
+
+        return new(normalized, DbTypeOf(normalized, hint), SizeOf(normalized, hint));
     }
 
     static object? Normalize(object? value) => value switch

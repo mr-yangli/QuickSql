@@ -1,6 +1,5 @@
-using System.Collections.Frozen;
-using QuickSql.Providers;
 using QuickSql.Sql;
+using System.Collections.Frozen;
 
 namespace QuickSql.Providers.Gbase8s;
 

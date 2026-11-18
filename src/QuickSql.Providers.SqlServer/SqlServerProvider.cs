@@ -1,6 +1,6 @@
-using System.Data.Common;
 using QuickSql.Sql;
 using QuickSql.Values;
+using System.Data.Common;
 
 namespace QuickSql.Providers.SqlServer;
 

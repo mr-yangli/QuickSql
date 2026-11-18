@@ -1,7 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using QuickSql.Aop;
 using QuickSql.Providers;
 using QuickSql.Sql;
+using System.Diagnostics.CodeAnalysis;
 
 namespace QuickSql.Write;
 

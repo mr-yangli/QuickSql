@@ -1,5 +1,5 @@
-using System.Data.Common;
 using QuickSql.Providers.OracleBase;
+using System.Data.Common;
 
 namespace QuickSql.Providers.ShenTong;
 

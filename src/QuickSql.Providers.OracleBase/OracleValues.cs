@@ -27,6 +27,10 @@ public sealed class OracleValues : IValueBinder
     /// 本血统今天没有 L1（Bulk =&gt; null），这一颗是为接通道那天预备的同口径出口。</summary>
     public object? NormalizeValue(object? value, ColumnContract? hint) => Normalize(value);
 
+    /// <summary>文本层零 record 快路径（与 CreateParameter 同口径 Normalize/DbTypeOf/SizeOf）。</summary>
+    public ParameterFacts FactsOf(string name, object? value, ColumnContract? hint)
+        => new(Normalize(value), DbTypeOf(value, hint), SizeOf(value));
+
     static object? Normalize(object? value) =>
         value switch
         {

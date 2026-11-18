@@ -1,5 +1,5 @@
-using System.Data.Common;
 using QuickSql.Metadata;
+using System.Data.Common;
 
 namespace QuickSql.Schema;
 

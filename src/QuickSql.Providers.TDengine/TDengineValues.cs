@@ -30,6 +30,14 @@ public sealed class TDengineValues : IValueBinder
             DriverName: '@' + name.TrimStart('?'));
     }
 
+    /// <summary>文本层零 record 快路径（与 CreateParameter 同口径，含 '?p0'→'@p0' 的驱动名派生）。</summary>
+    public ParameterFacts FactsOf(string name, object? value, ColumnContract? hint)
+    {
+        var normalized = Normalize(value);
+
+        return new(normalized, DbTypeOf(normalized, hint), SizeOf(normalized, hint), '@' + name.TrimStart('?'));
+    }
+
     static object? Normalize(object? value) => value switch
     {
         null => DBNull.Value,

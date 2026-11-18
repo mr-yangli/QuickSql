@@ -1,6 +1,6 @@
-using System.Data.Common;
 using QuickSql.Metadata;
 using QuickSql.Providers.PostgreSqlBase;
+using System.Data.Common;
 
 namespace QuickSql.Providers.DuckDb;
 

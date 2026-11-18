@@ -1,5 +1,4 @@
 using QuickSql.Metadata;
-using QuickSql.Providers;
 using QuickSql.Sql.Ast;
 
 namespace QuickSql.Providers.Gbase8s;

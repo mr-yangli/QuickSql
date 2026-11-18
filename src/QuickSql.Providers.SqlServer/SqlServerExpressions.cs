@@ -1,5 +1,5 @@
-using System.Collections.Frozen;
 using QuickSql.Sql;
+using System.Collections.Frozen;
 
 namespace QuickSql.Providers.SqlServer;
 

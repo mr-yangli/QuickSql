@@ -132,7 +132,8 @@ public sealed class Gbase8sDialect(Gbase8sTypes types, Gbase8sKeys keys, Gbase8s
     /// 而这一格对不上在本家没有别的查得出它的地方。</summary>
     protected override void EmitParameter(ParameterValue parameter, SqlWriter writer)
     {
-        writer.RegisterParameter(Values.CreateParameter(writer.NextParameterName(), parameter.Value, parameter.Hint));
+        var name = writer.NextParameterName();
+        writer.RegisterParameter(name, Values.FactsOf(name, parameter.Value, parameter.Hint), parameter.Hint);
 
         writer.Append('?');
     }

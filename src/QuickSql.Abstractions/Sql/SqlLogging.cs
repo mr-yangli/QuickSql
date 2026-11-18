@@ -1,5 +1,5 @@
-using System.Text;
 using QuickSql.Providers;
+using System.Text;
 
 namespace QuickSql.Sql;
 

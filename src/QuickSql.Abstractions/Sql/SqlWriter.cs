@@ -1,6 +1,6 @@
+using QuickSql.Metadata;
 using System.Data;
 using System.Text;
-using QuickSql.Metadata;
 
 namespace QuickSql.Sql;
 
@@ -23,16 +23,37 @@ public ref struct SqlWriter
     const string EscapedQuote = "''";
 
     readonly StringBuilder _builder;
-    readonly List<AdoParameter> _parameters;
+    readonly ParameterTable _parameters;
     readonly char _parameterPrefix;
     readonly Func<int, string>? _namer;
 
     public SqlWriter(StringBuilder builder, List<AdoParameter> parameters, char parameterPrefix, Func<int, string>? namer = null)
+        : this(builder, Wrap(parameters), parameterPrefix, namer)
+    {
+    }
+
+    public SqlWriter(StringBuilder builder, ParameterTable parameters, char parameterPrefix, Func<int, string>? namer = null)
     {
         _builder = builder;
         _parameters = parameters;
         _parameterPrefix = parameterPrefix;
         _namer = namer;
+    }
+
+    /// <summary>自持一张空参数表的热路径构造口：发射侧不再为每语句先 new 一颗 List&lt;AdoParameter&gt;。</summary>
+    public SqlWriter(StringBuilder builder, char parameterPrefix, Func<int, string>? namer = null)
+        : this(builder, new ParameterTable(), parameterPrefix, namer)
+    {
+    }
+
+    static ParameterTable Wrap(List<AdoParameter> parameters)
+    {
+        var table = new ParameterTable(parameters.Count);
+
+        foreach (var parameter in parameters)
+            table.Add(parameter);
+
+        return table;
     }
 
     public readonly int Length => _builder.Length;
@@ -132,7 +153,7 @@ public ref struct SqlWriter
     public string NextParameterName() => _namer is null ? _parameterPrefix + "p" + _parameters.Count : _namer(_parameters.Count);
 
     public void AddParameter(string name, object? value, DbType dbType = DbType.Object, int size = 0)
-        => _parameters.Add(new AdoParameter(name, value, dbType, size));
+        => _parameters.Add(name, new ParameterFacts(value, dbType, size), null);
 
     public void AddParameter(object? value, DbType dbType = DbType.Object, int size = 0)
         => AddParameter(NextParameterName(), value, dbType, size);
@@ -146,6 +167,15 @@ public ref struct SqlWriter
         return this;
     }
 
+    /// <summary> AppendParameter 的零 record 快路径：事实由 <see cref="Values.IValueBinder.FactsOf"/> 直取
+    /// （struct，不分配），名字与 hint 存在 entry 上；record 只在钩子/日志/公开消费读表时懒物化。</summary>
+    public SqlWriter AppendParameter(string name, in ParameterFacts facts, ColumnContract? hint)
+    {
+        _parameters.Add(name, facts, hint);
+        _builder.Append(name);
+        return this;
+    }
+
     /// <summary>登记参数而不落地它的名字：位置形占位符（问号）那一家文本里没有名字可落，
     /// 而那颗名字仍然要存在——它是内核侧的编号、是 AdoParameter.Hint 的载体，也是
     /// ParameterBinding 钩子按列对上号的唯一依据（本文件抬头那句"出处必须跟着参数走"）。
@@ -155,6 +185,13 @@ public ref struct SqlWriter
     public SqlWriter RegisterParameter(AdoParameter parameter)
     {
         _parameters.Add(parameter);
+        return this;
+    }
+
+    /// <summary>RegisterParameter 的零 record 快路径（位置形占位符那一家）。</summary>
+    public SqlWriter RegisterParameter(string name, in ParameterFacts facts, ColumnContract? hint)
+    {
+        _parameters.Add(name, facts, hint);
         return this;
     }
 

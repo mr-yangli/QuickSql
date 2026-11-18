@@ -1,9 +1,9 @@
-using System.Data;
-using System.Globalization;
-using System.Text;
 using QuickSql.Metadata;
 using QuickSql.Sql;
 using QuickSql.Values;
+using System.Data;
+using System.Globalization;
+using System.Text;
 
 namespace QuickSql.Providers.Sqlite;
 
@@ -28,6 +28,14 @@ public sealed class SqliteValues : IValueBinder
         var bound = Normalize(value);
 
         return new(name, bound, DbTypeOf(bound, hint), SizeOf(bound, hint), hint);
+    }
+
+    /// <summary>文本层零 record 快路径（与 CreateParameter 同口径：三颗同源于一次归一）。</summary>
+    public ParameterFacts FactsOf(string name, object? value, ColumnContract? hint)
+    {
+        var bound = Normalize(value);
+
+        return new(bound, DbTypeOf(bound, hint), SizeOf(bound, hint));
     }
 
     /// <summary>见类注释前三条。逐支：null → DBNull（驱动那一侧的硬要求）；枚举 → 底层整数

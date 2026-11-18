@@ -1,8 +1,8 @@
-using System.Linq.Expressions;
 using QuickSql.Aop;
 using QuickSql.Providers;
 using QuickSql.Sql;
 using QuickSql.Sql.Ast;
+using System.Linq.Expressions;
 
 namespace QuickSql.Write;
 

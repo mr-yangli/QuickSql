@@ -1,9 +1,9 @@
+using QuickSql.Metadata;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
-using QuickSql.Metadata;
 
 namespace QuickSql.Providers.SqlServer;
 
