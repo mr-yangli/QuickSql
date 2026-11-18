@@ -79,7 +79,7 @@ public sealed class ComputedMemberTests
     [Fact]
     public void The_generated_ddl_has_no_column_for_the_computed_member()
     {
-        var writer = new SqlWriter(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
         Provider.CodeFirst.EmitCreateTable(writer, orm().Schemas.Contract<ComputedMemberRow>());
 

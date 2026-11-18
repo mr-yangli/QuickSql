@@ -1051,7 +1051,7 @@ sealed partial class QueryEngine
         ast = Compile(model);
 
         var dialect = Orm.Provider.Dialect;
-        var writer = new SqlWriter(new(QueryCompiler.EstimateSqlLength(ast)), new(), dialect.ParameterPrefix);
+        var writer = new SqlWriter(new(QueryCompiler.EstimateSqlLength(ast)), dialect.ParameterPrefix);
         dialect.Emit(in ast, writer);
 
         var sql = new DialectSql(writer.ToSqlString(), writer.Parameters);
@@ -1509,7 +1509,6 @@ sealed partial class QueryEngine
 
             var writer = new SqlWriter(
                 new StringBuilder(QueryCompiler.EstimateSqlLength(ast)),
-                new List<AdoParameter>(),
                 dialect.ParameterPrefix);
             dialect.Emit(in ast, writer);
 

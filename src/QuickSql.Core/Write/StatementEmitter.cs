@@ -41,7 +41,7 @@ static class StatementEmitter
     };
 
     public static SqlWriter Writer(ISqlDialect dialect, int capacity)
-        => new(new StringBuilder(capacity), [], dialect.ParameterPrefix);
+        => new(new StringBuilder(capacity), dialect.ParameterPrefix);
 
     /// <summary>删除那一档的发射：发 DELETE 还是发软删改写出来的 UPDATE，在这一颗里分岔，
     /// 三家（链式 Delete、批量 DeleteRange、跟踪器的摘行）共用这一份。分岔放在发射之前：

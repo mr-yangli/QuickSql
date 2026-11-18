@@ -292,7 +292,7 @@ public sealed class TiDbDialectTests
     sealed class TiDbFamilyProbe(DbKind kind, DbProviderFactory factory) : MySqlProviderBase(kind, factory);
 
     static SqlWriter NewWriter(IDbProvider? provider = null)
-        => new(new StringBuilder(), [], (provider ?? Provider).Dialect.ParameterPrefix);
+        => new(new StringBuilder(), (provider ?? Provider).Dialect.ParameterPrefix);
 
     static string Statement(Action<SqlWriter> emit, IDbProvider? provider = null)
     {

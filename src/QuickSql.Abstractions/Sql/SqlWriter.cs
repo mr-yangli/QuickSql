@@ -1,4 +1,5 @@
 using QuickSql.Metadata;
+using QuickSql.Values;
 using System.Data;
 using System.Text;
 
@@ -23,46 +24,51 @@ public ref struct SqlWriter
     const string EscapedQuote = "''";
 
     readonly StringBuilder _builder;
-    readonly ParameterTable _parameters;
+    readonly ParameterTable? _table;
+    readonly List<AdoParameter>? _legacy;
     readonly char _parameterPrefix;
     readonly Func<int, string>? _namer;
 
     public SqlWriter(StringBuilder builder, List<AdoParameter> parameters, char parameterPrefix, Func<int, string>? namer = null)
-        : this(builder, Wrap(parameters), parameterPrefix, namer)
     {
+        _builder = builder;
+        _legacy = parameters;
+        _parameterPrefix = parameterPrefix;
+        _namer = namer;
     }
 
     public SqlWriter(StringBuilder builder, ParameterTable parameters, char parameterPrefix, Func<int, string>? namer = null)
     {
         _builder = builder;
-        _parameters = parameters;
+        _table = parameters;
         _parameterPrefix = parameterPrefix;
         _namer = namer;
     }
 
-    /// <summary>自持一张空参数表的热路径构造口：发射侧不再为每语句先 new 一颗 List&lt;AdoParameter&gt;。</summary>
+    /// <summary>小表构造口（查询/单行写等参数颗数小的路）：照旧窄引用 List + 每格 record——
+    /// 宽 struct 表的最小数组与倍增垃圾在颗数小时反而比窄表贵（净室探针 obj/factspath 账），
+    /// 小表不换了；批量热路径走下面给容量的构造口或显式 ParameterTable。</summary>
     public SqlWriter(StringBuilder builder, char parameterPrefix, Func<int, string>? namer = null)
-        : this(builder, new ParameterTable(), parameterPrefix, namer)
+        : this(builder, new List<AdoParameter>(), parameterPrefix, namer)
     {
     }
 
-    static ParameterTable Wrap(List<AdoParameter> parameters)
+    /// <summary>给准参数容量的批量热路径构造口（块行数×列数）：宽 struct 表零扩容、零每格 record
+    /// （见 ParameterTable 抬头探针账）。record 只在钩子/日志/公开消费读表时懒物化。</summary>
+    public SqlWriter(StringBuilder builder, int parameterCapacity, char parameterPrefix, Func<int, string>? namer = null)
+        : this(builder, new ParameterTable(parameterCapacity), parameterPrefix, namer)
     {
-        var table = new ParameterTable(parameters.Count);
-
-        foreach (var parameter in parameters)
-            table.Add(parameter);
-
-        return table;
     }
 
     public readonly int Length => _builder.Length;
 
-    public IReadOnlyList<AdoParameter> Parameters => _parameters;
+    public IReadOnlyList<AdoParameter> Parameters => (IReadOnlyList<AdoParameter>?)_table ?? _legacy!;
 
     /// <summary>派生一个临时书写器：文本各自一份，参数表与编号共享（编号本来就长在这张表上，
     /// 见 NextParameterName），所以两侧不可能生成同名参数。</summary>
-    public SqlWriter Fork() => new(new StringBuilder(), _parameters, _parameterPrefix, _namer);
+    public SqlWriter Fork() => _table is { } table
+        ? new(new StringBuilder(), table, _parameterPrefix, _namer)
+        : new(new StringBuilder(), _legacy!, _parameterPrefix, _namer);
 
     public SqlWriter Append(string text)
     {
@@ -150,10 +156,15 @@ public ref struct SqlWriter
     /// <para>命名方案由 <c>_namer</c> 决定：null 走默认的「前缀 + p + 下标」具名形；非 null 是方言点名的
     /// 编号方案（SQLite 批量插入用「? + (下标+1)」编号位置形，避开 Microsoft.Data.Sqlite 按名查找的平方价）。
     /// 编号 = 发射序 = 绑定序，三者同源于这张共享表的下标，所以位置形按序绑定不会串位。</para></summary>
-    public string NextParameterName() => _namer is null ? _parameterPrefix + "p" + _parameters.Count : _namer(_parameters.Count);
+    public string NextParameterName() => _namer is null ? _parameterPrefix + "p" + ParameterCount : _namer(ParameterCount);
+
+    int ParameterCount => _table?.Count ?? _legacy!.Count;
 
     public void AddParameter(string name, object? value, DbType dbType = DbType.Object, int size = 0)
-        => _parameters.Add(name, new ParameterFacts(value, dbType, size), null);
+    {
+        if (_table is { } table) table.Add(name, new ParameterFacts(value, dbType, size), null);
+        else _legacy!.Add(new AdoParameter(name, value, dbType, size));
+    }
 
     public void AddParameter(object? value, DbType dbType = DbType.Object, int size = 0)
         => AddParameter(NextParameterName(), value, dbType, size);
@@ -162,16 +173,18 @@ public ref struct SqlWriter
     /// 否则会出现"文本里有 @p3、参数集合里没有"这类只能靠执行期报错发现的问题。</summary>
     public SqlWriter AppendParameter(AdoParameter parameter)
     {
-        _parameters.Add(parameter);
+        if (_table is { } table) table.Add(parameter); else _legacy!.Add(parameter);
         _builder.Append(parameter.Name);
         return this;
     }
 
     /// <summary> AppendParameter 的零 record 快路径：事实由 <see cref="Values.IValueBinder.FactsOf"/> 直取
-    /// （struct，不分配），名字与 hint 存在 entry 上；record 只在钩子/日志/公开消费读表时懒物化。</summary>
+    /// （struct，不分配），名字与 hint 存在 entry 上；record 只在钩子/日志/公开消费读表时懒物化。
+    /// 小表（legacy）档没有宽表可存事实，照旧落一颗 record——与改判前逐字同价。</summary>
     public SqlWriter AppendParameter(string name, in ParameterFacts facts, ColumnContract? hint)
     {
-        _parameters.Add(name, facts, hint);
+        if (_table is { } table) table.Add(name, facts, hint);
+        else _legacy!.Add(new AdoParameter(name, facts.Value, facts.DbType, facts.Size, hint, facts.DriverName));
         _builder.Append(name);
         return this;
     }
@@ -184,14 +197,15 @@ public ref struct SqlWriter
     /// 所以 DialectBase 在发射函数模板时会核对实参次序（那里写了后果）。</summary>
     public SqlWriter RegisterParameter(AdoParameter parameter)
     {
-        _parameters.Add(parameter);
+        if (_table is { } table) table.Add(parameter); else _legacy!.Add(parameter);
         return this;
     }
 
     /// <summary>RegisterParameter 的零 record 快路径（位置形占位符那一家）。</summary>
     public SqlWriter RegisterParameter(string name, in ParameterFacts facts, ColumnContract? hint)
     {
-        _parameters.Add(name, facts, hint);
+        if (_table is { } table) table.Add(name, facts, hint);
+        else _legacy!.Add(new AdoParameter(name, facts.Value, facts.DbType, facts.Size, hint, facts.DriverName));
         return this;
     }
 

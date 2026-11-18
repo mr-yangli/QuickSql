@@ -167,7 +167,7 @@ public sealed class ClickHouseCodeFirst(ClickHouseTypes types) : ICodeFirstDiale
     /// rowversion 在发射点拒收。</summary>
     string Definition(ColumnContract column)
     {
-        var writer = new SqlWriter(new(), [], '@');
+        var writer = new SqlWriter(new(), '@');
 
         EmitColumnDefinition(writer, column);
 

@@ -364,7 +364,7 @@ sealed class UpdateBulkEngine<T> : IUpdateBulk<T> where T : class
 
             // 一条命令一份共享参数表：SqlWriter 的编号长在参数表上，
             // 并进来的每条语句拿到的名字天然不重号，执行层按名落地时不撞车。
-            var parameters = new List<AdoParameter>(count * (_settable.Length + _keys.Length));
+            var parameters = new ParameterTable(count * (_settable.Length + _keys.Length));
             var text = new StringBuilder(StatementEmitter.EstimateLength(count * (_settable.Length + _keys.Length), IdentifierChars()));
 
             for (var row = first; row < first + count; row++)
@@ -507,7 +507,7 @@ sealed class UpdateBulkEngine<T> : IUpdateBulk<T> where T : class
         for (var first = 0; first < _rows.Length; first += width)
         {
             var count = Math.Min(width, _rows.Length - first);
-            var parameters = new List<AdoParameter>(count * columns.Length);
+            var parameters = new ParameterTable(count * columns.Length);
             var rows = new IReadOnlyList<SqlExpression?>[count];
 
             for (var row = 0; row < count; row++)

@@ -681,7 +681,7 @@ public sealed class DamengDialectTests
     {
     }
 
-    static SqlWriter NewWriter() => new(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+    static SqlWriter NewWriter() => new(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
     static string Statement(Action<SqlWriter> emit)
     {

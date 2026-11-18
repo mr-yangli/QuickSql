@@ -883,7 +883,7 @@ public sealed class TDengineDialectTests
         Assert.Contains("一颗不多一颗不少", count.Message);
     }
 
-    static SqlWriter NewWriter() => new(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+    static SqlWriter NewWriter() => new(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
     static string Statement(Action<SqlWriter> emit)
     {

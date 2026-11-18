@@ -161,7 +161,7 @@ sealed partial class QueryEngine
         };
 
         var dialect = Orm.Provider.Dialect;
-        var writer = new SqlWriter(new(QueryCompiler.EstimateSqlLength(ast)), new(), dialect.ParameterPrefix);
+        var writer = new SqlWriter(new(QueryCompiler.EstimateSqlLength(ast)), dialect.ParameterPrefix);
         dialect.Emit(in ast, writer);
 
         return new DialectSql(writer.ToSqlString(), writer.Parameters);

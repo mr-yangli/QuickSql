@@ -431,7 +431,7 @@ public sealed class Gbase8cDialectTests
     sealed class Gbase8cFamilyProbe(DbKind kind, DbProviderFactory factory) : PostgreSqlProviderBase(kind, factory);
 
     static SqlWriter NewWriter(IDbProvider? provider = null)
-        => new(new StringBuilder(), [], (provider ?? Provider).Dialect.ParameterPrefix);
+        => new(new StringBuilder(), (provider ?? Provider).Dialect.ParameterPrefix);
 
     static string Statement(Action<SqlWriter> emit, IDbProvider? provider = null)
     {

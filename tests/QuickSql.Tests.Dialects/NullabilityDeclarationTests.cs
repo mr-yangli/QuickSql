@@ -164,7 +164,7 @@ public sealed class NullabilityDeclarationTests
 
     static string Ddl()
     {
-        var writer = new SqlWriter(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
         Provider.CodeFirst.EmitCreateTable(writer, orm().Schemas.Contract<ObliviousRow>());
 

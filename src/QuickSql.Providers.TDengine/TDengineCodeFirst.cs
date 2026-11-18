@@ -264,7 +264,7 @@ public sealed class TDengineCodeFirst(TDengineTypes types, TDengineValues values
     /// 契约里带的那些格在这里都是"发不出去"而不是"可以不发"。TAG 列另过发射点门禁。</summary>
     string Definition(ColumnContract column, bool isTag)
     {
-        var writer = new SqlWriter(new(), [], '?');
+        var writer = new SqlWriter(new(), '?');
 
         EmitColumnDefinition(writer, column, isTag);
 

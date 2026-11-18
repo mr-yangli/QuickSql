@@ -132,7 +132,7 @@ public class MySqlCodeFirst(MySqlTypes types) : ICodeFirstDialect
 
     string Definition(ColumnContract column, bool includeComment = false)
     {
-        var writer = new SqlWriter(new(), [], '@');
+        var writer = new SqlWriter(new(), '@');
 
         EmitColumnDefinition(writer, column, includeComment);
 

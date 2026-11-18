@@ -441,7 +441,7 @@ public sealed class DuckDbDialectTests
     /// 另一颗探针 <see cref="Family"/> 存在的唯一理由是"缝开在哪"那一半要拿血统的原状来对。</summary>
     sealed class DuckDbFamilyProbe(DbKind kind, DbProviderFactory factory) : PostgreSqlProviderBase(kind, factory);
 
-    static SqlWriter NewWriter() => new(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+    static SqlWriter NewWriter() => new(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
     static string Statement(Action<SqlWriter> emit)
     {

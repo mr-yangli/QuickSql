@@ -134,7 +134,7 @@ public sealed class SqlServerCodeFirst(SqlServerTypes types) : ICodeFirstDialect
     /// 名字里带单引号时由 AppendStringLiteral 负责翻倍，而不是由拼接负责。</summary>
     void ObjectId(SqlWriter writer, TableInfo table)
     {
-        var qualified = new SqlWriter(new(), [], '@');
+        var qualified = new SqlWriter(new(), '@');
 
         EmitTable(qualified, table);
 
@@ -177,7 +177,7 @@ public sealed class SqlServerCodeFirst(SqlServerTypes types) : ICodeFirstDialect
 
     string Definition(ColumnContract column)
     {
-        var writer = new SqlWriter(new(), [], '@');
+        var writer = new SqlWriter(new(), '@');
 
         EmitColumnDefinition(writer, column);
 

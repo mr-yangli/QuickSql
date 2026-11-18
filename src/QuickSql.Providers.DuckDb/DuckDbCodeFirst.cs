@@ -156,7 +156,7 @@ public class DuckDbCodeFirst(DuckDbTypes types) : ICodeFirstDialect
 
     string Definition(TableInfo table, ColumnContract column)
     {
-        var writer = new SqlWriter(new(), [], '@');
+        var writer = new SqlWriter(new(), '@');
 
         EmitColumnDefinition(writer, table, column);
 

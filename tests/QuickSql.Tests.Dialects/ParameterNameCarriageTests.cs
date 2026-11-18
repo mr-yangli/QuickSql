@@ -72,7 +72,7 @@ public sealed class ParameterNameCarriageTests
         Assert.Equal("p0", declared.DriverName);
 
         // 文本一颗没动：写进 SQL 的仍是 Name 那颗占位符，载体只活到执行器那一步。
-        var writer = new SqlWriter(new(), [], '@');
+        var writer = new SqlWriter(new(), '@');
 
         writer.AppendParameter(declared);
 

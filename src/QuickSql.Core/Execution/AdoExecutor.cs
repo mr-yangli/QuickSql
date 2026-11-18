@@ -539,7 +539,7 @@ public sealed partial class AdoExecutor
         var dialect = Provider.Dialect;
 
         // 容量：最长那句是 `ROLLBACK TO SAVEPOINT `（22 字符）加名字，三口共用这一份预容量。
-        var writer = new SqlWriter(new StringBuilder(24 + savepointName.Length), [], dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(24 + savepointName.Length), dialect.ParameterPrefix);
 
         switch (step)
         {

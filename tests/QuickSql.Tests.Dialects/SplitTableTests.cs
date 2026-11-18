@@ -326,7 +326,7 @@ public sealed class SplitTableTests
     /// 这一颗只服务上面那则：它证明的是"兜底在发射口上"，不是又一份用法出口。</summary>
     static void EmitTableName(ISqlDialect dialect, TableInfo table)
     {
-        var writer = new SqlWriter(new StringBuilder(), [], dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), dialect.ParameterPrefix);
 
         dialect.EmitTableName(writer, table);
     }

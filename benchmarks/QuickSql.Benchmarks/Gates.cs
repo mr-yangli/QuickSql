@@ -382,8 +382,15 @@ static class Gates
         /// 本批 29 000 颗参数 × ≈86 B = 2 504 600 B 整除对上（② 纯构建段同降 2 504 600，① − ② 仍 3 968 执行段一分未动）。
         /// 缓存名与默认 "@pN" 文本逐字相同（方言册 1656 金样全过），只共享串实例降分配，绑定按名不变。
         /// 这是 provider 中性赢面（Core 发射层）：SQLite 编号 ?N 同款缓存另省 0.92 MB（活库），SqlServer/MySQL/PG 凡挂这颗 namer 的批量插入同享。
-        /// 判据仍红（ArrayPool 0 处那条没动）。</para></summary>
-        public const double BulkInsertBytes = 6_264_128;
+        /// 判据仍红（ArrayPool 0 处那条没动）。</para>
+        /// <para><b>v11.0.0 再重钉成 5 520 920</b>（6 264 128 → 5 520 920，<b>−743 208，改进</b>；来源场
+        /// <c>gate-facts-2/3/4.log</c> 三场逐字同值）。归属：<c>IValueBinder.FactsOf</c> struct SPI +
+        /// <c>ParameterTable</c> 宽表（Entry[] + 准容量，零扩容垃圾）+ 执行层直绑 struct entry——
+        /// 热路径每格不再 new 一颗 <c>AdoParameter</c> record（56 B/格），record 只在钩子/日志/公开消费读表时懒物化；
+        /// 宽表 48 B/格 替掉窄指针表 8 B/格 + 零容量 List 的倍增垃圾。净室探针 <c>obj/factspath</c> 隔离：
+        /// 旧机制 88.0 B/格 vs 准容量宽表 72.3 B/格（剥文本后）。小表 legacy 档（查询/单行写）价格逐字未动
+        /// （每查询 5 840 一致）——宽表最小数组在颗数小时反而贵，故双模。判据仍红（ArrayPool 0 处那条没动）。</para></summary>
+        public const double BulkInsertBytes = 5_520_920;
 
         /// <summary>第 6 行 ②：同一批的纯构建段（16 块的文本 + AST + 参数表，不连库）。
         /// 与 ① 不是同一个自由度：① 还含执行段的编排，而这一段是"审阅用的那条 SQL"也要付的 ——
@@ -427,8 +434,12 @@ static class Gates
         /// 那笔抖与第 1/3 行的噪声同族（JIT/PGO 状态），口径改后消失，不是产品又改了 120 B。</para>
         /// <para><b>v11.0.0 再重钉成 6 260 160</b>（8 764 760 → 6 260 160，<b>−2 504 600，改进</b>；来源场同
         /// <see cref="BulkInsertBytes" />，三场逐字）。与 ① 同笔同幅：SqlServerDialect 具名参数名 "@pN" 缓存消掉每格三颗串分配，
-        /// 全落在纯构建段（一颗都没绑进驱动），① − ② 仍 3 968（执行段一分未动）。归属与算账见 <see cref="BulkInsertBytes" /> 末段。</para></summary>
-        public const double BulkBuildBytes = 6_260_160;
+        /// 全落在纯构建段（一颗都没绑进驱动），① − ② 仍 3 968（执行段一分未动）。归属与算账见 <see cref="BulkInsertBytes" /> 末段。</para>
+        /// <para><b>v11.0.0 再重钉成 5 517 464</b>（6 260 160 → 5 517 464，<b>−742 696，改进</b>；来源场
+        /// <c>gate-facts-2/3/4.log</c> 三场逐字）。与 ① 同笔同向（FactsOf struct SPI + ParameterTable 宽表 + 执行层直绑，
+        /// 每格 record 热路径不再分配），① − ② 从 3 968 变 3 456（执行段 −512：直绑省掉逐颗 record 读取编排）。
+        /// 归属与探针隔离账见 <see cref="BulkInsertBytes" /> 末段。</para></summary>
+        public const double BulkBuildBytes = 5_517_464;
 
         /// <summary>第 10 行 ①：一条 30 列宽表的出口查询上，注册<em>一颗</em>全局过滤器比不注册多付的字节。
         /// <para>这一格与 ② 都是 v0.27 新立的钉，立它的原因写在 §10.7 约束 4 那一格与 §12.8 第 10 行。
@@ -1093,7 +1104,7 @@ static class Gates
             $"两半都不达标，而且手段那一半是「根本没这一项」：src/ 里 {pooled} 处 <c>ArrayPool</c>，" +
             "参数数组与取值矩阵都是 <c>new</c> 出来的。结果那一半同样差得远——每行 " + N(quicksql / BulkRows) +
             " B 里有两块：一是取值段那张 <c>object?[行][列]</c> 矩阵（它必须存在，因为 <c>AuditValue</c> 只跑一次而两个出口共用同一份值，" +
-            "见 §12.4 第 4 项），二是发射段每格一颗 <c>ParameterValue</c> + 一颗 <c>AdoParameter</c> + 一份 SQL 文本。" +
+            "见 §12.4 第 4 项），二是发射段每格一颗 <c>ParameterValue</c> + 宽表一个 struct entry（<c>AdoParameter</c> record 自 v11.0.0 起只在钩子/日志/公开消费读表时懒物化）+ 一份 SQL 文本。" +
             "池化能吃掉的只有数组的<b>条</b>数，吃不掉<b>格</b>数（每格一个 object 引用，装箱后的值本身在实体里），" +
             "所以这一格绿起来的形状大概是「复用引擎 + 只重建文本」而不是「一切从池里拿」——那是 §14 的一格，不是本版自决的。" +
             "两处口径要说清：① 假驱动没有存储，<c>ExecuteNonQuery</c> 返回的行数是占位（<c>OfflineCommand</c>），" +

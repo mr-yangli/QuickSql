@@ -103,7 +103,7 @@ public sealed class XuguCodeFirst(XuguTypes types) : ICodeFirstDialect
 
     string Definition(ColumnContract column)
     {
-        var writer = new SqlWriter(new(), [], ':');
+        var writer = new SqlWriter(new(), ':');
 
         EmitColumnDefinition(writer, column);
 

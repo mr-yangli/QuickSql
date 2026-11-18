@@ -446,7 +446,7 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
     string DestinationTable(Preparation preparation, TableInfo table)
     {
         var dialect = _orm.Provider.Dialect;
-        var writer = new SqlWriter(new StringBuilder(table.Name.Length + 8), [], dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(table.Name.Length + 8), dialect.ParameterPrefix);
 
         dialect.EmitTableName(writer, table);
 
@@ -818,7 +818,7 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
                 Returning = postRead ? [] : returning,
             };
 
-            var writer = new SqlWriter(new StringBuilder(EstimateLength(columns, count)), [], dialect.ParameterPrefix, dialect.ParameterNamer);
+            var writer = new SqlWriter(new StringBuilder(EstimateLength(columns, count)), count * columns.Length, dialect.ParameterPrefix, dialect.ParameterNamer);
             dialect.Emit(in ast, writer);
 
             if (postRead)

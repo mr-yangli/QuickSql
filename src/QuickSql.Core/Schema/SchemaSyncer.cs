@@ -359,7 +359,7 @@ public sealed class SchemaSyncer
         return writer.ToSqlString();
     }
 
-    SqlWriter NewWriter() => new(new StringBuilder(), [], _provider.Dialect.ParameterPrefix);
+    SqlWriter NewWriter() => new(new StringBuilder(), _provider.Dialect.ParameterPrefix);
 
     /// <summary>把册子里每张表分到它自己那座集群那一格，分不进去的分表模板进 skipped。
     /// 集群不在册时这里就抛（ConnectionSources 那句带在册清单的）：实体写了一个配置里没有的集群名，
@@ -493,7 +493,7 @@ public sealed class SchemaSyncer
     string EmitCreateTable(EntityContract contract)
     {
         var builder = new StringBuilder();
-        var parameters = new List<AdoParameter>();
+        var parameters = new ParameterTable();
         var writer = new SqlWriter(builder, parameters, _provider.Dialect.ParameterPrefix);
 
         _provider.CodeFirst.EmitCreateTable(writer, contract);

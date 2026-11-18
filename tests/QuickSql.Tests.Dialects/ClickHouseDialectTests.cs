@@ -618,7 +618,7 @@ public sealed class ClickHouseDialectTests
         Assert.Equal("'2026-10-20 09:00:00.123'", literal);
     }
 
-    static SqlWriter NewWriter() => new(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+    static SqlWriter NewWriter() => new(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
     static string Statement(Action<SqlWriter> emit)
     {

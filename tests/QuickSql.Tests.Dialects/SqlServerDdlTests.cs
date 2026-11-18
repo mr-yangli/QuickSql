@@ -14,7 +14,7 @@ public sealed class SqlServerDdlTests
     {
         var orm = SqlServer.Orm();
         var contract = orm.Schemas.Contract<TEntity>();
-        var writer = new SqlWriter(new StringBuilder(), [], orm.Provider.Dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), orm.Provider.Dialect.ParameterPrefix);
 
         orm.Provider.CodeFirst.EmitCreateTable(writer, contract);
 

@@ -1136,7 +1136,7 @@ static class Database
         if (TableExists(connection, table))
             return;
 
-        var writer = new SqlWriter(new StringBuilder(), [], orm.Provider.Dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), orm.Provider.Dialect.ParameterPrefix);
 
         orm.Provider.CodeFirst.EmitCreateTable(writer, contract);
 

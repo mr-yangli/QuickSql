@@ -524,7 +524,7 @@ public sealed class SqlServerInsertTests
             Rows = [[new ParameterValue("老王", columns[0]), null]],
         };
 
-        var writer = new SqlWriter(new StringBuilder(), [], '@');
+        var writer = new SqlWriter(new StringBuilder(), '@');
 
         SqlServer.Provider(SqlServer.NoDriverFactory.Instance).Dialect.Emit(in insert, writer);
 

@@ -1041,7 +1041,7 @@ public sealed class XuguDialectTests
     // ── 内部 ─────────────────────────────────────────────────────────
 
     static SqlWriter NewWriter(IDbProvider? provider = null)
-        => new(new StringBuilder(), [], (provider ?? Provider).Dialect.ParameterPrefix);
+        => new(new StringBuilder(), (provider ?? Provider).Dialect.ParameterPrefix);
 
     static string Statement(Action<SqlWriter> emit)
     {

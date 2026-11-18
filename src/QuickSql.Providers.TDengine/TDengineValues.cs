@@ -208,7 +208,7 @@ public sealed class TDengineValues : IValueBinder
     /// 字符串的编码由库按 UTF-8 存取。</summary>
     static string Literal(string value)
     {
-        var writer = new SqlWriter(new StringBuilder(), [], '?');
+        var writer = new SqlWriter(new StringBuilder(), '?');
 
         writer.AppendStringLiteral(value, unicode: false);
 

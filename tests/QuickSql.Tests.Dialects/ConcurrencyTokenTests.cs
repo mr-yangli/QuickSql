@@ -201,7 +201,7 @@ public sealed class ConcurrencyTokenTests
 
     static string Ddl<TEntity>() where TEntity : class
     {
-        var writer = new SqlWriter(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
         Provider.CodeFirst.EmitCreateTable(writer, orm().Schemas.Contract<TEntity>());
 

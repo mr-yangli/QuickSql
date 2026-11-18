@@ -199,7 +199,7 @@ public sealed class TableNamingEmissionTests
 
         var indexed = Checks.Raised<QuickSqlException>(() =>
         {
-            var writer = new SqlWriter(new StringBuilder(), [], orm.Provider.Dialect.ParameterPrefix);
+            var writer = new SqlWriter(new StringBuilder(), orm.Provider.Dialect.ParameterPrefix);
 
             orm.Provider.CodeFirst.EmitCreateTable(writer, orm.Schemas.Contract<Order>());
 
@@ -233,7 +233,7 @@ public sealed class TableNamingEmissionTests
 
         var indexed = Checks.Raised<QuickSqlException>(() =>
         {
-            var writer = new SqlWriter(new StringBuilder(), [], orm.Provider.Dialect.ParameterPrefix);
+            var writer = new SqlWriter(new StringBuilder(), orm.Provider.Dialect.ParameterPrefix);
 
             orm.Provider.CodeFirst.EmitCreateTable(writer, orm.Schemas.Contract<Order>());
 
@@ -244,7 +244,7 @@ public sealed class TableNamingEmissionTests
 
         var intId = Checks.Raised<QuickSqlException>(() =>
         {
-            var writer = new SqlWriter(new StringBuilder(), [], orm.Provider.Dialect.ParameterPrefix);
+            var writer = new SqlWriter(new StringBuilder(), orm.Provider.Dialect.ParameterPrefix);
 
             orm.Provider.CodeFirst.EmitCreateTable(writer, orm.Schemas.Contract<TenantRow>());
 
@@ -304,7 +304,7 @@ public sealed class TableNamingEmissionTests
     /// <summary><see cref="SqlWriter"/> 是 <c>ref struct</c>，装不进 lambda 的捕获，所以那一句过这颗本地函数。</summary>
     static void Emit(ISqlDialect dialect, TableInfo table)
     {
-        var writer = new SqlWriter(new StringBuilder(), [], dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), dialect.ParameterPrefix);
 
         dialect.EmitTableName(writer, table);
     }

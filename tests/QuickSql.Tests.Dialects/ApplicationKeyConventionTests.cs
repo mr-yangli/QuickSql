@@ -179,7 +179,7 @@ public sealed class ApplicationKeyConventionTests
 
     static string Ddl(QuickSqlOrm orm)
     {
-        var writer = new SqlWriter(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
         Provider.CodeFirst.EmitCreateTable(writer, orm.Schemas.Contract<InventoryItem>());
 

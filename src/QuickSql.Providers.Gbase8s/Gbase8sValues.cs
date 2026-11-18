@@ -181,7 +181,7 @@ public sealed class Gbase8sValues : IValueBinder
     /// 与方言层 PrefixUnicodeLiterals 恒 false 是同一句事实的两个出口。</summary>
     static string Literal(string value)
     {
-        var writer = new SqlWriter(new StringBuilder(), [], '?');
+        var writer = new SqlWriter(new StringBuilder(), '?');
 
         writer.AppendStringLiteral(value, unicode: false);
 

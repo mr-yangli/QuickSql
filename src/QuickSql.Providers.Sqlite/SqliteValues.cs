@@ -294,7 +294,7 @@ public sealed class SqliteValues : IValueBinder
     /// 而那颗陷阱的防线在 IdentifierPolicy 与 SqliteDialect 两处。</summary>
     static string Literal(string value)
     {
-        var writer = new SqlWriter(new StringBuilder(), [], '@');
+        var writer = new SqlWriter(new StringBuilder(), '@');
 
         writer.AppendStringLiteral(value, unicode: false);
 

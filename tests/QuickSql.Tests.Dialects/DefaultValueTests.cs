@@ -101,7 +101,7 @@ public sealed class DefaultValueTests
     static string Ddl(QuickSqlOrm orm)
     {
         var contract = orm.Schemas.Contract<DefaultsRow>();
-        var writer = new SqlWriter(new StringBuilder(), [], orm.Provider.Dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), orm.Provider.Dialect.ParameterPrefix);
 
         orm.Provider.CodeFirst.EmitCreateTable(writer, contract);
 

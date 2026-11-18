@@ -200,7 +200,7 @@ public sealed class SqlServerValues : IValueBinder
 
     static string Literal(string value, bool unicode)
     {
-        var writer = new SqlWriter(new StringBuilder(), [], '@');
+        var writer = new SqlWriter(new StringBuilder(), '@');
 
         writer.AppendStringLiteral(value, unicode);
 

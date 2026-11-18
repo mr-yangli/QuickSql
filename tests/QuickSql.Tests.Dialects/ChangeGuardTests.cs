@@ -199,7 +199,7 @@ public sealed class ChangeGuardTests
             Joins = [new JoinClause(JoinKind.Inner, new SourceRows(side, columns, rows), on)],
         };
 
-        var writer = new SqlWriter(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+        var writer = new SqlWriter(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
         Provider.Dialect.Emit(in ast, writer);
 

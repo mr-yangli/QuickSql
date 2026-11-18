@@ -44,10 +44,12 @@ public class LiveWriteBenchPostgreSqlMass
         return report.RowCount;
     }
 
-    [Benchmark(Description = "PG 5万行 · QuickSql L3 多值VALUES（ExecuteAffrowsAsync，Release）")]
+    [Benchmark(Description = "PG 5万行 · QuickSql L3 多值VALUES（WithBulk(MultiValue) 显式钉文本层，Release）")]
     public async Task<int> BulkInsertQsL3()
     {
-        var affected = await _arms.QuickSql.InsertRange(_rows).ExecuteAffrowsAsync();
+        // 显式钉文本层：v11.0.0 起默认出口是钩子感知 Auto，5 万行过 PG 门槛会走 L1，
+        // 不点名这一臂量到的就是 L1 而不是 L3（与门禁写臂同一条纪律）。
+        var affected = await _arms.QuickSql.InsertRange(_rows).WithBulk(BulkMethod.MultiValue).ExecuteAffrowsAsync();
         Guard(affected, "QuickSql-L3");
         return affected;
     }

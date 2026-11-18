@@ -908,7 +908,7 @@ public sealed class StructureSyncTests
 
     static SqlWriter Statement(Action<SqlWriter> emit)
     {
-        var writer = new SqlWriter(new(), [], '@');
+        var writer = new SqlWriter(new(), '@');
 
         emit(writer);
 

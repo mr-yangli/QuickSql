@@ -96,7 +96,7 @@ public sealed class Gbase8sCodeFirst(Gbase8sTypes types) : ICodeFirstDialect
 
     string Definition(ColumnContract column)
     {
-        var writer = new SqlWriter(new(), [], '?');
+        var writer = new SqlWriter(new(), '?');
 
         EmitColumnDefinition(writer, column);
 

@@ -570,7 +570,7 @@ public sealed class KingbaseDialectTests
 
     // ── 内部 ─────────────────────────────────────────────────────────
 
-    static SqlWriter NewWriter() => new(new StringBuilder(), [], Provider.Dialect.ParameterPrefix);
+    static SqlWriter NewWriter() => new(new StringBuilder(), Provider.Dialect.ParameterPrefix);
 
     static string Statement(Action<SqlWriter> emit)
     {

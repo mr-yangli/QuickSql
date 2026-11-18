@@ -254,7 +254,7 @@ sealed class InsertOrUpdateEngine<T> : IInsertOrUpdate<T> where T : class
         for (var first = 0; first < _rows.Length; first += width)
         {
             var count = Math.Min(width, _rows.Length - first);
-            var parameters = new List<AdoParameter>(count * columns.Length);
+            var parameters = new ParameterTable(count * columns.Length);
             var rows = new IReadOnlyList<SqlExpression?>[count];
 
             for (var row = 0; row < count; row++)
@@ -308,7 +308,7 @@ sealed class InsertOrUpdateEngine<T> : IInsertOrUpdate<T> where T : class
 
     /// <summary>句尾族：内核发 InsertStatement（列清单、VALUES 形状与参数表与 InsertRange 共用一处真相），
     /// provider 只补它后面那一段。</summary>
-    DialectSql EmitTailForm(ISqlDialect dialect, ColumnContract[] columns, IReadOnlyList<IReadOnlyList<SqlExpression?>> rows, List<AdoParameter> parameters, string clause)
+    DialectSql EmitTailForm(ISqlDialect dialect, ColumnContract[] columns, IReadOnlyList<IReadOnlyList<SqlExpression?>> rows, ParameterTable parameters, string clause)
     {
         var ast = new InsertStatement { Table = _table, Columns = columns, Rows = rows };
 
@@ -322,7 +322,7 @@ sealed class InsertOrUpdateEngine<T> : IInsertOrUpdate<T> where T : class
 
     /// <summary>整语句族（没有句尾槽的一家：SQLite 的 ON CONFLICT、MERGE INTO 那一族）：把键 ∶ 可写的分工
     /// 带进 UpsertStatement，方言发一整句（形态由这一家自己定）。</summary>
-    DialectSql EmitUpsertForm(ISqlDialect dialect, ColumnContract[] columns, IReadOnlyList<IReadOnlyList<SqlExpression?>> rows, List<AdoParameter> parameters)
+    DialectSql EmitUpsertForm(ISqlDialect dialect, ColumnContract[] columns, IReadOnlyList<IReadOnlyList<SqlExpression?>> rows, ParameterTable parameters)
     {
         var ast = new UpsertStatement { Table = _table, Columns = columns, Rows = rows, Keys = _keys, Settable = _settable };
 

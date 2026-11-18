@@ -205,7 +205,7 @@ public sealed class OracleValues : IValueBinder
 
     static string Literal(string value)
     {
-        var writer = new SqlWriter(new StringBuilder(), [], ':');
+        var writer = new SqlWriter(new StringBuilder(), ':');
 
         writer.AppendStringLiteral(value, unicode: false);
 
