@@ -21,7 +21,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$exe = Join-Path $root 'tests/QuickSql.Tests.Integration/bin/Debug/net10.0/QuickSql.Tests.Integration.exe'
+$exe = Join-Path $root 'tests/QuickSql.Tests.Integration/bin/Debug/net11.0/QuickSql.Tests.Integration.exe'
 
 if (-not (Test-Path -LiteralPath $exe)) {
     throw "test host not built: $exe"

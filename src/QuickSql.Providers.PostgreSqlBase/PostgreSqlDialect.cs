@@ -23,6 +23,11 @@ public class PostgreSqlDialect(
 
     public override char ParameterPrefix => '@';
 
+    /// <summary>具名 "@pN" 缓存版（与 SqlServer/MySQL 共享 <see cref="AtParameterNames"/>，文本与默认逐字相同）。
+    /// Npgsql 按名绑定 O(N)（预算 32767），不需编号 ?N；缓存消每格三颗串分配。本家预算大、块内名各用一次，
+    /// 收益跨迭代（首轮 miss 现造、第二轮起复用）。只挂批量插入发射口。</summary>
+    public override Func<int, string>? ParameterNamer => AtParameterNames.Namer;
+
     public override string GetStoreType(ColumnContract column) => types.GetStoreType(column);
 
     /// <summary>恒假/恒真都写成布尔字面量。今天只有恒假那颗有调用点（空集合 IN () 特化）；

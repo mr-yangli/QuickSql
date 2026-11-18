@@ -34,10 +34,14 @@ public interface IInsert<T> where T : class
     /// 它只改 ExecuteAffrowsAsync 与 ExecuteBulkAsync 这两条出口的走法，不改它们的语义：
     /// 回填键的两颗出口要回填库里生成的那些列，而装载通道给不了（不能回填自增主键），
     /// 所以回填那一档永远走文本层，请求了 CopyChannel 也一样。
-    /// 不调这一句时 ExecuteAffrowsAsync 的默认层是 MultiValue 而不是 Auto——这不是偷懒而是必须的裁决：
-    /// 若默认就取阶梯最高层，SQL Server 上"接了 SqlBulkCopy"这一件事会让每一句 ExecuteAffrowsAsync
-    /// 不再产生 SQL 文本，CudBuilding（软删改写、影子表）与 ParameterBinding 两个改写钩子集体失效；
-    /// 反过来 ExecuteBulkAsync 在不调用这一句时默认取 Auto，那一条出口存在的意义就是"我要按层要细节"。
+    /// 不调这一句时 ExecuteAffrowsAsync 走<b>钩子感知 Auto</b>（v11.0.0 改判：原"钉死文本层"裁决由用户推翻，
+    /// 起因是 SqlServer 上默认出口比装载通道慢一个量级而调用点不该每次记得换出口）：
+    /// 没订阅 CudBuilding / ParameterBinding 时与 ExecuteBulkAsync 的 Auto 同判据（带行数门槛），
+    /// 订阅了任一颗就钉回文本层——那两位一个改整句、一个改逐颗参数，通道不产文本也不产参数，放过去等于静默失效；
+    /// AuditValue 不在闸里（取值段跑、通道读同一份 Cells），CommandTerminating 闸门通道照常过。
+    /// 点名 MultiValue/SingleRow 钉文本；点名 Auto/CopyChannel 在 ExecuteAffrowsAsync 上仍当场拒（int 装不下层报告）。
+    /// Auto 自己带一颗行数门槛（BulkLadder.AutoCopyRoundTrips：按文本层分块要发的语句数到数才换装载通道）：
+    /// 量多自动走装载通道、量少自动落在多值语句。
     /// rowsPerRoundTrip 只许往下压、不许往上抬——抬过参数预算会产出一条驱动直接拒掉的语句
     /// （那正是分块预算要防的"换宽表就出事"），所以上限由预算算出来、请求值取小，被压这件事写在 Reason 里；
     /// 装载通道那一档它说的是每次往返送几行（没有参数预算那一道界）。</summary>
@@ -57,14 +61,23 @@ public interface IInsert<T> where T : class
     [RequiresDynamicCode("与 RequiresUnreferencedCode 同一条：反射解析装载类需要运行时生成代码。")]
     BulkReport ExplainBulk(BulkMethod? requested = null);
 
-    /// <summary>受影响行数（多块时是各块之和）。不回填主键：要键用 ExecuteReturnKeysAsync。</summary>
+    /// <summary>受影响行数（多块时是各块之和）。不回填主键：要键用 ExecuteReturnKeysAsync。
+    /// 不调 WithBulk 时走钩子感知 Auto（见 WithBulk 抬头）：无改写钩子订阅且量过门槛时自动走装载通道，
+    /// 否则文本层；订阅了 CudBuilding / ParameterBinding 任一颗就钉文本层。
+    /// v11.0.0 起这条出口可能走到装载通道，修剪税按方法收（下面两颗标注）；
+    /// 会话写路径（SaveChanges 的插入档）走内部文本出口，不背这颗税。</summary>
+    [RequiresUnreferencedCode("默认档钩子感知 Auto 会按类型名在驱动程序集里找装载类（SqlBulkCopy 那一族没有 ADO.NET 抽象面），被裁剪的驱动会在这里报通道不存在而落文本层。")]
+    [RequiresDynamicCode("与 RequiresUnreferencedCode 同一条：反射解析装载类需要运行时生成代码。")]
     Task<int> ExecuteAffrowsAsync(CancellationToken ct = default);
 
     /// <summary>按 WithBulk 请求的那一层执行，并把决策本身交回来（走了哪一层、几次往返、
     /// 是否降级、为什么）。这一条入口是写路径上第一颗带修剪税的出口：
     /// SqlBulkCopy 不在 DbProviderFactory 的抽象面上，只能按类型名去找它，而裁剪器看不见那一句。
     /// 文本层（MultiValue/SingleRow）同走这一条入口，税因此是按方法收而不是按实际走的那一层收；
-    /// 要零税就用 ExecuteAffrowsAsync，它的默认层永远是文本层。</summary>
+    /// ExecuteAffrowsAsync 自 v11.0.0 起同税（它的默认档也够得到通道）。
+    /// 不调 WithBulk 时默认取 Auto：量多（按文本层分块的往返次数达到 BulkLadder.AutoCopyRoundTrips）
+    /// 自动走装载通道、量少自动走多值语句——"InsertRange 量多自动批量"就是这一颗的默认行为。
+    /// 与默认出口的差别只有一格：这一颗不看改写钩子（点名要层细节是调用方的裁决），默认出口看。</summary>
     [RequiresUnreferencedCode("装载通道按类型名在驱动程序集里找批量装载类（SqlBulkCopy 那一族没有 ADO.NET 抽象面），被裁剪的驱动会在这里报通道不存在。")]
     [RequiresDynamicCode("与 RequiresUnreferencedCode 同一条：反射解析驱动类型需要运行时生成代码。")]
     Task<BulkReport> ExecuteBulkAsync(CancellationToken ct = default);

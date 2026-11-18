@@ -20,9 +20,11 @@ namespace QuickSql.Query;
 
 /// <summary>读侧唯一的算子落点。算子只在这里实现一次：链式对象每个方法都只是类型化的转发，
 /// 于是「同一条查询在不同 arity 上产出的模型一致」不是两边各写一遍再测相等，而是只有一个实现。
-/// 这里也不产生任何 SQL 文本：出口在 Build，它只读 Model。</summary>
-[RequiresUnreferencedCode("lambda 归约与闭包常量求值要反射读成员。")]
-[RequiresDynamicCode("不可约子表达式的退路是编译表达式树。")]
+/// 这里也不产生任何 SQL 文本：出口在 Build，它只读 Model。
+/// 标注按口收窄（不再整类带税）：lambda 算子带 RUC（闭包反射），Include/IncludeMany/拆查的
+/// 导航缝合带 RUC/RDC（MemberAccessors 的 MakeGeneric），DTO 物化的税在 Materializer 分派口；
+/// 实体/标量执行链与纯模型算子（Skip/Take/OrderBy(string)/WithSql…）零反射零动态代码。
+/// 退路编译走 CompileAotSafe（AOT 下解释执行），lambda 翻译本身不欠 RDC。</summary>
 sealed partial class QueryEngine
 {
     readonly string[] _tables;
@@ -136,6 +138,7 @@ sealed partial class QueryEngine
 
     // ── 算子 ──────────────────────────────────────────────────────────
 
+    [RequiresUnreferencedCode("lambda 归约与闭包常量求值要反射读成员。")]
     public QueryEngine Where(LambdaExpression predicate)
     {
         Filterable();
@@ -146,6 +149,7 @@ sealed partial class QueryEngine
         return Advanced(scout, Model.AddPredicate(node));
     }
 
+    [RequiresUnreferencedCode("投影 lambda 归约走闭包常量求值；DTO 形状的物化税在 Materializer 分派口（含 RDC）。")]
     public QueryEngine Project(LambdaExpression projector)
     {
         var scout = Scout(Model);
@@ -181,6 +185,7 @@ sealed partial class QueryEngine
     /// 而「g.Key 怎么落回去」这份 CLR 侧的对照表留在引擎的 _grouping 上。
     /// 投影在这里刻意不动：分组链的出口只有 Select，而 GroupBy 到 Select 之间还要接 Having 与分组序，
     /// 那两步的 lambda 都要求作用域里已经有这一格。</summary>
+    [RequiresUnreferencedCode("分组键 lambda 归约走闭包常量求值。")]
     public QueryEngine GroupBy(LambdaExpression keySelector)
     {
         if (Model.GroupBy.Count > 0)
@@ -238,6 +243,7 @@ sealed partial class QueryEngine
 
     /// <summary>分组之后的筛条件。落 Having 而不是 WHERE：这件事由「它在 GroupBy 之后」决定，
     /// 不由书写顺序决定；多条以 AND 叠加，与谓词那一族同样。</summary>
+    [RequiresUnreferencedCode("Having lambda 归约走闭包常量求值。")]
     public QueryEngine Having(LambdaExpression predicate)
     {
         if (_grouping is null)
@@ -277,6 +283,7 @@ sealed partial class QueryEngine
             ? Scope.ForGrouping(Model, lambda, grouping, scout)
             : Scope.Create(Model, lambda, scout);
 
+    [RequiresUnreferencedCode("排序键 lambda 归约走闭包常量求值。")]
     public QueryEngine Order(LambdaExpression key, bool descending, bool append)
     {
         if (Model.Plan is not EntityProjection)
@@ -428,6 +435,7 @@ sealed partial class QueryEngine
     /// 参数名 = 本家前缀 + 属性名；位置式占位符那一家当场拒。多一条：参数名不许长成"前缀 + p + 数字"的形状
     /// ——那是 SqlWriter 给生成参数留的号段（编号长在项目参数集合的长度上），
     /// 撞上去的症状是两处绑定抢同一个名字、值串到隔壁列。外面那一层按契约选列，所以内层必须交回契约里那些列名。</summary>
+    [RequiresUnreferencedCode("原生 SQL 的匿名参数对象按反射读成员。")]
     public QueryEngine WithSql(string sql, object? args)
     {
         var prefix = Orm.Provider.Dialect.ParameterPrefix;
@@ -484,6 +492,7 @@ sealed partial class QueryEngine
 
     /// <summary>联表的落点。ON 的最后一个形参就是新表（arity 递增），所以新表的 CLR 类型从它取，
     /// 不需要调用方再报一遍。形参名不参与解析，所以 (o, i) => 与 (x, y) => 产出同一个模型。</summary>
+    [RequiresUnreferencedCode("ON 条件 lambda 归约走闭包常量求值。")]
     public QueryEngine Join(JoinKind kind, LambdaExpression on)
     {
         Filterable();
@@ -685,6 +694,7 @@ sealed partial class QueryEngine
     /// FK 发现：先在子实体契约的 Relationships 里找指向父类型的边，找不到时按约定匹配
     /// （父类型名Id / 父类型名+PK列名）。子型那一档的建档委托由泛型口给：档位只有 For&lt;T&gt;() 能建，
     /// 它要编译期的 T；节点上放运行期类型就建不出档，放委托就建得出。</summary>
+    [RequiresUnreferencedCode("按运行期 Type 反射读导航属性判集合元素型。")]
     internal IncludeManyNode IncludeMany<TDetail>(
         LambdaExpression navigation,
         Func<ChangeTracker, ITypeTracker> childTrackerFactory
@@ -717,6 +727,7 @@ sealed partial class QueryEngine
     /// 那一批子实体，所以这一档不需要表位、也不动模型——主查询 SQL 一个字符不变，
     /// 多出来的只是执行层的一条 SELECT。判"这一层能不能挂"的是父节点子型的契约上有没有那根集合边。
     /// 子型那一档的建档委托同样由泛型口给。</summary>
+    [RequiresUnreferencedCode("转调 NewIncludeManyNode（反射判集合元素型）。")]
     internal IncludeManyNode ThenIncludeMany<TDetail>(
         IncludeManyNode parent,
         LambdaExpression navigation,
@@ -803,6 +814,7 @@ sealed partial class QueryEngine
     /// <summary>两层共用的一颗节点构造：从父契约上按属性名取集合元素类型，再发现外键。
     /// 运行期元素型与编译期 TDetail 必须一致：节点上那份建档委托是按 TDetail 建的档，
     /// 两者不是同一型时，建出来的是另一型的档，登记与缝合就落在两张不同的账上——这一格当场响，不留静默。</summary>
+    [RequiresUnreferencedCode("按运行期 Type 反射取导航属性（GetProperty）。")]
     IncludeManyNode NewIncludeManyNode<TDetail>(
         EntityContract parentContract,
         string memberName,
@@ -898,6 +910,7 @@ sealed partial class QueryEngine
         return compositeNames;
     }
 
+    [RequiresUnreferencedCode("按运行期 Type 判集合接口（GetInterfaces 的 DAM 流）。")]
     static Type? GetCollectionElementType(Type type)
     {
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
@@ -915,8 +928,33 @@ sealed partial class QueryEngine
     /// <summary>可执行模型：先贴全局过滤器，再补分页的序（全仓库只有这一处读 PagingOrdering）。
     /// 过滤器落在这里是因为这是读侧唯一的一个咽喉：ToList/Count/Any/ToPaged/Stream/Explain/ToSql
     /// 全走这一格，写在算子上的话每加一个出口就要重记一遍"过滤器会不会漏"；
-    /// 序补在过滤器之后是有意的：补出来的那一个主键序可能与被筛掉的行无关，两件事本来就该各说各的。</summary>
+    /// 序补在过滤器之后是有意的：补出来的那一个主键序可能与被筛掉的行无关，两件事本来就该各说各的。
+    /// 无过滤器在册时结果按引擎记忆（链不可变 → Effective 是纯函数）；有过滤器在册时每次重算——
+    /// 闭包里的租户值每语句重翻是硬约束（§10.7），缓存它等于把第一次执行时的租户 id 冻进后面所有语句。</summary>
+    [RequiresUnreferencedCode("转调 Filtered（全局过滤器贴入）。")]
     public QueryModel Effective()
+    {
+        if (!Orm.Filters.HasAny)
+        {
+            // 版本号读在 Filtered 之前：存下的版本只会滞后不会超前。滞后那一次（读版本后、算模型前
+            // 恰好有人 Add）算出的模型其实已含新过滤器，而存的旧版本下一跳必然不等 → 重算，不漏。
+            var version = Orm.Filters.Version;
+            var hit = Volatile.Read(ref _effective);
+
+            if (hit is not null && hit.FilterVersion == version)
+                return hit.Model;
+
+            var model = EffectiveCore();
+            Volatile.Write(ref _effective, new EffectiveCache(version, model));
+
+            return model;
+        }
+
+        return EffectiveCore();
+    }
+
+    [RequiresUnreferencedCode("转调 Filtered（全局过滤器贴入）。")]
+    QueryModel EffectiveCore()
     {
         var model = Filtered();
 
@@ -951,6 +989,7 @@ sealed partial class QueryEngine
     /// （HasAny 一次数组长度比较就返回），那几格分配数字不为"有人可能用过滤器"这件事付钱。
     /// _ignoredFilters 那一支仍然要问一次 mandatory：标记位可能是在表位长齐之前置的
     /// （IgnoreQueryFilters() 之后再 InnerJoin 一张带 mandatory 过滤器的表），漏掉那一次问就等于留一条绕法。</summary>
+    [RequiresUnreferencedCode("全局过滤器的贴入走闭包常量求值（注册口 FilterRegistry.Add 已带同一颗税）。")]
     QueryModel Filtered()
     {
         if (!Orm.Filters.HasAny)
@@ -979,24 +1018,56 @@ sealed partial class QueryEngine
 
     public SelectStatement Compile(QueryModel model) => Orm.Compiler.Compile(model);
 
+    [RequiresUnreferencedCode("转调 Effective（过滤器贴入）。")]
     public DialectSql BuildSql(out SelectStatement ast) => Build(Effective(), out ast);
+
+    /// <summary>发射缓存：模型引用相等 + 过滤器版本相等即命中。链不可变、lambda 的值在算子时刻
+    /// 已翻进 AST（ParameterValue），所以同一份模型的 AST 与 SQL 文本是定值——重复执行同一条链
+    /// （仓储持静态查询的经典形状）不再重付 Compile + SqlWriter + Emit。执行期变体（Capped/Paged/
+    /// Aggregate 的 with 模型）引用不同 → miss 重建并占槽；过滤器在册时 Effective 每次交新模型 →
+    /// 天然 miss，租户新鲜性不靠这里担保。单槽最后写入赢：变体与本体交替执行会互相顶掉，
+    /// 那是少数派形状，不为它加字典（每引擎一只缓存对象，链级分配纪律）。
+    /// 并发：良性竞态——两只线程同 miss 各建一份，Volatile 写后跳到的那只赢，输的那份被丢弃，
+    /// 产物逐字相同（同模型同方言），不需要锁。AST 与 DialectSql 都是不可变 record，
+    /// 执行段绑参数是 foreach 读、每执行新建 DbParameter，共享只读安全。</summary>
+    sealed record EffectiveCache(int FilterVersion, QueryModel Model);
+
+    sealed record EmissionCache(int FilterVersion, QueryModel Model, SelectStatement Ast, DialectSql Sql);
+
+    EffectiveCache? _effective;
+    EmissionCache? _emission;
 
     DialectSql Build(QueryModel model, out SelectStatement ast)
     {
+        var version = Orm.Filters.Version;
+        var hit = Volatile.Read(ref _emission);
+
+        if (hit is not null && hit.FilterVersion == version && ReferenceEquals(hit.Model, model))
+        {
+            ast = hit.Ast;
+            return hit.Sql;
+        }
+
         ast = Compile(model);
 
         var dialect = Orm.Provider.Dialect;
         var writer = new SqlWriter(new(QueryCompiler.EstimateSqlLength(ast)), new(), dialect.ParameterPrefix);
         dialect.Emit(in ast, writer);
 
-        return new DialectSql(writer.ToSqlString(), writer.Parameters);
+        var sql = new DialectSql(writer.ToSqlString(), writer.Parameters);
+        Volatile.Write(ref _emission, new EmissionCache(version, model, ast, sql));
+
+        return sql;
     }
 
+    [RequiresUnreferencedCode("转调 Effective（过滤器贴入）。")]
     public string ToSql(out SelectStatement ast) => Build(Effective(), out ast).Text;
 
     /// <summary>不写成 ToSql(out _)：那里有两个 out 重载，丢弃参数写不成类型，编译器报二义。</summary>
+    [RequiresUnreferencedCode("转调 Effective（过滤器贴入）。")]
     public string ToSql() => Build(Effective(), out _).Text;
 
+    [RequiresUnreferencedCode("转调 Effective（过滤器贴入）。")]
     public string ToSql(out IReadOnlyList<AdoParameter> parameters)
     {
         var sql = Build(Effective(), out _);
@@ -1005,8 +1076,10 @@ sealed partial class QueryEngine
         return sql.Text;
     }
 
+    [RequiresUnreferencedCode("转调 Effective（过滤器贴入）。")]
     public string ToLogSql() => Build(Effective(), out _).ToLogSql(Orm.Provider);
 
+    [RequiresUnreferencedCode("转调 Effective（过滤器贴入）。")]
     public QueryPlan Explain()
     {
         var model = Effective();
@@ -1019,6 +1092,8 @@ sealed partial class QueryEngine
 
     // ── 执行 ──────────────────────────────────────────────────────────
 
+    [RequiresUnreferencedCode("转调 Rows（物化分派/导航缝合）与 Effective（过滤器）。")]
+    [RequiresDynamicCode("转调 Rows：DTO 装配与集合导航缝合可能产生动态代码。")]
     public async Task<List<TResult>> ListAsync<TResult>(CancellationToken ct)
     {
         _gate?.Enter();
@@ -1036,6 +1111,8 @@ sealed partial class QueryEngine
     /// <summary>ListAsync 的数组形态：同一条 Rows，只在末尾多一次整段拷贝。拷贝落在这一层而不是链式对象上，
     /// 为的是"交出去的那一只不是缓存里那一只"这件事全仓只有一处说法
     /// （缓存那格存的是 List 本身，所以命中时列表口交出去的就是它）。</summary>
+    [RequiresUnreferencedCode("转调 Rows（物化分派/导航缝合）与 Effective（过滤器）。")]
+    [RequiresDynamicCode("转调 Rows：DTO 装配与集合导航缝合可能产生动态代码。")]
     public async Task<TResult[]> ArrayAsync<TResult>(CancellationToken ct)
     {
         _gate?.Enter();
@@ -1052,6 +1129,8 @@ sealed partial class QueryEngine
 
     /// <summary>内部行数帽（First 取 1、Single 取 2 判重复）。帽不走分页的序策略：
     /// "任意一行"本来就是 LINQ 语义，为此要求用户补序只会变成噪音（方言侧的占位序见 DialectBase.EmitPagingOrdering）。</summary>
+    [RequiresUnreferencedCode("转调 Rows（物化分派/导航缝合）与 Effective（过滤器）。")]
+    [RequiresDynamicCode("转调 Rows：DTO 装配与集合导航缝合可能产生动态代码。")]
     public async Task<List<TResult>> CappedAsync<TResult>(int rows, CancellationToken ct)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(rows, 1);
@@ -1068,6 +1147,8 @@ sealed partial class QueryEngine
         }
     }
 
+    [RequiresUnreferencedCode("执行分派：拆查/IncludeMany 的导航缝合反射读键值；物化分派含 DTO 档。")]
+    [RequiresDynamicCode("导航缝合的集合委托走 MemberAccessors（MakeGeneric）；DTO 装配编译表达式树。")]
     async Task<List<TResult>> Rows<TResult>(QueryModel model, CancellationToken ct)
     {
         Detect(model);
@@ -1103,8 +1184,8 @@ sealed partial class QueryEngine
     /// （WHERE FK IN (@parentPks)），最后在内存里把子实体缝回父实体的集合属性。
     /// 父实体为空时跳过子查询（避免生成空 IN 子句）。链上挂了 ThenIncludeMany 就往下一层递归，
     /// 挂了 ThenInclude 就在这一层的子实体上另发一条拆分加载：根一条、每一层各一条、每一层旁边每根引用导航再一条。</summary>
-    [RequiresUnreferencedCode("IncludeMany 按运行期 Type 反射读取主键值与设置集合导航属性。")]
-    [RequiresDynamicCode("IncludeMany 按运行期 Type 反射读取主键值与设置集合导航属性。")]
+    [RequiresUnreferencedCode("IncludeMany 的集合缝合 G1 生成委托优先（零反射），无生成委托时退回 MemberAccessors（按名定位集合属性）；键读已迁列序读口。")]
+    [RequiresDynamicCode("IncludeMany 的集合委托 G1 生成 lambda 零动态代码，退路走 MemberAccessors 的 MakeGeneric；键读零动态代码。")]
     async Task<List<TResult>> ListWithIncludeManyAsync<TResult>(QueryModel model, CancellationToken ct)
     {
         var parents = await Orm.Ado.QueryAsync(
@@ -1131,8 +1212,8 @@ sealed partial class QueryEngine
 
     /// <summary>逐层往下缝：本层刚捞出的子实体就是下一层的父端。上一层没行就直接停——下一颗节点没有
     /// 可当 IN 值的键，而这一档不发空 IN（旁边那一档引用导航同理，它收的也是这一批子实体）。</summary>
-    [RequiresUnreferencedCode("IncludeMany 按运行期 Type 反射读取主键值与设置集合导航属性。")]
-    [RequiresDynamicCode("IncludeMany 按运行期 Type 反射读取主键值与设置集合导航属性。")]
+    [RequiresUnreferencedCode("IncludeMany 的集合缝合 G1 生成委托优先（零反射），无生成委托时退回 MemberAccessors（按名定位集合属性）；键读已迁列序读口。")]
+    [RequiresDynamicCode("IncludeMany 的集合委托 G1 生成 lambda 零动态代码，退路走 MemberAccessors 的 MakeGeneric；键读零动态代码。")]
     async Task LoadChainAsync(List<object> parents, EntityContract parentContract, IncludeManyNode node, CancellationToken ct)
     {
         var children = await LoadChildrenAsync(parents, parentContract, node, ct).ConfigureAwait(false);
@@ -1150,8 +1231,8 @@ sealed partial class QueryEngine
             await LoadChainAsync(children, childContract, child, ct).ConfigureAwait(false);
     }
 
-    [RequiresUnreferencedCode("IncludeMany 按运行期 Type 反射读取主键值与设置集合导航属性。")]
-    [RequiresDynamicCode("IncludeMany 按运行期 Type 反射读取主键值与设置集合导航属性。")]
+    [RequiresUnreferencedCode("IncludeMany 的集合缝合 G1 生成委托优先（零反射），无生成委托时退回 MemberAccessors（按名定位集合属性）；键读已迁列序读口。")]
+    [RequiresDynamicCode("IncludeMany 的集合委托 G1 生成 lambda 零动态代码，退路走 MemberAccessors 的 MakeGeneric；键读零动态代码。")]
     async Task<List<object>> LoadChildrenAsync(
         List<object> parents, EntityContract parentContract,
         IncludeManyNode node, CancellationToken ct)
@@ -1160,26 +1241,14 @@ sealed partial class QueryEngine
         var childRead = Orm.Schemas.ReadDelegate(node.ChildType);
         var parentKeys = parentContract.PrimaryKey;
 
-        var parentKeyGetters = BuildKeyGetters(parentContract.ClrType, parentKeys);
+        var parentKeyReads = ColumnReaders.For(Schemas ?? Orm.Schemas, parentContract, parentKeys);
         var parentKeyValues = new List<object>(parents.Count);
         var parentMap = new Dictionary<object, List<object>>(parents.Count,
             parentKeys.Length == 1 ? EqualityComparer<object>.Default : StructuralComparer.Instance);
 
         foreach (var parent in parents)
         {
-            object key;
-
-            if (parentKeys.Length == 1)
-                key = parentKeyGetters[0](parent);
-            else
-            {
-                var values = new object[parentKeys.Length];
-
-                for (var j = 0; j < parentKeys.Length; j++)
-                    values[j] = parentKeyGetters[j](parent);
-
-                key = values;
-            }
+            var key = parentKeyReads.Key(parent);
 
             parentKeyValues.Add(key);
 
@@ -1212,26 +1281,14 @@ sealed partial class QueryEngine
             Materializer.EntityRows<object>(childRead, childContract),
             ordering, Tag("include-many"), ct).ConfigureAwait(false);
 
-        var childKeyGetters = BuildKeyGettersByColumnName(node.ChildType, childContract, node.ChildFkColumnNames);
+        var childKeyReads = ColumnReaders.ForColumns(Schemas ?? Orm.Schemas, childContract, node.ChildFkColumnNames);
         var nav = MemberAccessors.BindCollection(
-            parentContract.ClrType, node.NavigationMemberName, node.ChildType,
+            parentContract, node.NavigationMemberName, node.ChildType,
             $"实体 {parentContract.ClrType.Name} 上没有名为 {node.NavigationMemberName} 的集合导航属性，无法挂上 IncludeMany 加载的子实体。");
 
         foreach (var child in children)
         {
-            object key;
-
-            if (childKeyGetters.Length == 1)
-                key = childKeyGetters[0](child);
-            else
-            {
-                var values = new object[childKeyGetters.Length];
-
-                for (var j = 0; j < childKeyGetters.Length; j++)
-                    values[j] = childKeyGetters[j](child);
-
-                key = values;
-            }
+            var key = childKeyReads.Key(child);
 
             if (parentMap.TryGetValue(key, out var matchedParents))
             {
@@ -1266,8 +1323,8 @@ sealed partial class QueryEngine
     /// <summary>拆分查询执行。引用导航不走 LEFT JOIN：先执行主查询拿根实体，再为每个 Include 节点
     /// 单独发一条 SELECT ... WHERE PK IN (父端 FK 值集合)，最后在内存里把子实体缝回父实体的引用导航属性。
     /// 嵌套的 ThenInclude 递归处理：子实体加载完后继续为它的子节点发查询。</summary>
-    [RequiresUnreferencedCode("AsSplitQuery 按运行期 Type 反射读取主键值与设置引用导航属性。")]
-    [RequiresDynamicCode("AsSplitQuery 按运行期 Type 反射读取主键值与设置引用导航属性。")]
+    [RequiresUnreferencedCode("拆查的导航写口在 G1 无生成委托时退回 MemberAccessors；键读已迁列序读口。")]
+    [RequiresDynamicCode("拆查写口退路的委托是编译出来的；G1 生成委托与键读零动态代码。")]
     async Task<List<TResult>> ListWithSplitIncludesAsync<TResult>(QueryModel model, CancellationToken ct)
     {
         var roots = await Orm.Ado.QueryAsync(
@@ -1290,8 +1347,8 @@ sealed partial class QueryEngine
 
     /// <summary>递归加载一层拆分 Include 节点。对每个节点：收集父端 FK 值 → 查子表 WHERE PK IN (...) →
     /// 按 PK 建索引 → 缝回父实体的引用导航属性 → 递归处理子节点的 Children。</summary>
-    [RequiresUnreferencedCode("拆分 Include 按运行期 Type 反射读取 FK 值与设置引用导航属性。")]
-    [RequiresDynamicCode("拆分 Include 按运行期 Type 反射读取 FK 值与设置引用导航属性。")]
+    [RequiresUnreferencedCode("拆分 Include 的导航写口在 G1 无生成委托时退回 MemberAccessors；键读已迁列序读口。")]
+    [RequiresDynamicCode("拆分 Include 写口退路的委托是编译出来的；G1 生成委托与键读零动态代码。")]
     async Task LoadSplitIncludeNodesAsync(
         List<object> parents, EntityContract parentContract,
         IReadOnlyList<IncludeNode> includes, CancellationToken ct)
@@ -1302,35 +1359,24 @@ sealed partial class QueryEngine
             var childRead = Orm.Schemas.ReadDelegate(childContract.ClrType);
             var childPkColumns = childContract.PrimaryKey;
 
-            // 缝回父实体：与 DbSet.Load 同一处理 —— 属性名与父型在节点上就定了，
-            // 没道理每配到一颗子行都按运行期类型找一次属性再反射写一次。
-            var setNavigation = MemberAccessors.Setter(
+            // 缝回父实体：G1 关系带生成器写好的 NavigationWriter（直接强转赋值），
+            // G2/不可写导航退回 MemberAccessors 的启动期编译委托——与 DbSet.Load 同一处理。
+            var setNavigation = node.Relationship.NavigationWriter ?? MemberAccessors.Setter(
                 parentContract.ClrType, node.NavigationMemberName,
                 $"实体 {parentContract.ClrType.Name} 上没有名为 {node.NavigationMemberName} 的引用导航属性，无法挂上拆分 Include 加载的实体。",
                 $"实体 {parentContract.ClrType.Name}.{node.NavigationMemberName} 没有公共写口：Include 要求导航属性可写。");
 
-            var parentFkGetters = BuildKeyGettersByColumnName(parentContract.ClrType, parentContract, node.Relationship.ColumnNames);
+            var parentFkReads = ColumnReaders.ForColumns(Schemas ?? Orm.Schemas, parentContract, node.Relationship.ColumnNames);
+            var compositeFk = node.Relationship.ColumnNames.Count > 1;
 
             var fkValues = new HashSet<object>(
-                parentFkGetters.Length == 1 ? EqualityComparer<object>.Default : StructuralComparer.Instance);
+                compositeFk ? StructuralComparer.Instance : EqualityComparer<object>.Default);
             var parentByFk = new Dictionary<object, List<object>>(
-                parentFkGetters.Length == 1 ? EqualityComparer<object>.Default : StructuralComparer.Instance);
+                compositeFk ? StructuralComparer.Instance : EqualityComparer<object>.Default);
 
             foreach (var parent in parents)
             {
-                object fkKey;
-
-                if (parentFkGetters.Length == 1)
-                    fkKey = parentFkGetters[0](parent);
-                else
-                {
-                    var vals = new object[parentFkGetters.Length];
-
-                    for (var j = 0; j < parentFkGetters.Length; j++)
-                        vals[j] = parentFkGetters[j](parent);
-
-                    fkKey = vals;
-                }
+                var fkKey = parentFkReads.Key(parent);
 
                 fkValues.Add(fkKey);
 
@@ -1357,23 +1403,11 @@ sealed partial class QueryEngine
             if (_tracker is not null)
                 _tracker.TrackAll(children, childContract.ClrType);
 
-            var childPkGetters = BuildKeyGetters(childContract.ClrType, childPkColumns);
+            var childPkReads = ColumnReaders.For(Schemas ?? Orm.Schemas, childContract, childPkColumns);
 
             foreach (var child in children)
             {
-                object pkKey;
-
-                if (childPkGetters.Length == 1)
-                    pkKey = childPkGetters[0](child);
-                else
-                {
-                    var vals = new object[childPkGetters.Length];
-
-                    for (var j = 0; j < childPkGetters.Length; j++)
-                        vals[j] = childPkGetters[j](child);
-
-                    pkKey = vals;
-                }
+                var pkKey = childPkReads.Key(child);
 
                 if (parentByFk.TryGetValue(pkKey, out var matchedParents))
                 {
@@ -1392,40 +1426,6 @@ sealed partial class QueryEngine
                 await LoadSplitIncludeNodesAsync(childObjects, childContract, node.Children, ct).ConfigureAwait(false);
             }
         }
-    }
-
-    [RequiresUnreferencedCode("按运行期 Type 反射取主键属性读口。")]
-    [RequiresDynamicCode("把主键属性读口编译成委托。")]
-    static Func<object, object>[] BuildKeyGetters(Type entityType, ColumnContract[] keyColumns)
-    {
-        var getters = new Func<object, object>[keyColumns.Length];
-
-        for (var i = 0; i < keyColumns.Length; i++)
-            getters[i] = MemberAccessors.Getter(
-                entityType, keyColumns[i].MemberName,
-                $"实体 {entityType.Name} 上没有主键属性 {keyColumns[i].MemberName}",
-                $"实体 {entityType.Name} 的主键属性 {keyColumns[i].MemberName} 没有公共 getter");
-
-        return getters;
-    }
-
-    [RequiresUnreferencedCode("按运行期 Type 反射取外键列对应属性的读口。")]
-    [RequiresDynamicCode("把外键列对应属性的读口编译成委托。")]
-    static Func<object, object>[] BuildKeyGettersByColumnName(Type entityType, EntityContract contract, IReadOnlyList<string> columnNames)
-    {
-        var getters = new Func<object, object>[columnNames.Count];
-
-        for (var i = 0; i < columnNames.Count; i++)
-        {
-            var memberName = contract.ByColumn[columnNames[i]].MemberName;
-
-            getters[i] = MemberAccessors.Getter(
-                entityType, memberName,
-                $"实体 {entityType.Name} 上没有属性 {memberName}",
-                $"实体 {entityType.Name} 的属性 {memberName} 没有公共 getter");
-        }
-
-        return getters;
     }
 
     /// <summary>「按一批键 IN 捞子行」的共用发射段（IncludeMany、拆分 Include 与 DbSet.Load 两条补载路，全仓四处调用）。
@@ -1570,11 +1570,15 @@ sealed partial class QueryEngine
         }
     }
 
+    [RequiresUnreferencedCode("转调 CappedAsync。")]
+    [RequiresDynamicCode("转调 CappedAsync。")]
     public async Task<TResult?> FirstAsync<TResult>(CancellationToken ct)
         => await CappedAsync<TResult>(1, ct).ConfigureAwait(false) is [var only, ..] ? only : default;
 
     /// <summary>First 的落点：执行档与 FirstAsync 同一条（CappedAsync(1)），差别只在空集那格——那颗给 default，这颗抛。
     /// 多行的链上两颗一样只取一行，"多条里取一条"的取舍仍归调用方的 OrderBy。</summary>
+    [RequiresUnreferencedCode("转调 CappedAsync。")]
+    [RequiresDynamicCode("转调 CappedAsync。")]
     public async Task<TResult> FirstOrThrowAsync<TResult>(CancellationToken ct)
     {
         var rows = await CappedAsync<TResult>(1, ct).ConfigureAwait(false);
@@ -1588,6 +1592,8 @@ sealed partial class QueryEngine
 
     /// <summary>Single 的落点：句子上限 2 行（CappedAsync(2)），0 行与 ≥2 行都是错误。
     /// 多行那一条抛"链条算错了"而不是"取第一行"——判重帽截在第 2 行，库里明明还有更多也不会数给调用方。</summary>
+    [RequiresUnreferencedCode("转调 CappedAsync。")]
+    [RequiresDynamicCode("转调 CappedAsync。")]
     public async Task<TResult> SingleAsync<TResult>(CancellationToken ct)
     {
         var rows = await CappedAsync<TResult>(2, ct).ConfigureAwait(false);
@@ -1607,6 +1613,8 @@ sealed partial class QueryEngine
 
     /// <summary>SingleOrDefault 的落点：与 SingleAsync 同一颗判重帽，只放宽 0 行那格（交回 default）。
     /// 多行照旧抛——"恰一行"的判据不因缺省而放宽，多行永远是链条算错的信号。</summary>
+    [RequiresUnreferencedCode("转调 CappedAsync。")]
+    [RequiresDynamicCode("转调 CappedAsync。")]
     public async Task<TResult?> SingleOrDefaultAsync<TResult>(CancellationToken ct)
     {
         var rows = await CappedAsync<TResult>(2, ct).ConfigureAwait(false);
@@ -1625,6 +1633,8 @@ sealed partial class QueryEngine
     /// <summary>All 的落点：发"数出不满足的行"——原谓词取反并入 WHERE 再计数（COUNT 一族），计数为 0 即全称成立。
     /// 谓词为 NULL 的行按"通过"计，与 SQL 三值逻辑一致。代价与 Count 同阶：数"不满足"的行要数完才见分晓
     /// （COUNT 不像 EXISTS 那样找到第一行就收口），这是全称量词的固有代价。</summary>
+    [RequiresUnreferencedCode("转调 WhereNot（lambda 归约）。")]
+    [RequiresDynamicCode("转调 CountAsync（物化分派含 DTO 装配）。")]
     public async Task<bool> AllAsync(LambdaExpression predicate, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(predicate);
@@ -1636,6 +1646,7 @@ sealed partial class QueryEngine
 
     /// <summary>AllAsync 的现场：与 Where 同一条翻译步法（Scout → 翻译 → 欠账落地），差别只在翻译出的节点
     /// 外面再包一颗 Not——取反发生在 SQL 表达式层（发射时就是 NOT (…)），不在 lambda 层改写表达式树。</summary>
+    [RequiresUnreferencedCode("谓词取反仍是同一颗 lambda 归约（闭包常量求值）。")]
     QueryEngine WhereNot(LambdaExpression predicate)
     {
         Filterable();
@@ -1650,6 +1661,8 @@ sealed partial class QueryEngine
     /// <summary>流式出口：一次只有一行在内存里。batchSize 在别的库上是驱动侧的 FetchSize，而 TDS 没有逐批
     /// 取回的游标协议、DbDataReader 本来就是从网络缓冲里逐行读——所以这个值在这里只用于校验，
     /// 不影响结果集，也不假装调了什么服务端开关。</summary>
+    [RequiresUnreferencedCode("转调 Streamed（物化分派/过滤器）。")]
+    [RequiresDynamicCode("转调 Streamed：DTO 装配可能产生动态代码。")]
     public IAsyncEnumerable<TResult> StreamAsync<TResult>(int batchSize, CancellationToken ct)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(batchSize, 1);
@@ -1657,6 +1670,8 @@ sealed partial class QueryEngine
         return Streamed<TResult>(Effective(), ct);
     }
 
+    [RequiresUnreferencedCode("物化分派（Reader）与过滤器贴入（Effective）。")]
+    [RequiresDynamicCode("物化分派含 DTO 装配。")]
     async IAsyncEnumerable<TResult> Streamed<TResult>(QueryModel model, [EnumeratorCancellation] CancellationToken ct)
     {
         // 流式那颗闸从第一次 MoveNext 抓到枚举收尾：for-each 中途别的操作进场照样被拒，
@@ -1718,6 +1733,8 @@ sealed partial class QueryEngine
 
     /// <summary>聚合出口。序由 QueryModel.StripsOrdering 自动剥掉（聚合计划的 UsesOrdering 为 false），
     /// 所以"复用带 OrderBy 的链先 Count 再取页必炸"的高频事故在这里不可能复现。</summary>
+    [RequiresUnreferencedCode("聚合模型派生（值选择器翻译/过滤器）与物化分派。")]
+    [RequiresDynamicCode("物化分派含 DTO 装配。")]
     public async Task<T> AggregateAsync<T>(AggregateKind kind, LambdaExpression? key, CancellationToken ct)
     {
         _gate?.Enter();
@@ -1737,8 +1754,12 @@ sealed partial class QueryEngine
         }
     }
 
+    [RequiresUnreferencedCode("转调 AggregateAsync。")]
+    [RequiresDynamicCode("转调 AggregateAsync。")]
     public Task<int> CountAsync(CancellationToken ct) => AggregateAsync<int>(AggregateKind.Count, null, ct);
 
+    [RequiresUnreferencedCode("转调 AggregateAsync。")]
+    [RequiresDynamicCode("转调 AggregateAsync。")]
     public Task<long> LongCountAsync(CancellationToken ct) => AggregateAsync<long>(AggregateKind.LongCount, null, ct);
 
     /// <summary>存在性探针：发「SELECT 1 … 取第一行」而不是 COUNT(*) > 0。差别是算法级的：COUNT 在大表上
@@ -1746,6 +1767,8 @@ sealed partial class QueryEngine
     /// 投影换成常量 1（不进参数集合）、Limit = 1、序剥掉（存在性与行序无关，T-SQL 那一族的占位序由方言补）；
     /// Offset 原样保留：Skip(n).Any() 问的是"跳过 n 行之后还有没有"，不是整表。分组与 HAVING 天然成立：
     /// SELECT 1 … GROUP BY k LIMIT 1 交回一行即至少有一组。读到一行即 true，空集交回 false。</summary>
+    [RequiresUnreferencedCode("过滤器贴入（Effective）与物化分派（Reader）。")]
+    [RequiresDynamicCode("物化分派含 DTO 装配。")]
     public async Task<bool> AnyAsync(CancellationToken ct)
     {
         _gate?.Enter();
@@ -1770,14 +1793,23 @@ sealed partial class QueryEngine
         }
     }
 
+    [RequiresUnreferencedCode("转调 AggregateAsync（值选择器翻译）。")]
+    [RequiresDynamicCode("转调 AggregateAsync。")]
     public Task<TResult> SumAsync<TResult>(LambdaExpression key, CancellationToken ct) => AggregateAsync<TResult>(AggregateKind.Sum, key, ct);
 
+    [RequiresUnreferencedCode("转调 AggregateAsync（值选择器翻译）。")]
+    [RequiresDynamicCode("转调 AggregateAsync。")]
     public Task<TResult> MaxAsync<TResult>(LambdaExpression key, CancellationToken ct) => AggregateAsync<TResult>(AggregateKind.Max, key, ct);
 
+    [RequiresUnreferencedCode("转调 AggregateAsync（值选择器翻译）。")]
+    [RequiresDynamicCode("转调 AggregateAsync。")]
     public Task<TResult> MinAsync<TResult>(LambdaExpression key, CancellationToken ct) => AggregateAsync<TResult>(AggregateKind.Min, key, ct);
 
+    [RequiresUnreferencedCode("转调 AggregateAsync（值选择器翻译）。")]
+    [RequiresDynamicCode("转调 AggregateAsync。")]
     public Task<TResult> AverageAsync<TResult>(LambdaExpression key, CancellationToken ct) => AggregateAsync<TResult>(AggregateKind.Average, key, ct);
 
+    [RequiresUnreferencedCode("值选择器 lambda 归约走闭包常量求值（Count 一族递 null，不进翻译）。")]
     internal QueryModel AggregateModel(QueryModel model, AggregateKind kind, LambdaExpression? key)
     {
         var countLike = kind is AggregateKind.Count or AggregateKind.LongCount or AggregateKind.Any;
@@ -1842,6 +1874,8 @@ sealed partial class QueryEngine
         };
     }
 
+    [RequiresUnreferencedCode("转调 PagedCore（Rows/TotalCount）。")]
+    [RequiresDynamicCode("转调 PagedCore。")]
     public async Task<PagedResult<TResult>> PagedAsync<TResult>(int page, int size, PagedOptions? options, CancellationToken ct)
     {
         if (page < 1)
@@ -1864,6 +1898,8 @@ sealed partial class QueryEngine
 
     /// <summary>PagedAsync 的本体：取页行与探下一页（必要时再补一记 count）都在这一段里发生，闸门罩住的是它——
     /// 参数校验留在闸外，那是调用方的错，不是一次操作。</summary>
+    [RequiresUnreferencedCode("取页行（Rows）与探总数（TotalCount）。")]
+    [RequiresDynamicCode("物化分派含 DTO 装配与导航缝合。")]
     async Task<PagedResult<TResult>> PagedCore<TResult>(int page, int size, PagedOptions? options, CancellationToken ct)
     {
         var source = Effective();
@@ -1908,6 +1944,8 @@ sealed partial class QueryEngine
         };
     }
 
+    [RequiresUnreferencedCode("聚合模型派生（过滤器）与物化分派。")]
+    [RequiresDynamicCode("物化分派含 DTO 装配。")]
     async Task<int> TotalCount(QueryModel source, PagedOptions? options, CancellationToken ct)
     {
         if (options is { StripOrderingForCount: false })
@@ -1929,6 +1967,8 @@ sealed partial class QueryEngine
         _ => throw new ArgumentOutOfRangeException(nameof(requested), requested, "未知 CountMethod"),
     };
 
+    [RequiresUnreferencedCode("物化分派：DTO 投影按运行期 Type 反射装配（实体/标量分支零反射）。")]
+    [RequiresDynamicCode("DTO 装配用 MakeGenericMethod 与表达式树编译；实体/标量分支不产生动态代码。")]
     Func<DbDataReader, TResult> Reader<TResult>(QueryModel model)
         => model.Includes.Count > 0 && model.Plan is EntityProjection && !model.SplitQuery
             ? Materializer.CreateWithIncludes<TResult>(model, Orm.Schemas)

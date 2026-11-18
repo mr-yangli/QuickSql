@@ -23,6 +23,13 @@ public sealed class SqlServerDialect(
     /// 摘前缀那一手是为虚谷立的，本家不为它付每颗参数一次的 Substring。</summary>
     public override bool DriverAcceptsPrefixedParameterNames => true;
 
+    /// <summary>具名参数名 "@pN" 的缓存版（文本与默认方案逐字相同，只把每格新造的串换成跨块复用的缓存实例）。
+    /// 本家驱动按名绑定是 O(N)（预算 2100 是 TDS 每语句上限、不是平方价 mitigation），所以不必像 SQLite 改编号 ?N；
+    /// 但批量插入每块 ordinal 从 0 起、@p0..@p~2100 跨块反复出现，原本每格三颗串分配。共享缓存见
+    /// <see cref="AtParameterNames"/>（SqlServer/MySQL/PG 同 '@' 前缀共用一颗，分段惰性增长）。
+    /// 门禁 SqlServer 形状实测 BulkInsert/BulkBuild 各 −2 504 600 B。只挂批量插入发射口。</summary>
+    public override Func<int, string>? ParameterNamer => AtParameterNames.Namer;
+
     public override bool PrefixUnicodeLiterals => true;
 
     public override bool PagingRequiresOrdering => true;

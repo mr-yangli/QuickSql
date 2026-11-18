@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  表达式树运算符的裁剪保留指令（Native AOT / trim 档）。
+
+  为什么需要这一份：消费方写 Where(o => o.Amount > threshold) 时，Roslyn 把 lambda  lowering 成
+  「运行期构造表达式树」的代码，其中 decimal/DateTime/Guid 这类带用户自定义运算符的比较，是靠
+  typeof(decimal).GetMethod("op_GreaterThan") 反射找运算符方法再交给 Expression.GreaterThan 的。
+  全裁剪把那些 op_* 方法裁掉（静态分析看不见这条反射依赖），GetMethod 交回 null，Expression.GreaterThan
+  遂抛「The binary operator GreaterThan is not defined for the types 'System.Decimal' and 'System.Decimal'」——
+  树还没构造出来，QuickSql 翻译器根本拿不到它。JIT 档不裁所以同写法全绿，这正是 AOT 冒烟闸审出的那一类。
+
+  修法即 illink 文档给库的标准做法：把指令以逻辑名 ILLink.Descriptors.xml 嵌进 QuickSql.Core
+  （csproj 里 EmbeddedResource + LogicalName）。本库必被消费方引用且保留，指令随之对消费方生效。
+
+  required="false"：仅当该类型在消费方程序集里真被用到时才保住这些运算符——没用到 decimal 的应用
+  不会为它付一字节，契合低内存目标；用到了则比较/算术运算符都在，表达式树构造不再缺方法。
+-->
+<linker>
+  <assembly fullname="System.Private.CoreLib">
+    <type fullname="System.Decimal">
+      <method name="op_Equality" required="false" />
+      <method name="op_Inequality" required="false" />
+      <method name="op_GreaterThan" required="false" />
+      <method name="op_GreaterThanOrEqual" required="false" />
+      <method name="op_LessThan" required="false" />
+      <method name="op_LessThanOrEqual" required="false" />
+      <method name="op_Addition" required="false" />
+      <method name="op_Subtraction" required="false" />
+      <method name="op_Multiply" required="false" />
+      <method name="op_Division" required="false" />
+      <method name="op_Modulus" required="false" />
+      <method name="op_UnaryNegation" required="false" />
+      <method name="op_UnaryPlus" required="false" />
+      <method name="op_Increment" required="false" />
+      <method name="op_Decrement" required="false" />
+    </type>
+    <type fullname="System.DateTime">
+      <method name="op_Equality" required="false" />
+      <method name="op_Inequality" required="false" />
+      <method name="op_GreaterThan" required="false" />
+      <method name="op_GreaterThanOrEqual" required="false" />
+      <method name="op_LessThan" required="false" />
+      <method name="op_LessThanOrEqual" required="false" />
+      <method name="op_Addition" required="false" />
+      <method name="op_Subtraction" required="false" />
+    </type>
+    <type fullname="System.DateTimeOffset">
+      <method name="op_Equality" required="false" />
+      <method name="op_Inequality" required="false" />
+      <method name="op_GreaterThan" required="false" />
+      <method name="op_GreaterThanOrEqual" required="false" />
+      <method name="op_LessThan" required="false" />
+      <method name="op_LessThanOrEqual" required="false" />
+      <method name="op_Addition" required="false" />
+      <method name="op_Subtraction" required="false" />
+    </type>
+    <type fullname="System.TimeSpan">
+      <method name="op_Equality" required="false" />
+      <method name="op_Inequality" required="false" />
+      <method name="op_GreaterThan" required="false" />
+      <method name="op_GreaterThanOrEqual" required="false" />
+      <method name="op_LessThan" required="false" />
+      <method name="op_LessThanOrEqual" required="false" />
+      <method name="op_Addition" required="false" />
+      <method name="op_Subtraction" required="false" />
+      <method name="op_UnaryNegation" required="false" />
+      <method name="op_UnaryPlus" required="false" />
+      <method name="op_Multiply" required="false" />
+      <method name="op_Division" required="false" />
+    </type>
+    <type fullname="System.DateOnly">
+      <method name="op_Equality" required="false" />
+      <method name="op_Inequality" required="false" />
+      <method name="op_GreaterThan" required="false" />
+      <method name="op_GreaterThanOrEqual" required="false" />
+      <method name="op_LessThan" required="false" />
+      <method name="op_LessThanOrEqual" required="false" />
+    </type>
+    <type fullname="System.TimeOnly">
+      <method name="op_Equality" required="false" />
+      <method name="op_Inequality" required="false" />
+      <method name="op_GreaterThan" required="false" />
+      <method name="op_GreaterThanOrEqual" required="false" />
+      <method name="op_LessThan" required="false" />
+      <method name="op_LessThanOrEqual" required="false" />
+    </type>
+    <type fullname="System.Guid">
+      <method name="op_Equality" required="false" />
+      <method name="op_Inequality" required="false" />
+    </type>
+  </assembly>
+</linker>

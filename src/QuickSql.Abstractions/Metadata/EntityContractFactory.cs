@@ -161,6 +161,27 @@ public sealed record RelationshipFacts
     /// 把这一根导航里的子实体送去建档，而子类型在写这一格的代码里是编译期已知的。
     /// 为什么不能由会话自己 MakeGenericType，理由在 ICascadeSink 的注释上。</summary>
     public Action<QuickSql.Tracking.ICascadeSink, object>? CascadeEnter { get; init; }
+
+    /// <summary>引用导航（to-one）的写口：把子实体缝回父实体的导航属性，只有 to-one 那一档带。
+    /// G1 由生成器写成 lambda（直接强转赋值），G2 不带（null）——消费侧退回 MemberAccessors.Setter
+    /// 的启动期编译委托。与 NavigationReader 同一颗纪律：加载可以反射，调用不行。</summary>
+    public Action<object, object?>? NavigationWriter { get; init; }
+
+    /// <summary>集合导航的整只写回口（把一只新集合写回导航属性），只有集合那一档、且 G1 判定为
+    /// 「公共非 init 写口 + 声明类型可追加（实现 ICollection&lt;TChild&gt;）」时才带。G1 由生成器写成
+    /// lambda（直接强转赋值），G2 与其余形状（protected set / 只读 / 数组 / 裸 IEnumerable）不带（null）——
+    /// 消费侧 null 时退回 MemberAccessors.BindCollection 的启动期编译委托。与 NavigationWriter 同一颗纪律。</summary>
+    public Action<object, object?>? CollectionSetter { get; init; }
+
+    /// <summary>集合导航的追加口（往集合里追加一颗子实体），与 CollectionSetter 同一档带。
+    /// G1 写成 lambda（把集合强转成声明类型再 Add），G2/其余形状 null。IncludeMany 的缝合走就地追加，
+    /// 每行只调这把委托，不再 MakeGeneric/编译表达式树。</summary>
+    public Action<object, object>? CollectionAdd { get; init; }
+
+    /// <summary>集合导航的造表口（建一只空的 List&lt;TChild&gt;），与 CollectionSetter 同一档带。
+    /// G1 写成 lambda（字面 new List&lt;TChild&gt;()），G2/其余形状 null。这一颗是 AOT 边界的关键：
+    /// 反射侧走 Expression.New(List&lt;T&gt; 无参构造)，全裁剪下那个构造器被裁；生成侧是字面 new，裁剪看得见。</summary>
+    public Func<object>? NewCollection { get; init; }
 }
 
 /// <summary>事实到 EntityContract 的唯一收尾路径。</summary>
@@ -490,6 +511,7 @@ public static class EntityContractFactory
                     MapToColumns(fact.ForeignKeyMembers, columns, $"引用导航 {fact.MemberName}"))
                 {
                     Origin = new OriginTrace(fact.Layer, fact.Note),
+                    NavigationWriter = fact.NavigationWriter,
                 });
 
                 continue;
@@ -504,6 +526,9 @@ public static class EntityContractFactory
             {
                 Origin = new OriginTrace(fact.Layer, fact.Note),
                 Cascade = fact.Cascade,
+                CollectionSetter = fact.CollectionSetter,
+                CollectionAdd = fact.CollectionAdd,
+                NewCollection = fact.NewCollection,
             });
         }
 

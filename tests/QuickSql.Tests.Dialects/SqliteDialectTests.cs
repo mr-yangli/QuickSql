@@ -577,9 +577,9 @@ public sealed class SqliteDialectTests
         Assert.Equal(4, plan.Chunks[0].RowCount);
         Checks.Has("RETURNING \"Id\"", plan.Chunks[0].Sql.Text);
         // 四行落在一句的 VALUES 段里，而尾巴上只有<em>一颗</em> RETURNING：回包是四行的键，不是一行四份。
-        // 数的是"(@p" 而不是"ROW"这个词——本家的多行形就是四份带括号的实参表，
+        // 数的是"(?" 而不是"ROW"这个词——本家的多行形就是四份带括号的实参表（编号位置形 ?N，避命名参数平方价），
         // 而 "ROW" 那一形（Oracle 血统的 <c>ROW</c> 伪列、MySQL 血统的 <c>ROWS</c> 影响行数）在本家根本不出现。
-        Assert.Equal(4, Checks.Occurrences(plan.Chunks[0].Sql.Text, "(@p"));
+        Assert.Equal(4, Checks.Occurrences(plan.Chunks[0].Sql.Text, "(?"));
         Assert.Equal(1, Checks.Occurrences(plan.Chunks[0].Sql.Text, "RETURNING"));
         Assert.DoesNotContain("ROW", plan.Chunks[0].Sql.Text, StringComparison.Ordinal);
         Assert.Equal(28, plan.Chunks[0].Sql.Parameters.Count);
@@ -1219,28 +1219,28 @@ public sealed class SqliteDialectTests
     }
 
     [Fact]
-    public void The_bulk_slot_declares_a_values_budget_of_333_and_holds_the_in_list_arm_at_the_conservative_100()
+    public void The_bulk_slot_declares_a_values_budget_of_150_and_holds_the_in_list_arm_at_the_conservative_100()
     {
-        // v0.41 之前这一颗交回 null（"一批能塞多少颗参数"没有读数），如今两颗读数都到账了：
-        // ① VALUES 臂 333 —— 每语句成本 ≈ 250 µs 固定 + 3 ns × 参数数²（Microsoft.Data.Sqlite 的
-        //   命名参数按名映射），三档实测 10/65/1016 行每块 → 50.5/189/2467 ms，极点在每语句 ≤300 颗参数
-        //   （docs/quicksql/plan-cross-orm-bench.md §4.4）；32766 颗是合法上限（树册探针实测）但合法不等于快。
-        // ② IN 列表臂按住在 100（InListParameterBudget 覆写）—— 同一颗平方级绑定价在谓词链上更疼，
-        //   树册 §14 实测过按硬上限翻位 → 宽闭包 45.9 → 164 ms，90 臂是那条曲线的最低点。
+        // ① VALUES 臂 150（2026-11-18 从 333 收）——批量插入改编号位置参数 ?N 后（SqliteDialect.ParameterNamer，
+        //   避 Microsoft.Data.Sqlite 按名查找的平方价），块宽极点左移：活库扫描 333→29.9ms、200→25.97、
+        //   150→23.73、100→24.96，150 时间分配双优（obj/logs/net11-sqlite-numbered-budget-sweep.log）。
+        //   旧具名时代 333 的曲线（每语句 ≈250µs 固定 + 3ns×参数数²）已被编号方案取代。
+        // ② IN 列表臂按住在 100（InListParameterBudget 覆写）—— 谓词链仍具名（namer 未挂），同一颗平方级绑定价
+        //   在谓词链上更疼，树册 §14 实测过按硬上限翻位 → 宽闭包 45.9 → 164 ms，90 臂是那条曲线的最低点。
         IBulkStrategy bulk = Assert.IsType<SqliteBulk>(Provider.Bulk);
 
-        Assert.Equal(333, bulk.ParameterBudget);
+        Assert.Equal(150, bulk.ParameterBudget);
         Assert.Equal(100, bulk.InListParameterBudget);
         Assert.False(bulk.SupportsMergedStatements);
         Assert.Null(bulk.UpsertClause(new UpsertColumns(["A"], ["A"], ["A"], static id => id)));
 
         var plan = orm().InsertRange(Enumerable.Range(1, 600).Select(static n => row(n)).ToArray()).Explain();
 
-        // 7 列 ⇒ 每块 42 行（333×0.9÷7），600 行切成 15 块——预算进的是 VALUES 臂的分块公式。
-        Assert.Equal(333, plan.ParameterBudget);
+        // 7 列 ⇒ 每块 19 行（150×0.9÷7），600 行切成 32 块——预算进的是 VALUES 臂的分块公式。
+        Assert.Equal(150, plan.ParameterBudget);
         Assert.Equal(7, plan.ColumnsPerRow);
-        Assert.Equal(42, plan.RowsPerStatement);
-        Assert.Equal(15, plan.Chunks.Count);
+        Assert.Equal(19, plan.RowsPerStatement);
+        Assert.Equal(32, plan.Chunks.Count);
         Assert.Equal(600, plan.Chunks.Sum(static c => c.RowCount));
     }
 

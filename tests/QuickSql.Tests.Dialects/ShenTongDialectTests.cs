@@ -309,9 +309,10 @@ public sealed class ShenTongDialectTests
         Assert.Equal('\\', Provider.Expressions.LikeEscapeCharacter);
         Assert.Null(Provider.Bulk);
 
-        // 兜底分支的第二个消费者（虚谷是第一个）：600 行 × 7 列按预算 100 切 → 每块 12 行、50 块。
+        // 兜底分支的消费者今天只剩 Oracle 血统一族（虚谷 v11.0.0 毕业：活库实测预算 2048，见 XuguBulk）：
+        // 600 行 × 7 列按预算 100 切 → 每块 12 行、50 块。
         // 这一格与达梦册同名数字逐一对读——本家到场让"没有可举证的预算数字"这一档在这一族有了第二份产出，
-        // 而两份产出的<em>理由</em>同出一源（基类注释那一段），不像 Oracle ∶ 虚谷那两份各有各路。
+        // 而两份产出的<em>理由</em>同出一源（基类注释那一段）。
         var plan = orm().InsertRange(Enumerable.Range(1, 600).Select(static n => row(n)).ToArray()).Explain();
 
         Assert.Equal(100, plan.ParameterBudget);

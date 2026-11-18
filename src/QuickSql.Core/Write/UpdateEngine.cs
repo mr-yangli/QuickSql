@@ -14,9 +14,12 @@ namespace QuickSql.Write;
 /// <summary>UPDATE 链的落点。与 InsertEngine 的关键差别是它没有「取值段」：插入要往库里放一整行，
 /// 必须先把实体读成行 × 列的实参值（AuditValue 与契约校验都挂在那一段）；这条链上落到库里的只有 SET 那几列，
 /// 其余列根本不进语句，所以「按实体形状校验一遍」在这里是错的（见 Build 的注释）。
-/// 表达式树在这里归约，标注与读侧同一套。</summary>
-[RequiresUnreferencedCode("lambda 归约与闭包常量求值要反射读成员。")]
-[RequiresDynamicCode("不可约子表达式的退路是编译表达式树。")]
+/// 标注按口收窄：lambda 算子（Where/Set 表达式档）与过滤器叠加带 RUC（闭包反射），
+/// 构造、常量 Set、FromEntity 与取值段走 schema 读写口，零反射零动态代码；
+/// 退路编译走 CompileAotSafe（AOT 下解释执行），所以全链没有 RDC。
+/// RUC 留在类级而不是逐方法：IUpdate 是干净接口，方法级标注会触发 IL2046 一致性检查；
+/// 类级税覆盖的是算子，入口构造那一颗的干净由调用方（QuickSqlOrm）的抑制声明担保。</summary>
+[RequiresUnreferencedCode("lambda 归约与闭包常量求值要反射读成员（Where/Set 表达式档/过滤器叠加）。")]
 sealed class UpdateEngine<T> : IUpdate<T> where T : class
 {
     readonly QuickSqlOrm _orm;
@@ -372,9 +375,9 @@ sealed class UpdateEngine<T> : IUpdate<T> where T : class
         => ast.Table.Table.Name.Length + ast.Table.Alias.Length * 3 + ast.Sets.Sum(s => s.Column.ColumnName.Length) + 128;
 }
 
-/// <summary>DELETE 链的落点。与 UPDATE 共用 Where 的翻译路径与同一个无闸门规则（Guard.Whereless）。</summary>
-[RequiresUnreferencedCode("lambda 归约与闭包常量求值要反射读成员。")]
-[RequiresDynamicCode("不可约子表达式的退路是编译表达式树。")]
+/// <summary>DELETE 链的落点。与 UPDATE 共用 Where 的翻译路径与同一个无闸门规则（Guard.Whereless）。
+/// 标注口径与 UpdateEngine 相同：类级 RUC 覆盖 lambda 算子与过滤器叠加，构造与 FromEntity 零反射，全链无 RDC。</summary>
+[RequiresUnreferencedCode("lambda 归约与闭包常量求值要反射读成员（Where/过滤器叠加）。")]
 sealed class DeleteEngine<T> : IDelete<T> where T : class
 {
     readonly QuickSqlOrm _orm;

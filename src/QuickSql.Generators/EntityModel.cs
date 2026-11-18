@@ -200,4 +200,24 @@ sealed class RelationshipModel
 
     /// <summary>级联开关，缺省开；[NoCascade]（打在实体或这根导航上）折成 false。</summary>
     public bool Cascade = true;
+
+    /// <summary>to-one 导航有没有公共非 init 写口：有生成器才写 NavigationWriter lambda，
+    /// 没有（只读 / protected set / init）留 null，消费侧退回 MemberAccessors 的编译委托。
+    /// 与列的 writable 判据同一颗（公共 set 且非 init），不另立口径。</summary>
+    public bool Writable;
+
+    /// <summary>集合导航的声明类型表达式（如 global::System.Collections.Generic.List&lt;Child&gt;）。
+    /// 生成 CollectionAdd 的强转目标与 CollectionSetter 的赋值目标都用它——与反射侧
+    /// BindCollectionCore 里「appendable 时 target = property.PropertyType」同一口径。</summary>
+    public string CollectionType = "";
+
+    /// <summary>集合导航有没有公共非 init 写口（与 to-one 的 Writable 同一判据）。
+    /// 有才能生成 CollectionSetter（整只写回）；protected set/只读/init 留 false。</summary>
+    public bool CollectionWritable;
+
+    /// <summary>集合导航的声明类型可不可追加（实现 ICollection&lt;TChild&gt;，即有 Add(TChild)）。
+    /// 这是反射侧 appendable = GetMethod("Add",[elementType]) 的编译期保守子集：List/ICollection/IList/Collection
+    /// 都实现 ICollection&lt;T&gt; 故为 true；IEnumerable/IReadOnlyList/数组为 false。只与 CollectionWritable 同时为 true
+    /// 才生成四把委托；其余形状留 null 退回 MemberAccessors（行为不变）。保守是为了不在生成期镜像错形状。</summary>
+    public bool CollectionAppendable;
 }

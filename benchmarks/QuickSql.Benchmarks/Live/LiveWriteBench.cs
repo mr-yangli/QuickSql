@@ -1,20 +1,29 @@
 using BenchmarkDotNet.Attributes;
 using Dapper;
-using QuickSql.Benchmarks.Live;
 
 namespace QuickSql.Benchmarks.Live;
 
 /// <summary>写侧一格：1000 行 × 30 列批量插入 × 四臂。形状对齐离线套件的 <c>BulkInsertBench</c>
 /// （同档行数、同一份 <see cref="WideRow"/> 实体、同一档"值各不相同"的赋值）。
 ///
-/// <para><b>每臂走的是各家用户的默认写法，不是谁的极限</b>：QuickSql <c>InsertRange</c>（默认装配口，
-/// 整型 Id 按自增约定省列，29 列）；FreeSql <c>Insert(list)</c>、SqlSugar <c>Insertable(list)</c>、
-/// Dapper 逐行参数化 <c>Execute(sql, rows)</c>（Dapper 的批量惯用法：一条显式事务包 1000 句 ——
-/// 30 列显式 Id）。谁家在 SQLite 上把多值插到几百行一批、谁家逐行发，就是这一格要量出来的形状。</para>
+/// <para><b>每臂走的是各家用户的默认写法，不是谁的极限</b>：QuickSql <c>InsertRange</c>（本臂关掉
+/// 「整型主键即自增」约定，Id 显式进列清单，30 列，与另三家齐平）；FreeSql <c>Insert(list)</c>、
+/// SqlSugar <c>Insertable(list)</c>、Dapper 逐行参数化 <c>Execute(sql, rows)</c>（Dapper 的批量惯用法：
+/// 一条显式事务包 1000 句 —— 30 列显式 Id）。谁家在 SQLite 上把多值插到几百行一批、谁家逐行发，就是这一格要量出来的形状。</para>
 ///
 /// <para><b>[IterationSetup] 砸表重建</b>：不重建的话行数跨迭代滚雪球（第 k 次迭代插进一张已有
 /// k×1000 行的表），页缓存那笔账会算到跑得晚的臂头上。重建是一次常数开销、在被测量之外。
-/// BDN 对 IterationSetup 的惯例性警告在这里不成立的前提就是重建便宜且恒定 —— 两个条件都验过。</para></summary>
+/// BDN 对 IterationSetup 的惯例性警告在这里不成立的前提就是重建便宜且恒定 —— 两个条件都验过。</para>
+///
+/// <para><b>⚠ 构建配置不对称（公平性口径，2026-11-17 实测确认，读这张表前必看）</b>：四臂都引官方最新 NuGet 包，
+/// 但 <c>FreeSql 3.5.311</c> 与 <c>SqlSugarCore 5.1.4.221</c>（即各自 NuGet 最新版，无更新 Release 可升）的 DLL
+/// 带 <c>DebuggableAttribute=263</c>（<c>DisableOptimizations=True</c>，JIT 对它们关优化）；<c>Dapper 2.1.35</c> 与
+/// QuickSql 是 <c>=2</c>（<c>DisableOptimizations=False</c>，Release，JIT 开优化）。实测探针读元数据 blob：
+/// FreeSql/SqlSugar/FreeSql.Provider.Sqlite = <c>07-01-00-00</c>（263），Dapper/QuickSql.Core = <c>02-00-00-00</c>（2）。
+/// <b>所以 FreeSql/SqlSugar 两臂的时间列偏悲观</b>——它们带着 JIT 关优化的税在跑，QuickSql 对它们的优势被高估；
+/// 这不是给谁开小灶，是这两家官方包的真实发布状态（"用户从 NuGet 拿到的那一份"口径）。各臂 Description 已就地标注
+/// Release/Debug。要量"各家设计峰值"需从源码 Release 构建两家（本套未做，决议保留官方包原样）。
+/// 另：FreeSql.Provider.Sqlite 底下是 System.Data.SQLite.Core，与另三臂的 Microsoft.Data.Sqlite 不同源（驱动边界，见 LiveArms）。</para></summary>
 [MemoryDiagnoser]
 public class LiveWriteBench
 {
@@ -51,7 +60,7 @@ public class LiveWriteBench
     [GlobalCleanup]
     public void Cleanup() => _arms.Dispose();
 
-    [Benchmark(Baseline = true, Description = "BulkInsert 1000×30 · QuickSql（基准臂，默认装配口 29 列）")]
+    [Benchmark(Baseline = true, Description = "BulkInsert 1000×30 · QuickSql（基准臂，显式 Id 30 列，Release）")]
     public async Task<int> BulkInsertQs()
     {
         var affected = await _arms.QuickSql.InsertRange(_rows).ExecuteAffrowsAsync();
@@ -59,7 +68,7 @@ public class LiveWriteBench
         return affected;
     }
 
-    [Benchmark(Description = "BulkInsert 1000×30 · Dapper（逐行参数化 + 一条事务）")]
+    [Benchmark(Description = "BulkInsert 1000×30 · Dapper（逐行参数化 + 一条事务，Release）")]
     public async Task<int> BulkInsertDapper()
     {
         using var conn = _arms.OpenRaw();
@@ -72,7 +81,7 @@ public class LiveWriteBench
         return affected;
     }
 
-    [Benchmark(Description = "BulkInsert 1000×30 · FreeSql")]
+    [Benchmark(Description = "BulkInsert 1000×30 · FreeSql（NuGet Debug 构建·JIT 关优化·时间偏悲观）")]
     public async Task<int> BulkInsertFs()
     {
         var affected = await _arms.FreeSql.Insert(_rows).ExecuteAffrowsAsync();
@@ -80,7 +89,7 @@ public class LiveWriteBench
         return affected;
     }
 
-    [Benchmark(Description = "BulkInsert 1000×30 · SqlSugar")]
+    [Benchmark(Description = "BulkInsert 1000×30 · SqlSugar（NuGet Debug 构建·JIT 关优化·时间偏悲观）")]
     public async Task<int> BulkInsertSs()
     {
         var affected = await _arms.Sugar.Insertable(_rows).ExecuteCommandAsync();
@@ -88,8 +97,8 @@ public class LiveWriteBench
         return affected;
     }
 
-    /// <summary>列序与 <see cref="LiveArms.WideRowDdl"/> 一致；Id 显式（另三家不受 QuickSql 那颗
-    /// "整型 Id 视作自增"约定管，列差 1/30 属口径注记，见类注释）。</summary>
+    /// <summary>列序与 <see cref="LiveArms.WideRowDdl"/> 一致；四臂都显式插 Id（QuickSql 臂已关自增约定，
+    /// 30 列齐平，不再有 1/30 列差）。</summary>
     const string InsertSql = """
         insert into "BenchWideRow" (
           "Id", "Code1", "Code2", "Code3", "Name1", "Name2", "Name3", "Note", "Remark", "Tag1", "Tag2",

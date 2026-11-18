@@ -1,0 +1,17 @@
+SOURCE=file(postgresql)
+DATA_SOURCE=Host=61.157.37.243 Database=quicksql_it
+STAMP=手写 stamp：scripts/run-integration.ps1 的探针段用 SqlConnectionStringBuilder，只吃 SQL Server 串；非默认家族按同一纪律手写（不打印口令），类过滤 BulkPathTests
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 11.0.0)
+  Discovering: QuickSql.Tests.Integration
+  Discovered:  QuickSql.Tests.Integration
+  Starting:    QuickSql.Tests.Integration
+PrepareCatalog：postgresql 一支不建库（授权只到那一座 TestDB 里建表），目标库必须在场。
+[bulk-timing] rows=2000 copy_ms=45 l3_ms=123
+    QuickSql.Tests.Integration.BulkPathTests.The_local_infile_gate_moves_the_batch_to_l3_and_names_the_parameter_it_needs [SKIP]
+      PostgreSql 这一家的装载通道不欠连接串参数（MySQL 血统走 LOAD DATA LOCAL 才要客户端放行），这一格在本家没有对象；通道本身由下面那几条判。
+    QuickSql.Tests.Integration.BulkPathTests.The_same_batch_lands_on_l1_once_the_connection_string_allows_local_infile [SKIP]
+      PostgreSql 这一家的装载通道不欠连接串参数，这一格问的是欠参数那一家的两种读数。
+  Finished:    QuickSql.Tests.Integration (ID = '36fb9a1d299f24a33ddd75012f3bce697829903b2a62478b75c1c5b1919c8fcf')
+=== TEST EXECUTION SUMMARY ===
+   QuickSql.Tests.Integration  Total: 12, Errors: 0, Failed: 0, Skipped: 2, Not Run: 0, Time: 1.599s
+EXIT=0

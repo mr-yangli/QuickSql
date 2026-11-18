@@ -30,6 +30,27 @@ public sealed class SqliteDialect(
     /// 那笔每颗参数一次的 Substring 在本家不用付。</summary>
     public override bool DriverAcceptsPrefixedParameterNames => true;
 
+    /// <summary>编号位置形参数名「?1, ?2, …」（下标+1）。Microsoft.Data.Sqlite 把命名参数映射进语句是按名查找
+    /// （sqlite3_bind_parameter_index 逐颗扫），参数数平方级；编号 ?N 它认（ParameterName="?N" 绑到位置 N），
+    /// 常数小一档。匿名 ? 配无名参数被驱动拒（ParameterName must be set），所以走编号而非匿名。
+    /// 探针实测（1000×29 单事务，obj/logs 净室探针）：1 行块 named 19.9ms vs 编号 15.1ms、10 行块 42.8 vs 23.9。
+    /// 批量插入发射口（InsertEngine.EmitChunk）挂这颗，读侧/单条写仍具名。
+    /// <para><b>名字串缓存</b>：每块 ordinal 从 0 起，块宽 ≤ 预算 ⇒ ?1..?~120 跨块反复出现，原本每格新造一颗串
+    /// （30000 格 = 30000 次串分配）。缓存命中后只造缓存深度那几颗。良性竞态：两只线程同填一格各造一份，
+    /// 赢的那份留下，产物逐字相同（串不可变），无锁。1024 槽覆盖每块 ≤1024 颗参数（预算 150 → ~120 颗/块远在内地），
+    /// 超出退化回现场造，不丢正确性。</para></summary>
+    public override Func<int, string>? ParameterNamer => NumberedParameterName;
+
+    static readonly string?[] NumberedNames = new string?[1024];
+
+    static readonly Func<int, string> NumberedParameterName = static ordinal =>
+    {
+        var cache = NumberedNames;
+        if ((uint)ordinal < (uint)cache.Length)
+            return cache[ordinal] ??= "?" + (ordinal + 1);
+        return "?" + (ordinal + 1);
+    };
+
     public override string GetStoreType(ColumnContract column) => types.GetStoreType(column);
 
     /// <summary>定点存 TEXT 而 SUM/AVG 返回 INTEGER——SQLite 存储类排序 INTEGER &lt; TEXT

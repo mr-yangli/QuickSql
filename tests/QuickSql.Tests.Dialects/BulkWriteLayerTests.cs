@@ -84,10 +84,11 @@ public sealed class BulkWriteLayerTests
     /// 读回来的话这条用例就只是在问 provider 自己"你怎么说"，那份产出永远是绿的。
     /// <c>Budget</c> 三档来源各一批：<c>2100</c> 只有 SQL Server，<c>65535</c> 是 MySQL 血统那三家（共用 <c>MySqlBulk</c>），
     /// <c>32767</c> 是 PG 血统那六家（共用 <c>PostgreSqlBulk</c>），<c>100</c> 是整颗 <c>Bulk</c> 交回 null
-    /// 而由共用层兜底的五家（Oracle 血统四家 + Gbase8s），<c>333</c> 是 SQLite 那颗 SqliteBulk——
-    /// VALUES 臂报自己的实测极点。第四列 <c>InList</c> 是 IN 列表臂的预算（<c>IBulkStrategy.InListParameterBudget</c>，
+    /// 而由共用层兜底的四家（Oracle 血统三家 + Gbase8s），<c>150</c> 是 SQLite 那颗 SqliteBulk——
+    /// VALUES 臂编号 ?N 参数的实测拐点（2026-11-18 从 333 收，避命名参数平方价），<c>300</c> 是虚谷那颗 XuguBulk——
+    /// 活库 BDN 扫描的时间拐点（硬上限 2048 实测只作安全界：每语句代价随颗数超线性，宽块时间输）。第四列 <c>InList</c> 是 IN 列表臂的预算（<c>IBulkStrategy.InListParameterBudget</c>，
     /// DIM 默认沿用 Budget）：SQLite 在这一列按住在 100——同一颗平方级绑定价在谓词链上更疼，
-    /// 树册 §14 的实测曲线就是依据。</summary>
+    /// 树册 §14 的实测曲线就是依据；虚谷两臂同数（同一套参数机制，限颗数对两臂同形）。</summary>
     static readonly (string Family, int Budget, int InList, bool Merged, bool Upsert)[] FamilyRows =
     [
         ("sqlserver", 2_100, 2_100, true, false),
@@ -103,8 +104,8 @@ public sealed class BulkWriteLayerTests
         ("oracle", 100, 100, false, false),
         ("dameng", 100, 100, false, false),
         ("shentong", 100, 100, false, false),
-        ("xugu", 100, 100, false, false),
-        ("sqlite", 333, 100, false, false),
+        ("xugu", 300, 300, false, false),
+        ("sqlite", 150, 100, false, false),
         ("gbase8s", 100, 100, false, false),
     ];
 
@@ -201,7 +202,7 @@ public sealed class BulkWriteLayerTests
         Assert.Equal(merged ? 1 : 3, report.RoundTrips);
         Checks.Absent("退回", report.Reason);
 
-        // 预算那一路也逐家对：报得出数字的三家各用自己的数，报不出的六家吃共用层的兜底。
+        // 预算那一路也逐家对：报得出数字的五档各用自己的数（2100 / 65535 / 32767 / 150 / 300），报不出的四家吃共用层的兜底。
         Assert.Equal(budget, chain.Explain().ParameterBudget);
     }
 

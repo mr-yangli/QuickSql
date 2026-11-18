@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using QuickSql.Metadata;
 using QuickSql.Tracking;
 
 namespace QuickSql.Materialization;
@@ -118,6 +119,34 @@ public static class MemberAccessors
                     Expression.Constant(memberName, typeof(string))),
                 sink, owner)
             .CompileAotSafe();
+    }
+
+    /// <summary>契约感知的集合绑定：G1 在集合边上带了生成的四把委托（读口 <c>NavigationReader</c> +
+    /// 写口 <c>CollectionSetter</c> + 追加 <c>CollectionAdd</c> + 造表 <c>NewCollection</c>）时直接喂零反射构造器，
+    /// IncludeMany/补载每行只调生成 lambda，不再 MakeGeneric/编译表达式树/Expression.New(List&lt;T&gt; ctor)——
+    /// AOT 全裁剪下 List&lt;T&gt; 无参构造被裁的那条边界由此消失。边上没带（G2，或 G1 判为不可写/非追加形状）时
+    /// 退回按名反射的 <see cref="BindCollection(Type,string,Type,string)"/>，行为与迁移前逐字一致。
+    /// 标注跟着退路走（与 NavigationWriter 消费侧同一手法）：生成委托那条路运行期不碰反射。</summary>
+    [RequiresUnreferencedCode("退路按运行期类型与成员名定位集合属性。")]
+    [RequiresDynamicCode("退路的四把委托是编译出来的表达式树（含 MakeGeneric）。")]
+    public static CollectionBindings BindCollection(EntityContract contract, string memberName, Type childType, string missingMessage)
+    {
+        foreach (var edge in contract.Collections)
+        {
+            if (edge.MemberName != memberName)
+                continue;
+
+            if (edge.NavigationReader is { } reader && edge.CollectionSetter is { } setter
+                && edge.CollectionAdd is { } add && edge.NewCollection is { } newCollection)
+            {
+                // reader 交回 object?（集合位未初始化时 null），! 只补可空性注解：运行期 null 原样流进 Attach 的判空。
+                return new CollectionBindings(o => reader(o)!, setter, add, newCollection);
+            }
+
+            break;
+        }
+
+        return BindCollection(contract.ClrType, memberName, childType, missingMessage);
     }
 
     /// <summary>集合导航的一整套访问器：读集合位当前的值、写回一只新集合、往里追加一颗、按元素型建一只空集合。
@@ -256,26 +285,41 @@ public static class MemberAccessors
                modifiers: null
            );
 
-    /// <summary>集合导航的四把委托，挂在节点计划上：每行只调用、不反射。</summary>
-    [RequiresUnreferencedCode("按运行期类型与成员名定位集合属性。")]
-    [RequiresDynamicCode("集合的四把委托是编译出来的表达式树。")]
-    public sealed class CollectionBindings(
-        Func<object, object> getter,
-        Action<object, object?> setter,
-        Action<object, object> add,
-        Type listType)
+    /// <summary>集合导航的四把委托，挂在节点计划上：每行只调用、不反射。
+    /// 两条构造路：G1 生成的四把 lambda 直接喂进来（零反射零动态代码，AOT 干净），
+    /// 反射侧喂一个 listType、造表口由 <see cref="New"/> 编译出来（带 RUC/RDC）。
+    /// 标注因此从类级挪到反射那一颗构造器上——生成委托那条路不欠任何税。</summary>
+    public sealed class CollectionBindings
     {
         /// <summary>集合位当前的值（未初始化时为 null）。</summary>
-        public Func<object, object> Getter { get; } = getter;
+        public Func<object, object> Getter { get; }
 
         /// <summary>把一整只集合写回导航属性。</summary>
-        public Action<object, object?> Setter { get; } = setter;
+        public Action<object, object?> Setter { get; }
 
         /// <summary>往集合里追加一颗。</summary>
-        public Action<object, object> Add { get; } = add;
+        public Action<object, object> Add { get; }
 
         /// <summary>建一只空的元素型表，供「先攒后写回」那一档用。</summary>
-        public Func<object> NewCollection { get; } = New(listType);
+        public Func<object> NewCollection { get; }
+
+        /// <summary>零反射构造：四把委托都已就位（G1 生成 lambda）。造表口不再经 <see cref="New"/>，
+        /// 所以 AOT 全裁剪下 List&lt;T&gt; 无参构造被裁的那条边界在这一条路上不存在。</summary>
+        internal CollectionBindings(Func<object, object> getter, Action<object, object?> setter, Action<object, object> add, Func<object> newCollection)
+        {
+            Getter = getter;
+            Setter = setter;
+            Add = add;
+            NewCollection = newCollection;
+        }
+
+        /// <summary>反射构造：造表口由 listType 的无参构造编译而来（Expression.New）。G2 与 G1 未生成的形状走这一条。</summary>
+        [RequiresUnreferencedCode("按运行期类型定位集合的无参构造。")]
+        [RequiresDynamicCode("造表口是编译出来的表达式树。")]
+        public CollectionBindings(Func<object, object> getter, Action<object, object?> setter, Action<object, object> add, Type listType)
+            : this(getter, setter, add, New(listType))
+        {
+        }
 
         /// <summary>追加一颗；集合位还是空的就先建一只、写回去、再追加。</summary>
         public void Attach(object parent, object child)

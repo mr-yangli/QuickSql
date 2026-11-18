@@ -18,10 +18,11 @@ namespace QuickSql.Translation;
 
 /// <summary>lambda → AST 表达式。链式与 LINQ 共用这一个访问器（LINQ 侧不许有第二套翻译路径）；
 /// 翻译不了的形态一律抛 UntranslatableExpressionException 并给改写建议，绝不静默客户端求值。
-/// 闭包常量求值需要反射与委托编译，因此整颗标 RUC/RDC：AOT 场景要么换表达式树解释器，
-/// 要么走 QuickSql.Generators 预翻译的查询——这条边界只有一处，由调用方（查询提供者）显式承担。</summary>
+/// 闭包常量求值按 MemberInfo 反射读字段/属性，所以整颗标 RUC（裁剪税）；不标 RDC：
+/// 不可约子表达式的退路走 CompileAotSafe——动态代码可用时编译，AOT 下走表达式树解释器
+/// （Compile(preferInterpretation: true)），不产生运行期动态代码。这一条边界只有一处，
+/// 由调用方（查询提供者）显式承担裁剪税。</summary>
 [RequiresUnreferencedCode("闭包常量求值按 MemberInfo 读字段/属性。")]
-[RequiresDynamicCode("闭包常量求值的退路是 LambdaExpression.Compile()。")]
 public sealed class ExpressionTranslator(IDbProvider provider, IEntitySchemaRegistry schemas, Func<Type, int, TableRef> newTableRef)
 {
     public IDbProvider Provider { get; } = provider;
@@ -1176,8 +1177,8 @@ public sealed class ExpressionTranslator(IDbProvider provider, IEntitySchemaRegi
     /// 方法形参是 Expression&lt;Func&lt;T,TResult&gt;&gt; 时，调用方的 lambda 在树上多一层 Quote。</summary>
     static Expression StripQuote(Expression node) => node is UnaryExpression { NodeType: ExpressionType.Quote } q ? StripQuote(q.Operand) : node;
 
-    [RequiresUnreferencedCode("按运行期 Type 反射判集合元素型。")]
-    [RequiresDynamicCode("按运行期 Type 反射判集合元素型。")]
+    /// <summary>集合元素型判定只问类型元数据（GetInterfaces/GetGenericArguments），不摸成员、
+    /// 不产生动态代码：裁剪与 AOT 下都成立，所以这一颗不带 RUC/RDC。</summary>
     static Type? CollectionElementType(Type type)
     {
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))

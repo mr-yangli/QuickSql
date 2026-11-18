@@ -24,6 +24,7 @@ public sealed class XuguProvider : IDbProvider
     readonly XuguValues _values = XuguValues.Instance;
     readonly XuguExpressions _expressions = new();
     readonly XuguKeys _keys = new();
+    readonly XuguBulk _bulk = new();
     readonly XuguDialect _dialect;
 
     public XuguProvider(DbProviderFactory driverFactory)
@@ -63,10 +64,10 @@ public sealed class XuguProvider : IDbProvider
 
     public IChangeGuard ChangeGuard { get; } = new XuguChangeGuard();
 
-    /// <summary>没有批量策略：文档没给参数个数上限，64K 那一档是行的预算不是参数的颗数，两样都换不成一个可报的
-    /// RowsPerStatement——所以报出去的是"没有高速通道"而不是"有但没接"，批量退回链自然从 L3 起。
+    /// <summary>批量策略：L3 多值 VALUES + L5 逐条，参数预算 2048（2026-11-18 活库实测，探针账在 XuguBulk 类注释）。
+    /// 仍没有装载通道：驱动 XG* 导出类型面里没有任何装载类（二进制扫描实测）。
     /// 重开条件：先有能读出"行数口径"的装载 API。</summary>
-    public IBulkStrategy? Bulk => null;
+    public IBulkStrategy? Bulk => _bulk;
 
     /// <summary>虚谷的建库模型与接口默认值不同（需要厂商工具或 DBA 操作），显式交 false。</summary>
     public bool CanCreateDatabase => false;

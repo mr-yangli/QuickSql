@@ -10,7 +10,7 @@ namespace QuickSql.Schema;
 sealed class TypeTable<TValue>
 {
     readonly Dictionary<Type, TValue> _seed = [];
-    readonly object _gate = new();
+    readonly Lock _gate = new();
 
     FrozenDictionary<Type, TValue> _table = new Dictionary<Type, TValue>().ToFrozenDictionary();
 

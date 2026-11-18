@@ -106,6 +106,19 @@ public sealed class GeneratorDiagnosticTests
         Assert.Contains("class ShipmentLine", CompileTimeProbe.TextAt(info), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Aot_strict_mode_promotes_quicksql003_to_warning_not_error()
+    {
+        // 严格档把「没被生成」升成编译期看得见的 Warning；仍是 Warning 不是 Error——
+        // G2 兜底是合法路径，要不要红由消费方的 TreatWarningsAsErrors 裁。
+        var run = CompileTimeProbe.Probe(DerivedEntitySource, aotStrict: true);
+
+        var warning = Assert.Single(run.Diagnostics, static d => d.Id == "QuickSql003");
+
+        Assert.Equal(DiagnosticSeverity.Warning, warning.Severity);
+        Assert.Empty(run.Errors);
+    }
+
     // ---------- 反虚证 ----------
 
     [Fact]

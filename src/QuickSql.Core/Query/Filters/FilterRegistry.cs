@@ -23,6 +23,14 @@ public sealed class FilterRegistry
 
     volatile Registration[] _items = [];
 
+    /// <summary>注册版本号：每 Add 一次 +1（锁内）。QueryEngine 的发射缓存拿它做失效判据——
+    /// 过滤器在册时 Effective 不缓存（闭包值每语句重翻，租户新鲜性是硬约束），
+    /// 不在册时缓存的模型也要能被"后注册的过滤器"顶掉。Volatile 读：版本号读在 _items 读之前，
+    /// 存下的版本只会滞后不会超前，滞后那一次下一跳必然 miss 重算（顺序证明在 QueryEngine.Effective）。</summary>
+    int _version;
+
+    internal int Version => Volatile.Read(ref _version);
+
     internal FilterRegistry(QuickSqlOrm orm) => _orm = orm;
 
     /// <summary>有没有任何一个过滤器在册。读侧与两条写链都靠它在没人用过滤器时整段短路：
@@ -34,7 +42,6 @@ public sealed class FilterRegistry
     /// mandatory 为 true 时这条链上没有任何口子能把它关掉（IgnoreQueryFilters() 当场抛），默认 false。
     /// 谓词存下来的是 lambda 而不是文本，注册这一趟会试翻译一次，所以谓词必须无副作用。</summary>
     [RequiresUnreferencedCode("试翻译过滤器谓词要反射读闭包成员（与读侧 Where 同一套）。")]
-    [RequiresDynamicCode("试翻译过滤器谓词的退路是编译表达式树。")]
     public FilterRegistry Add<TEntity>(Expression<Func<TEntity, bool>> predicate, bool mandatory = false) where TEntity : class
     {
         ArgumentNullException.ThrowIfNull(predicate);
@@ -43,7 +50,10 @@ public sealed class FilterRegistry
         Probe(typeof(TEntity), predicate);
 
         lock (_gate)
+        {
             _items = [.. _items, new Registration(typeof(TEntity), predicate, mandatory)];
+            _version++;
+        }
 
         return this;
     }
@@ -51,7 +61,6 @@ public sealed class FilterRegistry
     /// <summary>注册期按"这张表"翻一遍，翻不动就在这里抛，不等第一次查询。
     /// 结果丢掉不是浪费——要的是那一次翻译走得通这个结论。接口与抽象基类键没有列契约，跳过。</summary>
     [RequiresUnreferencedCode("转调 ExpressionTranslator。")]
-    [RequiresDynamicCode("转调 ExpressionTranslator。")]
     void Probe(Type key, LambdaExpression predicate)
     {
         if (key.IsInterface || key.IsAbstract)
@@ -82,7 +91,6 @@ public sealed class FilterRegistry
     /// 全局过滤器不是"你说的条件"，一条一个 Where 都没写的 UPDATE 不能因为册子上有过滤器就获得免死。
     /// 传进来的表位是那条语句自己的表位（自引用名由方言的 WriteTargetAlias 定）。</summary>
     [RequiresUnreferencedCode("谓词翻译走闭包常量求值。")]
-    [RequiresDynamicCode("谓词翻译的退路是编译表达式树。")]
     internal SqlExpression ApplyTo(TableRef table, SqlExpression where)
     {
         var current = where;
@@ -101,7 +109,6 @@ public sealed class FilterRegistry
     /// 返回同一个实例表示什么都没贴（这张表上没过滤器），于是调用方的 with 也不会发生。
     /// ignored 是这条链点名要跳过的那些注册键：它在匹配之后、翻译之前问，被点名的那一条连翻译都不付。</summary>
     [RequiresUnreferencedCode("谓词翻译走闭包常量求值。")]
-    [RequiresDynamicCode("谓词翻译的退路是编译表达式树。")]
     internal QueryModel Apply(QueryModel model, IReadOnlyList<Type>? ignored = null)
     {
         List<SqlExpression>? where = null;
@@ -273,7 +280,6 @@ public sealed class FilterRegistry
     /// <summary>过滤器谓词 → AST，并且把翻译失败换成一句点名"是谁贴不进谁"的话。
     /// 翻译器只知道 lambda 与表位，不知道这个 lambda 是用户当场写的还是启动期从另一只实体上注册来的。</summary>
     [RequiresUnreferencedCode("闭包常量求值按 MemberInfo 读字段/属性。")]
-    [RequiresDynamicCode("不可约子表达式的退路是编译表达式树。")]
     internal SqlExpression Translate(Registration registration, TableRef table)
         => TranslateInto(
             registration.Predicate,
@@ -285,12 +291,10 @@ public sealed class FilterRegistry
     /// 它与 Translate 共用同一份实现不是省事：全局过滤器与用户 lambda 必须经同一个翻译器，
     /// 否则同一条语句里两类条件的形状与失败口径会分岔。这里没有接口键那一档（调用方给的就是这一张实体上的 lambda）。</summary>
     [RequiresUnreferencedCode("闭包常量求值按 MemberInfo 读字段/属性。")]
-    [RequiresDynamicCode("不可约子表达式的退路是编译表达式树。")]
     internal SqlExpression TranslateFree(LambdaExpression predicate, TableRef table)
         => TranslateInto(predicate, table, "调用方点名的条件", null);
 
     [RequiresUnreferencedCode("闭包常量求值按 MemberInfo 读字段/属性。")]
-    [RequiresDynamicCode("不可约子表达式的退路是编译表达式树。")]
     SqlExpression TranslateInto(LambdaExpression predicate, TableRef table, string owner, Type? key)
     {
         // 形参按位置绑表，而过滤器的 lambda 只有一个形参，所以这里造的是"只有这一张表"的模型：

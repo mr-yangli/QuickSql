@@ -1,0 +1,7 @@
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 11.0.0)
+  Discovering: QuickSql.Tests.Dialects
+  Discovered:  QuickSql.Tests.Dialects
+  Starting:    QuickSql.Tests.Dialects
+  Finished:    QuickSql.Tests.Dialects (ID = '1520417158281c6757498ca67a73ea6f139f1eedada1448d3e83b6083fc274a2')
+=== TEST EXECUTION SUMMARY ===
+   QuickSql.Tests.Dialects  Total: 18, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.349s

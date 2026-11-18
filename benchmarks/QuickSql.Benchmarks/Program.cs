@@ -10,6 +10,10 @@ if (args.Contains("--gate", StringComparer.Ordinal))
     // 判据只能在 Release 下出：Debug 里装箱更多、内联更少，红会假红、绿会假绿。
     // 退出码 2 与"门禁判出 N 红"的 N 区分开，免得把"跑错了配置"读成"有两条不达标"。
     // Release 下的读法：红行数（这一半会随负载翻，逐次值看 §12.8 台账），红行比基线差时再 +32 —— 见 Gates.RegressionFlag。
+    // 还有一道前提钉在 runtimeconfig.template.json 里：System.Runtime.TieredPGO=false。PGO 的热方法重 JIT
+    // 会消装箱且时机不确定，开着它第 1/3 行每行斜率随暖机翻（556/604/592/652），warmup=25 钉不住；关掉后
+    // warmup=25 即逐字节确定（perRow=736）。所以门禁量的是 PGO 关下的稳定基线，结构性强制不靠环境变量记忆；
+    // 真实 PGO 暖机后的吞吐/分配交给 BDN（DOTNET_TieredPGO=1 覆盖）。口径与归属见 Gates.Baselines.PerQueryBytes 的 v11.0.0 段。
     if (IsDebug())
     {
         Console.Error.WriteLine("--gate 要在 Release 下跑，否则每一个数字都不作数：");

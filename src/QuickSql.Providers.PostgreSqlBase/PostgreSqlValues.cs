@@ -33,6 +33,9 @@ public sealed class PostgreSqlValues : IValueBinder
         );
     }
 
+    /// <summary>装载通道直取归一值（与 CreateParameter 的 .Value 同口径 Normalize(value,hint)），不分配 AdoParameter record。</summary>
+    public object? NormalizeValue(object? value, ColumnContract? hint) => Normalize(value, hint);
+
     static object? Normalize(object? value, ColumnContract? hint) =>
         value switch
         {

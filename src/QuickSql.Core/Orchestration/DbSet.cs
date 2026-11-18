@@ -28,9 +28,13 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
 
     LocalView<T>? _local;
 
-    /// <summary>这两个标注是从 RootEngine 传下来的入口税，不是本类自己反射：写侧成员一个都没有。</summary>
-    [RequiresUnreferencedCode("根模型要按 Type 向注册表取实体契约（G2）。")]
-    [RequiresDynamicCode("G2 注册表编译读写委托。")]
+    /// <summary>构造只接线：根模型经注册表接口取契约（G1-only 实现静态干净），跟踪器懒建的反射档
+    /// 在 Tracker 属性口抑制（只在覆写 OnModelCreating 时才构建 G2 会话注册表）。
+    /// 链式基类的类级税覆盖的是算子，不是构造——入口税由 DbContext.Set&lt;T&gt; 的干净声明承接。</summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "构造零反射：RootEngine 经注册表接口取契约；Tracker 懒建的反射档已在属性口抑制。基类类级 RUC 覆盖算子，不覆盖构造。")]
+    [UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "同上：构造不产生动态代码。G2 会话注册表只在覆写 OnModelCreating 时构建（Fluent 档，AOT 档不覆写）。")]
     internal DbSet(DbContext context)
         : base(context.Orm.RootEngine(typeof(T), context.Tracker, context.Gate, context.ModelSchemas))
     {
@@ -55,13 +59,13 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
     /// 子实体拿回来，再按 FK↔PK 缝到父实体的导航属性上。引用导航与集合导航都走这一颗口，
     /// 分岔判据是导航属性的 CLR 型是不是 IEnumerable。不静默返回 this 而真发 SQL：
     /// "调了 Load 就以为导航有值"是最难查的假象。</summary>
-    [RequiresUnreferencedCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
-    [RequiresDynamicCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
+    [RequiresUnreferencedCode("Load 的导航写口/集合绑定在 G1 无生成委托时退回 MemberAccessors；键读已迁列序读口。")]
+    [RequiresDynamicCode("Load 退路的委托是编译出来的（集合绑定含 MakeGeneric）；G1 生成委托与键读零动态代码。")]
     public ITrackedSet<T> Load<TProp>(Expression<Func<T, TProp>> navigation)
         => LoadAsync<TProp>(navigation, default).GetAwaiter().GetResult();
 
-    [RequiresUnreferencedCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
-    [RequiresDynamicCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
+    [RequiresUnreferencedCode("Load 的导航写口/集合绑定在 G1 无生成委托时退回 MemberAccessors；键读已迁列序读口。")]
+    [RequiresDynamicCode("Load 退路的委托是编译出来的（集合绑定含 MakeGeneric）；G1 生成委托与键读零动态代码。")]
     async Task<ITrackedSet<T>> LoadAsync<TProp>(Expression<Func<T, TProp>> navigation, CancellationToken ct)
     {
         // 补载不经七个执行口（它直接走 QueryInBatchesAsync），所以在这里自己进闸——
@@ -78,8 +82,8 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
         }
     }
 
-    [RequiresUnreferencedCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
-    [RequiresDynamicCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
+    [RequiresUnreferencedCode("Load 的导航写口/集合绑定在 G1 无生成委托时退回 MemberAccessors；键读已迁列序读口。")]
+    [RequiresDynamicCode("Load 退路的委托是编译出来的（集合绑定含 MakeGeneric）；G1 生成委托与键读零动态代码。")]
     async Task<ITrackedSet<T>> LoadCore<TProp>(Expression<Func<T, TProp>> navigation, CancellationToken ct)
     {
         var memberName = ExtractMemberName(navigation.Body);
@@ -107,8 +111,8 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
 
     /// <summary>引用导航补载（如 Load(o => o.Customer)）：父端有 FK 列指向目标 PK。
     /// 收集所有父实体的 FK 值 → 查目标表 WHERE PK IN (...) → 按 PK 索引 → 缝回父实体。</summary>
-    [RequiresUnreferencedCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
-    [RequiresDynamicCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
+    [RequiresUnreferencedCode("Load 的导航写口/集合绑定在 G1 无生成委托时退回 MemberAccessors；键读已迁列序读口。")]
+    [RequiresDynamicCode("Load 退路的委托是编译出来的（集合绑定含 MakeGeneric）；G1 生成委托与键读零动态代码。")]
     async Task LoadReferenceNavigationAsync(
         IReadOnlyList<T> parents, EntityContract parentContract,
         string memberName, Type targetType, CancellationToken ct)
@@ -118,18 +122,17 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
         var targetRead = SchemasForLoad.ReadDelegate(targetType);
         var targetPkColumns = targetContract.PrimaryKey;
 
-        var parentFkGetters = BuildKeyGettersByColumnName(parentContract.ClrType, parentContract, relationship.ColumnNames);
+        var parentFkReads = ColumnReaders.ForColumns(SchemasForLoad, parentContract, relationship.ColumnNames);
+        var compositeFk = relationship.ColumnNames.Count > 1;
 
         var fkValues = new HashSet<object>(
-            parentFkGetters.Length == 1 ? EqualityComparer<object>.Default : StructuralComparer.Instance);
+            compositeFk ? StructuralComparer.Instance : EqualityComparer<object>.Default);
         var parentByFk = new Dictionary<object, List<object>>(
-            parentFkGetters.Length == 1 ? EqualityComparer<object>.Default : StructuralComparer.Instance);
+            compositeFk ? StructuralComparer.Instance : EqualityComparer<object>.Default);
 
         foreach (var parent in parents)
         {
-            object fkKey = parentFkGetters.Length == 1
-                ? parentFkGetters[0](parent)
-                : BuildCompositeKey(parentFkGetters, parent);
+            var fkKey = parentFkReads.Key(parent!);
 
             fkValues.Add(fkKey);
 
@@ -139,7 +142,7 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
                 parentByFk[fkKey] = list;
             }
 
-            list.Add(parent);
+            list.Add(parent!);
         }
 
         var targetTable = Engine.Orm.NewTableRef(targetType, 0);
@@ -153,19 +156,17 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
             new ExecutionTag("load-ref", [targetContract.Table.Name], DataSourceRouting.ClusterOf(targetContract.Table)),
             ct).ConfigureAwait(false);
 
-        var pkGetters = BuildKeyGetters(targetType, targetPkColumns);
+        var pkReads = ColumnReaders.For(SchemasForLoad, targetContract, targetPkColumns);
 
-        // 缝回父实体那一格：建一次委托、每行只调用，不逐行反射找属性写值。
-        var setNavigation = MemberAccessors.Setter(
+        // 缝回父实体那一格：G1 关系带生成写口，G2/不可写导航退回启动期编译委托，每行只调用。
+        var setNavigation = relationship.NavigationWriter ?? MemberAccessors.Setter(
             parentContract.ClrType, memberName,
             $"实体 {parentContract.ClrType.Name} 上没有名为 {memberName} 的引用导航属性，无法把补载的实体缝回父实体。",
             $"实体 {parentContract.ClrType.Name}.{memberName} 没有公共写口：Load 要求导航属性可写。");
 
         foreach (var child in children)
         {
-            object pkKey = pkGetters.Length == 1
-                ? pkGetters[0](child)
-                : BuildCompositeKey(pkGetters, child);
+            var pkKey = pkReads.Key(child);
 
             if (parentByFk.TryGetValue(pkKey, out var matchedParents))
             {
@@ -181,8 +182,8 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
 
     /// <summary>集合导航补载（如 Load(c => c.Orders)）：子端有 FK 列指向父端 PK。
     /// 收集所有父实体的 PK 值 → 查子表 WHERE FK IN (...) → 按 FK 分组 → 缝回父实体的集合属性。</summary>
-    [RequiresUnreferencedCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
-    [RequiresDynamicCode("Load 按运行期 Type 反射读取 FK/PK 值与设置导航属性。")]
+    [RequiresUnreferencedCode("Load 的导航写口/集合绑定在 G1 无生成委托时退回 MemberAccessors；键读已迁列序读口。")]
+    [RequiresDynamicCode("Load 退路的委托是编译出来的（集合绑定含 MakeGeneric）；G1 生成委托与键读零动态代码。")]
     async Task LoadCollectionNavigationAsync(
         IReadOnlyList<T> parents, EntityContract parentContract,
         string memberName, Type childType, CancellationToken ct)
@@ -191,21 +192,20 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
         var childRead = SchemasForLoad.ReadDelegate(childType);
         var fkColumnNames = DiscoverFkColumns(parentContract, childContract, memberName);
 
-        var parentPkGetters = BuildKeyGetters(parentContract.ClrType, parentContract.PrimaryKey);
+        var parentPkReads = ColumnReaders.For(SchemasForLoad, parentContract, parentContract.PrimaryKey);
+        var compositePk = parentContract.PrimaryKey.Length > 1;
 
         var pkValues = new HashSet<object>(
-            parentPkGetters.Length == 1 ? EqualityComparer<object>.Default : StructuralComparer.Instance);
+            compositePk ? StructuralComparer.Instance : EqualityComparer<object>.Default);
         var parentByPk = new Dictionary<object, object>(
-            parentPkGetters.Length == 1 ? EqualityComparer<object>.Default : StructuralComparer.Instance);
+            compositePk ? StructuralComparer.Instance : EqualityComparer<object>.Default);
 
         foreach (var parent in parents)
         {
-            object pkKey = parentPkGetters.Length == 1
-                ? parentPkGetters[0](parent)
-                : BuildCompositeKey(parentPkGetters, parent);
+            var pkKey = parentPkReads.Key(parent!);
 
             pkValues.Add(pkKey);
-            parentByPk[pkKey] = parent;
+            parentByPk[pkKey] = parent!;
         }
 
         var childTable = Engine.Orm.NewTableRef(childType, 0);
@@ -224,16 +224,14 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
             new ExecutionTag("load-coll", [childContract.Table.Name], DataSourceRouting.ClusterOf(childContract.Table)),
             ct).ConfigureAwait(false);
 
-        var fkGetters = BuildKeyGettersByColumnName(childType, childContract, fkColumnNames);
+        var fkReads = ColumnReaders.ForColumns(SchemasForLoad, childContract, fkColumnNames);
 
         var grouped = new Dictionary<object, List<object>>(
-            fkGetters.Length == 1 ? EqualityComparer<object>.Default : StructuralComparer.Instance);
+            fkColumnNames.Count > 1 ? StructuralComparer.Instance : EqualityComparer<object>.Default);
 
         foreach (var child in children)
         {
-            object fkKey = fkGetters.Length == 1
-                ? fkGetters[0](child)
-                : BuildCompositeKey(fkGetters, child);
+            var fkKey = fkReads.Key(child);
 
             if (!grouped.TryGetValue(fkKey, out var list))
             {
@@ -245,8 +243,9 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
         }
 
         // 缝回集合导航：建一次四把委托（读、写、追加、造表），每行只调用。
+        // G1 集合边带生成委托时走零反射构造（AOT 干净），否则退回 MemberAccessors 的启动期编译委托。
         var nav = MemberAccessors.BindCollection(
-            parentContract.ClrType, memberName, childType,
+            parentContract, memberName, childType,
             $"实体 {parentContract.ClrType.Name} 上没有名为 {memberName} 的集合导航属性，无法把补载的子实体缝回父实体。");
 
         // 枚举的是父而不是分组结果：没有子行的父同样要拿到"我捞过，这里没有人"的声明。
@@ -369,50 +368,6 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
         return compositeNames;
     }
 
-    [RequiresUnreferencedCode("按运行期 Type 反射取主键属性 getter。")]
-    [RequiresDynamicCode("把主键属性读口编译成委托。")]
-    static Func<object, object>[] BuildKeyGetters(Type entityType, ColumnContract[] keyColumns)
-    {
-        var getters = new Func<object, object>[keyColumns.Length];
-
-        for (var i = 0; i < keyColumns.Length; i++)
-            getters[i] = MemberAccessors.Getter(
-                entityType, keyColumns[i].MemberName,
-                $"实体 {entityType.Name} 上没有主键属性 {keyColumns[i].MemberName}",
-                $"实体 {entityType.Name} 的主键属性 {keyColumns[i].MemberName} 没有公共 getter");
-
-        return getters;
-    }
-
-    [RequiresUnreferencedCode("按运行期 Type 反射取 FK 属性 getter。")]
-    [RequiresDynamicCode("把外键列对应属性的读口编译成委托。")]
-    static Func<object, object>[] BuildKeyGettersByColumnName(Type entityType, EntityContract contract, IReadOnlyList<string> columnNames)
-    {
-        var getters = new Func<object, object>[columnNames.Count];
-
-        for (var i = 0; i < columnNames.Count; i++)
-        {
-            var memberName = contract.ByColumn[columnNames[i]].MemberName;
-
-            getters[i] = MemberAccessors.Getter(
-                entityType, memberName,
-                $"实体 {entityType.Name} 上没有属性 {memberName}",
-                $"实体 {entityType.Name} 的属性 {memberName} 没有公共 getter");
-        }
-
-        return getters;
-    }
-
-    static object BuildCompositeKey(Func<object, object>[] getters, object entity)
-    {
-        var vals = new object[getters.Length];
-
-        for (var j = 0; j < getters.Length; j++)
-            vals[j] = getters[j](entity);
-
-        return vals;
-    }
-
     sealed class StructuralComparer : IEqualityComparer<object>
     {
         public static readonly StructuralComparer Instance = new();
@@ -501,9 +456,13 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
 
     // ── Find / Refresh ──────────────────────────────────────
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "按主键查库的谓词由契约直接构造（零反射）；执行出口的物化分派税在 QueryEngine.Reader/Rows 口。ITrackedSet 是干净接口，方法级标注会触发 IL2046。")]
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "同上：DTO 装配的动态代码税在物化分派口；实体档（G1-only）零动态代码。")]
     public T? Find(params object?[] primaryKeyValues)
         => FindAsync(default, primaryKeyValues).GetAwaiter().GetResult();
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "身份映射命中那一支零反射；查库支的税在 FindFromDbAsync（已标注）与物化分派口。")]
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "同上。")]
     public Task<T?> FindAsync(CancellationToken ct = default, params object?[] primaryKeyValues)
     {
         var cached = _tracker.Find(primaryKeyValues);
@@ -514,6 +473,8 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
         return FindFromDbAsync(primaryKeyValues, ct);
     }
 
+    [RequiresUnreferencedCode("转调 CappedAsync（物化分派）。")]
+    [RequiresDynamicCode("转调 CappedAsync。")]
     async Task<T?> FindFromDbAsync(object?[] primaryKeyValues, CancellationToken ct)
     {
         var result = await ByPkQuery(primaryKeyValues).CappedAsync<T>(1, ct).ConfigureAwait(false);
@@ -521,9 +482,13 @@ public sealed class DbSet<T> : QuickSqlQuery<T>, ITrackedSet<T> where T : class
         return result.Count > 0 ? result[0] : null;
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "重读的谓词由契约直接构造、回填走 schema 读写口（零反射）；执行出口的物化分派税在 QueryEngine.Reader/Rows 口。ITrackedSet 是干净接口。")]
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "同上：DTO 装配的动态代码税在物化分派口；实体档（G1-only）零动态代码。")]
     public void Refresh(T entity)
         => RefreshAsync(entity, default).GetAwaiter().GetResult();
 
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "转调 RefreshAsync 的同一颗理由：谓词由契约构造、回填走 schema 读写口；物化分派税在执行出口。")]
+    [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "同上。")]
     public async Task RefreshAsync(T entity, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(entity);

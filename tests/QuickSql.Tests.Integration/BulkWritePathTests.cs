@@ -135,10 +135,13 @@ public sealed class BulkWritePathTests
     static Order[] Keys(int[] landedIds) => [.. landedIds.Select(id => new Order { Id = id })];
 
     /// <summary>种一批并交回自增键（升序）。<b>走的是 <c>InsertRange</c> 的文本口</b>
-    /// （<c>ExecuteAffrowsAsync</c>）：本册不许拿被测的那条链去准备被测的行。一次开连接读完。</summary>
+    /// （<c>WithBulk(MultiValue)</c> 显式点名：v11.0.0 起默认出口是钩子感知 Auto，量过门槛会走装载通道，
+    /// 而本册不许拿被测的那条链去准备被测的行，也不许种子的层随家族预算漂）。一次开连接读完。</summary>
     async Task<int[]> Seed(string note, int count)
     {
-        Assert.Equal(count, await Orm.InsertRange(rows(note, count)).ExecuteAffrowsAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(count, await Orm.InsertRange(rows(note, count))
+            .WithBulk(BulkMethod.MultiValue)
+            .ExecuteAffrowsAsync(TestContext.Current.CancellationToken));
 
         return [.. Stored(note).Keys.Order()];
     }

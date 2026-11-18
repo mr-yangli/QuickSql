@@ -19,6 +19,13 @@ public abstract class DialectBase(IdentifierPolicy identifiers, IValueBinder val
     /// 判据与出处写在 ISqlDialect.DriverAcceptsPrefixedParameterNames。</summary>
     public virtual bool DriverAcceptsPrefixedParameterNames => false;
 
+    /// <summary>参数命名方案（按发射下标发名）。null = 默认具名形「前缀 + p + 下标」，绝大多数方言走这一条。
+    /// 非 null 是方言点名的编号位置形——SQLite 批量插入覆写成「? + (下标+1)」，避开 Microsoft.Data.Sqlite
+    /// 按名查找映射参数的平方价（探针实测：1000×29 单事务，10 行块 named 42.8ms vs 编号 23.9ms）。
+    /// 编号 = 发射序 = 绑定序（同源于 SqlWriter 参数表下标），位置形按序绑定不串位。只在批量插入发射口挂这颗
+    /// namer（受控、无 WithSql 原生 SQL 风险），读侧与单条写仍走具名形。返回的委托应是缓存好的，别每次发射新造。</summary>
+    public virtual Func<int, string>? ParameterNamer => null;
+
     public virtual bool PrefixUnicodeLiterals => false;
 
     public virtual string EmptySetPredicate => "1 = 0";

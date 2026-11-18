@@ -25,12 +25,14 @@ public ref struct SqlWriter
     readonly StringBuilder _builder;
     readonly List<AdoParameter> _parameters;
     readonly char _parameterPrefix;
+    readonly Func<int, string>? _namer;
 
-    public SqlWriter(StringBuilder builder, List<AdoParameter> parameters, char parameterPrefix)
+    public SqlWriter(StringBuilder builder, List<AdoParameter> parameters, char parameterPrefix, Func<int, string>? namer = null)
     {
         _builder = builder;
         _parameters = parameters;
         _parameterPrefix = parameterPrefix;
+        _namer = namer;
     }
 
     public readonly int Length => _builder.Length;
@@ -39,7 +41,7 @@ public ref struct SqlWriter
 
     /// <summary>派生一个临时书写器：文本各自一份，参数表与编号共享（编号本来就长在这张表上，
     /// 见 NextParameterName），所以两侧不可能生成同名参数。</summary>
-    public SqlWriter Fork() => new(new StringBuilder(), _parameters, _parameterPrefix);
+    public SqlWriter Fork() => new(new StringBuilder(), _parameters, _parameterPrefix, _namer);
 
     public SqlWriter Append(string text)
     {
@@ -123,8 +125,11 @@ public ref struct SqlWriter
     /// 这不是省事：类型是 ref struct，方言的各 Emit 方法之间按值传递它，字段上的自增在离开
     /// 被调方时就随副本一起消失——于是 OFFSET 与 FETCH NEXT 两处同名，而参数集合里只有一条；
     /// 文本与参数表是引用类型所以活得下来，只有号码会分岔，因此号码必须长在那张共享表上。
-    /// 名字只在参数真正进表的那一刻算被占用，连续调用两次会得到同一个名字。</summary>
-    public string NextParameterName() => _parameterPrefix + "p" + _parameters.Count;
+    /// 名字只在参数真正进表的那一刻算被占用，连续调用两次会得到同一个名字。
+    /// <para>命名方案由 <c>_namer</c> 决定：null 走默认的「前缀 + p + 下标」具名形；非 null 是方言点名的
+    /// 编号方案（SQLite 批量插入用「? + (下标+1)」编号位置形，避开 Microsoft.Data.Sqlite 按名查找的平方价）。
+    /// 编号 = 发射序 = 绑定序，三者同源于这张共享表的下标，所以位置形按序绑定不会串位。</para></summary>
+    public string NextParameterName() => _namer is null ? _parameterPrefix + "p" + _parameters.Count : _namer(_parameters.Count);
 
     public void AddParameter(string name, object? value, DbType dbType = DbType.Object, int size = 0)
         => _parameters.Add(new AdoParameter(name, value, dbType, size));

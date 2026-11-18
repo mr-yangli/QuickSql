@@ -60,7 +60,7 @@ static class CompileTimeProbe
     }
 
     public static Run Probe(string source, string? xmlDocComments = null,
-        DocumentationMode documentationMode = DocumentationMode.Parse)
+        DocumentationMode documentationMode = DocumentationMode.Parse, bool aotStrict = false)
     {
         var tree = CSharpSyntaxTree.ParseText(source,
             new CSharpParseOptions(LanguageVersion.Latest).WithDocumentationMode(documentationMode));
@@ -79,7 +79,7 @@ static class CompileTimeProbe
         var driver = CSharpGeneratorDriver.Create(
             [new EntityContractGenerator().AsSourceGenerator()],
             parseOptions: (CSharpParseOptions)tree.Options,
-            optionsProvider: new Options(xmlDocComments));
+            optionsProvider: new Options(xmlDocComments, aotStrict));
 
         var result = driver.RunGenerators(compilation).GetRunResult();
 
@@ -119,15 +119,23 @@ static class CompileTimeProbe
         return builder.ToImmutable();
     }
 
-    /// <summary>只装这一颗开关的全局配置提供器。别的键一概不给：生成器读的就是这一颗，多给的那几颗
+    /// <summary>只装这两颗开关的全局配置提供器。别的键一概不给：生成器读的就是这几颗，多给的那几颗
     /// 只会让"缺键"这一档量不出来。</summary>
-    sealed class Options(string? xmlDocComments) : AnalyzerConfigOptionsProvider
+    sealed class Options(string? xmlDocComments, bool aotStrict = false) : AnalyzerConfigOptionsProvider
     {
         static readonly Dictionary<string, string> None = [];
 
-        readonly Dictionary<string, string> _global = xmlDocComments is null
-            ? None
-            : new Dictionary<string, string> { [EntityContractGenerator.XmlDocCommentsOption] = xmlDocComments };
+        readonly Dictionary<string, string> _global = Build(xmlDocComments, aotStrict);
+
+        static Dictionary<string, string> Build(string? xmlDocComments, bool aotStrict)
+        {
+            var map = new Dictionary<string, string>();
+            if (xmlDocComments is not null)
+                map[EntityContractGenerator.XmlDocCommentsOption] = xmlDocComments;
+            if (aotStrict)
+                map[EntityContractGenerator.AotStrictOption] = "true";
+            return map.Count == 0 ? None : map;
+        }
 
         public override AnalyzerConfigOptions GlobalOptions => new Map(_global);
 

@@ -1,0 +1,49 @@
+SOURCE=file(oceanbase)
+DATA_SOURCE=Server=192.168.0.228 Database=TestDB
+STAMP=手写 stamp：scripts/run-integration.ps1 的探针段用 SqlConnectionStringBuilder，只吃 SQL Server 串；非默认家族按同一纪律手写（不打印口令），类过滤 BulkPathTests
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 11.0.0)
+  Discovering: QuickSql.Tests.Integration
+  Discovered:  QuickSql.Tests.Integration
+  Starting:    QuickSql.Tests.Integration
+夹具准备失败，原文如下：
+MySqlConnector.MySqlException (0x80004005): Unable to connect to any of the specified MySQL hosts.
+   at MySqlConnector.Core.ServerSession.OpenTcpSocketAsync(ConnectionSettings cs, ILoadBalancer loadBalancer, MySqlConnectorSemanticConventionsKinds conventionsKinds, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken) in /_/src/MySqlConnector/Core/ServerSession.cs:line 1415
+   at MySqlConnector.Core.ServerSession.ConnectAsync(ConnectionSettings cs, MySqlConnection connection, Int64 startingTimestamp, ILoadBalancer loadBalancer, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken) in /_/src/MySqlConnector/Core/ServerSession.cs:line 481
+   at MySqlConnector.Core.ServerSession.ConnectAndRedirectAsync(ILogger connectionLogger, ILogger poolLogger, IConnectionPoolMetadata pool, ConnectionSettings cs, ILoadBalancer loadBalancer, MySqlConnection connection, Action`4 logMessage, Int64 startingTimestamp, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken) in /_/src/MySqlConnector/Core/ServerSession.cs:line 768
+   at MySqlConnector.Core.ServerSession.ConnectAndRedirectAsync(ILogger connectionLogger, ILogger poolLogger, IConnectionPoolMetadata pool, ConnectionSettings cs, ILoadBalancer loadBalancer, MySqlConnection connection, Action`4 logMessage, Int64 startingTimestamp, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken) in /_/src/MySqlConnector/Core/ServerSession.cs:line 773
+   at MySqlConnector.Core.ConnectionPool.GetSessionAsync(MySqlConnection connection, Int64 startingTimestamp, Int32 timeoutMilliseconds, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken) in /_/src/MySqlConnector/Core/ConnectionPool.cs:line 116
+   at MySqlConnector.Core.ConnectionPool.GetSessionAsync(MySqlConnection connection, Int64 startingTimestamp, Int32 timeoutMilliseconds, Activity activity, IOBehavior ioBehavior, CancellationToken cancellationToken) in /_/src/MySqlConnector/Core/ConnectionPool.cs:line 150
+   at MySqlConnector.MySqlConnection.CreateSessionAsync(ConnectionPool pool, Int64 startingTimestamp, Activity activity, Nullable`1 ioBehavior, CancellationToken cancellationToken) in /_/src/MySqlConnector/MySqlConnection.cs:line 1090
+   at MySqlConnector.MySqlConnection.OpenAsync(Nullable`1 ioBehavior, CancellationToken cancellationToken) in /_/src/MySqlConnector/MySqlConnection.cs:line 563
+   at QuickSql.Providers.MySqlBase.MySqlProviderBase.EnsureDatabaseExistsAsync(String connectionString, CancellationToken ct) in E:\Resource\QuickNet\sql\src\QuickSql.Providers.MySqlBase\MySqlProviderBase.cs:line 117
+   at QuickSql.Providers.MySqlBase.MySqlProviderBase.EnsureDatabaseExistsAsync(String connectionString, CancellationToken ct) in E:\Resource\QuickNet\sql\src\QuickSql.Providers.MySqlBase\MySqlProviderBase.cs:line 121
+   at QuickSql.Tests.Integration.Database.PrepareCatalog(DbProviderFactory factory) in E:\Resource\QuickNet\sql\tests\QuickSql.Tests.Integration\Database.cs:line 1073
+   at QuickSql.Tests.Integration.Database.Run() in E:\Resource\QuickNet\sql\tests\QuickSql.Tests.Integration\Database.cs:line 456
+    QuickSql.Tests.Integration.BulkPathTests.A_backfill_exit_never_borrows_the_channel_even_when_one_is_offered [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.A_requested_copy_channel_lands_the_whole_batch_and_reports_the_layer [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.A_client_generated_key_goes_inside_the_batch_because_it_is_a_written_column [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.The_wall_clock_gap_is_printed_not_asserted [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.Auto_switches_to_the_channel_only_when_the_text_layer_hits_the_threshold [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.The_local_infile_gate_moves_the_batch_to_l3_and_names_the_parameter_it_needs [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.The_same_batch_lands_on_l1_once_the_connection_string_allows_local_infile [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.A_batch_split_into_deliveries_keeps_row_order_across_the_boundaries [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.What_the_channel_writes_is_what_the_text_layer_writes [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.The_copy_channel_rides_the_transaction_and_rolls_back_with_it [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.The_payload_handed_to_the_channel_is_the_kernels_normalized_one_and_in_row_order [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+    QuickSql.Tests.Integration.BulkPathTests.A_channel_that_under_reports_its_rows_fails_loudly_instead_of_returning_a_plausible_number [SKIP]
+      本机测试库不可用：Unable to connect to any of the specified MySQL hosts.
+  Finished:    QuickSql.Tests.Integration (ID = '36fb9a1d299f24a33ddd75012f3bce697829903b2a62478b75c1c5b1919c8fcf')
+=== TEST EXECUTION SUMMARY ===
+   QuickSql.Tests.Integration  Total: 12, Errors: 0, Failed: 0, Skipped: 12, Not Run: 0, Time: 2.279s
+EXIT=0

@@ -90,17 +90,51 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
 
     // ── 执行出口 ──────────────────────────────────────────────────────
 
-    /// <summary>文本层出口：认得的请求是 MultiValue 与 SingleRow 那一档（连同 WithBulk 里的每块行数），
-    /// 指向装载通道的请求在这里当场拒、不是默默当没看见——这一颗返回的只是一颗行数，装不下
-    /// "走了哪一层、几次往返、为什么"，而装载通道不产文本，两个改写钩子会集体失效。
-    /// 这条出口因此不欠修剪税：不可能走到装载通道，签名上没有 RequiresUnreferencedCode。</summary>
-    public async Task<int> ExecuteAffrowsAsync(CancellationToken ct = default)
+    /// <summary>默认出口：不调 WithBulk 时走<b>钩子感知 Auto</b>（v11.0.0 改判，原"钉死文本层"裁决由用户推翻）——
+    /// 没有订阅 CudBuilding / ParameterBinding 两个改写钩子时按 Auto 选层（量多走装载通道、量少多值语句），
+    /// 订阅了任一颗就钉回文本层：那两位一个改整句、一个改逐颗参数，装载通道不产文本也不产参数，放过去等于静默失效。
+    /// AuditValue 不在闸里：它在取值段跑、L1 读的是同一份 Cells，不被绕开；CommandTerminating 闸门通道照常过
+    /// （AdoExecutor.CopyAsync 的 BeforeExecute）。点名 MultiValue/SingleRow 照旧钉文本；点名 Auto/CopyChannel
+    /// 仍当场拒——那一档要的是层报告，int 装不下，请走 ExecuteBulkAsync。
+    /// 改判的代价明账：这条出口从此可能走到装载通道，修剪税按方法收（签名上的两颗标注），与 ExecuteBulkAsync 同一条纪律。
+    /// SaveChanges 的插入不走这一颗的默认档：跟踪器的报告要回放语句文本，走内部文本出口 ExecuteAffrowsTextAsync。</summary>
+    [RequiresUnreferencedCode("默认档钩子感知 Auto 转调装载通道（ResolveCopyChannel 那次按类型名的反射查找）；订阅改写钩子或点名文本档时走不到，但税按方法收而不是按实际走的那一层收。")]
+    [RequiresDynamicCode("与 RequiresUnreferencedCode 同一条：反射解析装载类需要运行时生成代码。")]
+    public Task<int> ExecuteAffrowsAsync(CancellationToken ct = default)
     {
         if (_requested is BulkMethod.Auto or BulkMethod.CopyChannel)
             throw new QuickSqlException(
                 $"ExecuteAffrowsAsync 走不了 {_requested}：那一档要的是「走了哪一层、几次往返、为什么」，而它的返回值只是一颗行数。" +
                 "装载通道请用 ExecuteBulkAsync；只压每块行数或按请求逐条请用 WithBulk(MultiValue/SingleRow, rowsPerRoundTrip: …)。");
 
+        if (_requested is null && _orm.Aop.CudBuilding is null && _orm.Aop.ParameterBinding is null)
+        {
+            var preparation = Prepare();
+
+            // 量少不建决策：文本层往返没到门槛时 Auto 的落点必然是文本层（通道在不在场都一样），
+            // 不为它白付一颗 BulkReport + Reason；0 列交文本层抛那句正经的（这里除零不得）。
+            // 门槛判据与 Decide 共用同一颗 Trips，离线看到的层与执行走的那一层没有第二套判据。
+            if (preparation.Columns.Length > 0 && Trips(preparation, BulkMethod.MultiValue) >= BulkLadder.AutoCopyRoundTrips)
+            {
+                var decision = Decide(preparation, BulkMethod.Auto);
+
+                if (decision.Channel is not null)
+                    return WriteChannelAffrowsAsync(decision, preparation, ct);
+            }
+        }
+
+        return ExecuteAffrowsTextAsync(ct);
+    }
+
+    [RequiresUnreferencedCode("转调装载通道执行段（WriteChannelAsync 那颗标注的镜像）。")]
+    [RequiresDynamicCode("与 RequiresUnreferencedCode 同一条：反射调用装载类需要运行时生成代码。")]
+    async Task<int> WriteChannelAffrowsAsync(BulkDecision decision, Preparation preparation, CancellationToken ct)
+        => (await WriteChannelAsync(decision, preparation, Tag(), ct).ConfigureAwait(false)).Written;
+
+    /// <summary>文本层出口本体（不带修剪税）：SaveChanges 的插入档直调这一颗——它的报告要回放 plan 的语句文本，
+    /// 装载通道没有文本可回放；链式默认出口在钩子在场 / 量少 / 点名文本档时也落这里。</summary>
+    internal async Task<int> ExecuteAffrowsTextAsync(CancellationToken ct = default)
+    {
         var plan = Plan(Backfill.None);
         var tag = Tag();
         var affrows = 0;
@@ -128,39 +162,9 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         if (report.Degraded && _fallback == FallbackPolicy.DegradeAndLog && _orm.Aop.BulkDegraded is { } degraded)
             _orm.Aop.Observe(() => degraded(new BulkDegradedEvent(report.Requested, report.Method, report.RowCount, report.Reason)));
 
-        int written;
-
-        if (decision.Channel is { } channel)
+        if (decision.Channel is not null)
         {
-            // 分表时一片一次递交（装载通道的目标表一次一个，混不了两片的行），
-            // 所以"几次往返"是逐片取整再相加。
-            var batches = CopyRequests(preparation);
-            var width = 0;
-            var trips = 0;
-
-            written = 0;
-
-            foreach (var batch in batches)
-            {
-                // rowsPerRoundTrip 在装载通道这一档说的是"一次递交几行"，与文本层同一个旋钮、
-                // 同一条只压不抬：这里没有参数预算那道界，上限只有这一片的行数本身。
-                var slice = _rowsPerRoundTrip is { } cap && cap < batch.Rows.Count ? cap : batch.Rows.Count;
-
-                width = Math.Max(width, slice);
-                trips += (batch.Rows.Count + slice - 1) / slice;
-
-                for (var first = 0; first < batch.Rows.Count; first += slice)
-                    written += await _orm.Ado
-                        .CopyAsync(channel, Slice(batch, first, slice), tag, ct)
-                        .ConfigureAwait(false);
-            }
-
-            // 通道报回的数与递交的数不等 = 部分写入。少报的数比少一列危险（绿着交出看着合法的结果），
-            // 所以这里抛而不是把 report 改小。
-            if (written != report.RowCount)
-                throw new QuickSqlException(
-                    $"{_orm.Provider.Kind} 的装载通道报回 {written}/{report.RowCount} 行：这一家的批量入口给不出「进了几行」，" +
-                    "不能假设这一批完整落库（§12.1 那句「失败不能定位到行」在这一格里就是整批不可信）。");
+            var (copied, width, trips) = await WriteChannelAsync(decision, preparation, tag, ct).ConfigureAwait(false);
 
             return report with { ChunkSize = width, RoundTrips = trips };
         }
@@ -170,7 +174,7 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
 
         report = report with { ChunkSize = plan.RowsPerStatement, RoundTrips = plan.Chunks.Count };
 
-        written = 0;
+        var written = 0;
 
         await SendAtomicallyAsync(plan, tag.Cluster, async () =>
         {
@@ -179,6 +183,43 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         }, ct).ConfigureAwait(false);
 
         return report;
+    }
+
+    /// <summary>装载通道的执行段，两条出口共用（ExecuteBulkAsync 要宽与往返进报告，默认出口只要行数）：
+    /// 分表时一片一次递交（目标表一次一个，混不了两片的行），"几次往返"逐片取整再相加。
+    /// 通道报回的数与递交的数不等 = 部分写入——少报的数比少一列危险（绿着交出看着合法的结果），所以抛而不是改小报告。</summary>
+    [RequiresUnreferencedCode("转调装载通道：CopyAsync 与通道自身的 WriteAsync 都带按类型名反射的税（接口那一句标注的镜像）。")]
+    [RequiresDynamicCode("与 RequiresUnreferencedCode 同一条：反射调用装载类需要运行时生成代码。")]
+    async Task<(int Written, int Width, int Trips)> WriteChannelAsync(
+        BulkDecision decision, Preparation preparation, ExecutionTag tag, CancellationToken ct)
+    {
+        var channel = decision.Channel!;
+        var batches = CopyRequests(preparation);
+        var width = 0;
+        var trips = 0;
+        var written = 0;
+
+        foreach (var batch in batches)
+        {
+            // rowsPerRoundTrip 在装载通道这一档说的是"一次递交几行"，与文本层同一个旋钮、
+            // 同一条只压不抬：这里没有参数预算那道界，上限只有这一片的行数本身。
+            var slice = _rowsPerRoundTrip is { } cap && cap < batch.Rows.Count ? cap : batch.Rows.Count;
+
+            width = Math.Max(width, slice);
+            trips += (batch.Rows.Count + slice - 1) / slice;
+
+            for (var first = 0; first < batch.Rows.Count; first += slice)
+                written += await _orm.Ado
+                    .CopyAsync(channel, Slice(batch, first, slice), tag, ct)
+                    .ConfigureAwait(false);
+        }
+
+        if (written != decision.Report.RowCount)
+            throw new QuickSqlException(
+                $"{_orm.Provider.Kind} 的装载通道报回 {written}/{decision.Report.RowCount} 行：这一家的批量入口给不出「进了几行」，" +
+                "不能假设这一批完整落库（§12.1 那句「失败不能定位到行」在这一格里就是整批不可信）。");
+
+        return (written, width, trips);
     }
 
     /// <summary>批量阶梯今天能落的三档，由这一颗纯函数选：不建文本、不碰连接、不发钩子
@@ -205,13 +246,31 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
 
             if (refusal is null)
             {
+                // Auto 的请求特征里带一颗行数门槛：按文本层（"不切要付多少"的那一层）分块后要发的
+                // 语句数到了 BulkLadder.AutoCopyRoundTrips 才换装载通道，没到就留在多值语句——
+                // 通道整批 DataTable 加逐格装箱的固定钱，几条语句以内多值语句（ArrayPool + 单事务）
+                // 更省。显式点名 CopyChannel 的不看这一条：请求特征是 Auto 才有的概念，点名 3 行也走。
+                // 没达标不算降级也不留痕：Auto 没承诺过任何一层（下面 refusal 那条裁决的同一句），
+                // 措辞同样写"取第一档满足条件的层"，不写"退回"。
+                var textTrips = Trips(preparation, BulkMethod.MultiValue);
+
+                if (requested == BulkMethod.Auto && textTrips < BulkLadder.AutoCopyRoundTrips)
+                    return new BulkDecision(TextReport(preparation, requested, BulkMethod.MultiValue, degraded: false) with
+                    {
+                        Reason = $"{provider.Kind} 的装载通道在场，但 {rows} 行 × {preparation.Columns.Length} 列按文本层只要 {textTrips} 次往返" +
+                                 $"（门槛 {BulkLadder.AutoCopyRoundTrips}）：量少，多值语句更省——Auto 取阶梯上第一档满足条件的层。{TextReason(preparation, BulkMethod.MultiValue)}",
+                    }, null);
+
                 // 装载通道这一档没有参数预算那道界，所以 _rowsPerRoundTrip 的上限就是这批的行数；
                 // 不压时一次递交（执行段用同一组数）。
                 var width = _rowsPerRoundTrip is { } cap && cap < rows ? cap : rows;
                 var trips = CopyTrips(preparation, width);
 
                 return new BulkDecision(new BulkReport(requested, BulkMethod.CopyChannel, rows, trips, width, false,
-                    $"{rows} 行走 {provider.Kind} 的装载通道（§12.1 的 L1）：不发 SQL 文本、不走参数，" +
+                    (requested == BulkMethod.Auto
+                        ? $"{rows} 行 × {preparation.Columns.Length} 列按文本层要 {textTrips} 次往返（≥ {BulkLadder.AutoCopyRoundTrips}）：量多，走 {provider.Kind} 的装载通道（§12.1 的 L1）："
+                        : $"{rows} 行走 {provider.Kind} 的装载通道（§12.1 的 L1）：") +
+                    "不发 SQL 文本、不走参数，" +
                     (preparation.Groups is { Count: > 1 } shardGroups
                         ? $"分 {shardGroups.Count} 张片、共 {trips} 次递交（一片一次递交，跨片不合并）。"
                         : trips == 1 ? "一次递交。" : $"分 {trips} 次递交、每次 {width} 行（块宽是请求压下来的）。") +
@@ -354,20 +413,16 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
         var count = ordinals?.Length ?? preparation.Cells.Length;
         var payload = new object?[count][];
 
-        // 名字按列物化一次：装载通道不接 DbParameter，但类型归一长在这颗门上，
-        // 另起一条"不带名字的转换"就是多一份要维护的 Normalize。逐格插值在宽表上是上百万次字符串分配。
-        var names = new string[columns.Length];
-
-        for (var column = 0; column < names.Length; column++)
-            names[column] = $"c{column}";
-
+        // 归一值直取（NormalizeValue），不再为取 .Value 每格 new 一颗 AdoParameter——
+        // 1000×30 = 30000 颗临时 record ≈ 1.4 MB，是 L1 相对 SqlSugar Fastest 多出的分配主项，本版削掉。
+        // 名字数组也省了：装载通道按列序号映射（DataTable 列名取自 ColumnContract），不需要 c{column} 假名。
         for (var row = 0; row < payload.Length; row++)
         {
             var source = preparation.Cells[ordinals is null ? row : ordinals[row]];
             var cells = new object?[columns.Length];
 
             for (var column = 0; column < columns.Length; column++)
-                cells[column] = binder.CreateParameter(names[column], source[column], columns[column]).Value;
+                cells[column] = binder.NormalizeValue(source[column], columns[column]);
 
             payload[row] = cells;
         }
@@ -763,7 +818,7 @@ sealed class InsertEngine<T> : IInsert<T> where T : class
                 Returning = postRead ? [] : returning,
             };
 
-            var writer = new SqlWriter(new StringBuilder(EstimateLength(columns, count)), [], dialect.ParameterPrefix);
+            var writer = new SqlWriter(new StringBuilder(EstimateLength(columns, count)), [], dialect.ParameterPrefix, dialect.ParameterNamer);
             dialect.Emit(in ast, writer);
 
             if (postRead)

@@ -23,6 +23,10 @@ public sealed class OracleValues : IValueBinder
         return new AdoParameter(name, Normalize(value), DbTypeOf(value, hint), SizeOf(value), hint);
     }
 
+    /// <summary>装载通道直取归一值（与 CreateParameter 的 .Value 同口径 Normalize），不分配 AdoParameter record。
+    /// 本血统今天没有 L1（Bulk =&gt; null），这一颗是为接通道那天预备的同口径出口。</summary>
+    public object? NormalizeValue(object? value, ColumnContract? hint) => Normalize(value);
+
     static object? Normalize(object? value) =>
         value switch
         {

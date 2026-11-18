@@ -636,7 +636,11 @@ public sealed class DamengDialectTests
         // 形状。这一格翻得不只是那句主张 —— 它翻的是<em>判据本身</em>：v0.23 写这一条时钉的是"孤例所以看得见"，
         // 五家之后可钉的只有"两家同数"，而两家的来路不同（Oracle 血统说"驱动有数组绑定而这一族没有"、
         // 虚谷说"两档出处都给不出一个颗数"）。同一颗 null 在两处是两条不同的理由，这一点由
-        // <c>XuguDialectTests.The_bulk_slot_is_the_second_one_to_answer_null…</c> 那份对读守住。</para>
+        // <c>XuguDialectTests.The_bulk_slot_declares_a_measured_budget…</c> 那份对读守住。</para>
+        //
+        // <para><b>v11.0.0 再翻</b>：虚谷活库探针量出参数颗数上限 2048（XuguBulk 类注释），从那一家毕业——
+        // 兜底分支的消费者缩回 Oracle 血统<b>一族</b>（本家 ∶ 神通 ∶ Oracle 共用基类那颗 null）。
+        // 本格的数字一个没动：50 块仍是"没有活库拿不到真预算"的代价，只是这份代价今天只落在这一族身上。</para>
         Assert.Equal(100, plan.ParameterBudget);
         Assert.Equal(7, plan.ColumnsPerRow);
         Assert.Equal(12, plan.RowsPerStatement);

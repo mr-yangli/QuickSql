@@ -237,6 +237,133 @@ public sealed class BulkPathTests
     }
 
     [Fact]
+    public async Task Auto_switches_to_the_channel_only_when_the_text_layer_hits_the_threshold()
+    {
+        ReadyForCopy();
+
+        // Auto 的行数门槛（BulkLadder.AutoCopyRoundTrips）在真库上的一问一答：rowsPerRoundTrip 压宽
+        // 是控制往返次数的旋钮 —— 50 行压成 10 行一块是 5 次往返（不到门槛 → 留在文本层），
+        // 门槛行数压成 10 行一块恰好到数（→ 装载通道）。选层判据离线册钉过，这一格钉的是
+        // "两档各自在真库上落得进行"，顺带证 Reason 报的往返数与实际递交数一致。
+        var small = tag("auto-small");
+        var big = tag("auto-big");
+
+        var smallReport = await Orm.InsertRange(rows(small, 50))
+            .WithBulk(BulkMethod.Auto, rowsPerRoundTrip: 10)
+            .ExecuteBulkAsync(TestContext.Current.CancellationToken);
+
+        var bigBatch = BulkLadder.AutoCopyRoundTrips * 10;
+
+        var bigReport = await Orm.InsertRange(rows(big, bigBatch))
+            .WithBulk(BulkMethod.Auto, rowsPerRoundTrip: 10)
+            .ExecuteBulkAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(BulkMethod.MultiValue, smallReport.Method);
+        Assert.False(smallReport.Degraded);
+        Assert.Equal(BulkMethod.CopyChannel, bigReport.Method);
+        Assert.False(bigReport.Degraded);
+        Assert.Equal(BulkLadder.AutoCopyRoundTrips, bigReport.RoundTrips);
+        Assert.Equal(bigBatch, bigReport.RowCount);
+
+        Assert.Equal(50, stored(small).Count);
+        Assert.Equal(bigBatch, stored(big).Count);
+    }
+
+    // ── 默认出口的钩子感知 Auto（v11.0.0 改判） ────────────────────────
+
+    /// <summary>门槛行数：拿产品自己的公式（Explain 的每语句行数）推，不在测试里抄第二份预算算术。
+    /// 7 列契约 × (门槛-1) 块 + 1 行 = 文本层恰好到门槛的最小批。</summary>
+    static int ThresholdRows(string note)
+        => (BulkLadder.AutoCopyRoundTrips - 1) * Orm.InsertRange(rows(note, 1)).Explain().RowsPerStatement + 1;
+
+    [Fact]
+    public async Task Default_exit_stays_on_text_below_the_threshold_on_every_family()
+    {
+        Database.Ready();
+
+        // 不挂 ReadyForCopy：这一半在没通道的家（虚谷/SQLite/Oracle 血统）上同样有对象——
+        // 量少时默认档落文本层，与通道在不在场无关。观察钩子数描述符：通道那一句是合成的
+        // "BULK COPY INTO …"（AdoExecutor.CopyAsync），文本层是真 INSERT。
+        var note = tag("default-small");
+        var descriptors = new List<string>();
+        var orm = Database.BulkOrmWith(new QuickSqlAop { Executed = e => descriptors.Add(e.Sql.Text) });
+
+        var written = await orm.InsertRange(rows(note, 50)).ExecuteAffrowsAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(50, written);
+        Assert.Equal(50, stored(note).Count);
+        Assert.NotEmpty(descriptors);
+        Assert.All(descriptors, d => Assert.False(d.StartsWith("BULK COPY", StringComparison.Ordinal), d));
+    }
+
+    [Fact]
+    public async Task Default_exit_takes_the_channel_above_the_threshold_without_rewrite_hooks()
+    {
+        ReadyForCopy();
+
+        var note = tag("default-auto");
+        var count = ThresholdRows(note);
+        var descriptors = new List<string>();
+        var orm = Database.BulkOrmWith(new QuickSqlAop { Executed = e => descriptors.Add(e.Sql.Text) });
+
+        var written = await orm.InsertRange(rows(note, count)).ExecuteAffrowsAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(count, written);
+        Assert.Equal(count, stored(note).Count);
+
+        // 一次递交 = 一颗合成描述符；文本层会是 ≥8 颗真 INSERT。
+        Assert.Single(descriptors);
+        Assert.StartsWith("BULK COPY INTO", descriptors[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Default_exit_pins_text_when_CudBuilding_is_subscribed()
+    {
+        ReadyForCopy();
+
+        // 批过门槛而钩子在场：闸门的意义只在"本来会走通道"的批上才看得见，所以批量取门槛行数。
+        var note = tag("default-cud");
+        var count = ThresholdRows(note);
+        var cud = 0;
+        var descriptors = new List<string>();
+        var orm = Database.BulkOrmWith(new QuickSqlAop
+        {
+            CudBuilding = e => { if (e.OperationKind == "insert") cud++; },
+            Executed = e => descriptors.Add(e.Sql.Text),
+        });
+
+        var written = await orm.InsertRange(rows(note, count)).ExecuteAffrowsAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(count, written);
+        Assert.Equal(count, stored(note).Count);
+        Assert.True(cud >= 1, "CudBuilding 订阅在场时默认档必须钉文本层（钩子要看得见整句）。");
+        Assert.All(descriptors, d => Assert.False(d.StartsWith("BULK COPY", StringComparison.Ordinal), d));
+    }
+
+    [Fact]
+    public async Task Default_exit_pins_text_when_ParameterBinding_is_subscribed()
+    {
+        ReadyForCopy();
+
+        var note = tag("default-bind");
+        var count = ThresholdRows(note);
+        var bound = 0;
+        var descriptors = new List<string>();
+        var orm = Database.BulkOrmWith(new QuickSqlAop
+        {
+            ParameterBinding = _ => bound++,
+            Executed = e => descriptors.Add(e.Sql.Text),
+        });
+
+        var written = await orm.InsertRange(rows(note, count)).ExecuteAffrowsAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(count, written);
+        Assert.Equal(count, stored(note).Count);
+        Assert.Equal(count * 7, bound); // 逐颗参数都过钩子 = 文本层；通道不产参数，bound 会是 0。
+        Assert.All(descriptors, d => Assert.False(d.StartsWith("BULK COPY", StringComparison.Ordinal), d));
+    }
+
+    [Fact]
     public async Task What_the_channel_writes_is_what_the_text_layer_writes()
     {
         ReadyForCopy();
@@ -248,7 +375,8 @@ public sealed class BulkPathTests
         await Orm.InsertRange(expected).WithBulk(BulkMethod.CopyChannel)
             .ExecuteBulkAsync(TestContext.Current.CancellationToken);
 
-        // 同一份内容、同一个条数，从 §5.4 那条默认走文本层的出口再写一遍。
+        // 同一份内容、同一个条数，从文本层出口再写一遍（12 行在门槛下，默认档也落文本；这里不点名，
+        // 顺带证默认档量少那一半在真库上的落点）。
         await Orm.InsertRange(rows(viaText, 12)).ExecuteAffrowsAsync(TestContext.Current.CancellationToken);
 
         var copied = stored(viaCopy);
@@ -478,6 +606,7 @@ public sealed class BulkPathTests
             .ExecuteBulkAsync(TestContext.Current.CancellationToken));
 
         var text = await Measured(async () => await Orm.InsertRange(rows(viaText, Count))
+            .WithBulk(BulkMethod.MultiValue)
             .ExecuteAffrowsAsync(TestContext.Current.CancellationToken));
 
         // 两次都必须真写完：否则"快"完全可以是"没写"。

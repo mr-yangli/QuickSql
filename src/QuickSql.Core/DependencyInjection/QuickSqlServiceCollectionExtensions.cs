@@ -154,9 +154,87 @@ public static class QuickSqlServiceCollectionExtensions
         return RegisterCore(services, builder);
     }
 
+    /// <summary>AOT-safe 注册口（静态连接串）：元数据走 G1-only 注册表——只认源生成器编译期产出的实体事实，
+    /// 未生成或被 Fluent 配置过的实体在第一次解析时抛 NotSupportedException，没有反射兜底，所以整条注册路径
+    /// 不带 RUC/RDC。驱动工厂必须显式给（宿主自己引用驱动包，如 SqliteFactory.Instance）：内建表解析
+    /// （DriverRegistry）按程序集名反射装载驱动，那一步是 AOT 档禁掉的形态。
+    /// lookup 递生成器产出的 QuickSql.Generated.QuickSqlGeneratedMetadata.TryGet。
+    /// 前提与射程见 G1OnlyEntitySchemaRegistry：实体全部走 G1、校验只开 ContractOnly/Off；
+    /// DTO 投影与 Include 的反射档不在这一档的射程内（标注在各自的算子口）。</summary>
+    public static IServiceCollection AddQuickSqlOrmAotSafe(
+        this IServiceCollection services,
+        DbKind kind,
+        string connectionString,
+        DbProviderFactory driverFactory,
+        GeneratedEntityLookup lookup,
+        Action<QuickSqlOrmBuilder>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(driverFactory);
+        ArgumentNullException.ThrowIfNull(lookup);
+
+        var builder = new QuickSqlOrmBuilder { Kind = kind, ConnectionString = connectionString, DriverFactory = driverFactory };
+        configure?.Invoke(builder);
+
+        return RegisterAotSafeCore(services, builder, lookup);
+    }
+
+    /// <summary>AOT-safe 注册口（连接串按请求解析，多租户每库一串）。其余口径与静态串那一颗相同：
+    /// 驱动工厂显式给、元数据走 G1-only、未生成实体当场抛。</summary>
+    public static IServiceCollection AddQuickSqlOrmAotSafe(
+        this IServiceCollection services,
+        DbKind kind,
+        Func<IServiceProvider, string> connectionStringFactory,
+        DbProviderFactory driverFactory,
+        GeneratedEntityLookup lookup,
+        Action<QuickSqlOrmBuilder>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(connectionStringFactory);
+        ArgumentNullException.ThrowIfNull(driverFactory);
+        ArgumentNullException.ThrowIfNull(lookup);
+
+        var builder = new QuickSqlOrmBuilder { Kind = kind, ConnectionStringFactory = connectionStringFactory, DriverFactory = driverFactory };
+        configure?.Invoke(builder);
+
+        return RegisterAotSafeCore(services, builder, lookup);
+    }
+
     [RequiresUnreferencedCode("注册路径含 G2 兜底构造器与 DriverRegistry 反射。")]
     [RequiresDynamicCode("注册路径含 G2 兜底构造器。")]
     static IServiceCollection RegisterCore(IServiceCollection services, QuickSqlOrmBuilder builder)
+        => RegisterCommon(services, builder,
+            sp =>
+            {
+                var factory = builder.DriverFactory ?? ResolveFactory(builder.Kind);
+                if (!ProviderRegistry.TryCreate(builder.Kind, factory, out var provider))
+                    throw new InvalidOperationException(
+                        $"DbKind.{builder.Kind} 未在 ProviderRegistry 中登记。可能原因：① 生成器 QuickSql.Generators 未作为 Analyzer 挂进编译；② 该 provider 程序集未被引用。");
+                return provider;
+            },
+            sp => new EntitySchemaRegistry(new ContractResolver(sp.GetRequiredService<IDbProvider>(), builder.Model,
+                defaultStringLength: builder.DefaultStringLength)));
+
+    /// <summary>AOT-safe 的登记段：provider 由显式工厂经 ProviderRegistry 的编译期登记表构造（零反射），
+    /// 注册表是 G1-only。Model 仍传下去——不是用来解析，是用来拒绝：Fluent 配置过的实体在 G1-only 档当场抛。</summary>
+    static IServiceCollection RegisterAotSafeCore(IServiceCollection services, QuickSqlOrmBuilder builder, GeneratedEntityLookup lookup)
+        => RegisterCommon(services, builder,
+            sp =>
+            {
+                if (!ProviderRegistry.TryCreate(builder.Kind, builder.DriverFactory!, out var provider))
+                    throw new InvalidOperationException(
+                        $"DbKind.{builder.Kind} 未在 ProviderRegistry 中登记。可能原因：① 生成器 QuickSql.Generators 未作为 Analyzer 挂进编译；② 该 provider 程序集未被引用。");
+                return provider;
+            },
+            sp => new G1OnlyEntitySchemaRegistry(sp.GetRequiredService<IDbProvider>(), lookup,
+                model: builder.Model, defaultStringLength: builder.DefaultStringLength));
+
+    /// <summary>两条注册路共用的登记段：校验、provider/注册表 Singleton、options 与 orm Scoped。
+    /// 本身不带标注——反射税由调用方注入的两颗工厂各自携带（G2 路在 RegisterCore 的标注里，
+    /// AOT-safe 路的两颗工厂零反射）。</summary>
+    static IServiceCollection RegisterCommon(
+        IServiceCollection services,
+        QuickSqlOrmBuilder builder,
+        Func<IServiceProvider, IDbProvider> providerFactory,
+        Func<IServiceProvider, IEntitySchemaRegistry> registryFactory)
     {
         // 启动期只校验静态串；工厂模式延到 Scoped 解析时再判。
         if (builder.ConnectionStringFactory is null && string.IsNullOrEmpty(builder.ConnectionString))
@@ -179,23 +257,11 @@ public static class QuickSqlServiceCollectionExtensions
         // （MS.DI 的描述表本就是登记时的产物，留活引用只会让"什么时候装的"变成猜）。
         var assembly = builder.AfterBuild.ToArray();
 
-        services.AddSingleton(sp =>
-        {
-            var factory = builder.DriverFactory ?? ResolveFactory(builder.Kind);
-            if (!ProviderRegistry.TryCreate(builder.Kind, factory, out var provider))
-                throw new InvalidOperationException(
-                    $"DbKind.{builder.Kind} 未在 ProviderRegistry 中登记。可能原因：① 生成器 QuickSql.Generators 未作为 Analyzer 挂进编译；② 该 provider 程序集未被引用。");
-            return provider;
-        });
+        services.AddSingleton(providerFactory);
 
-        // EntitySchemaRegistry 只依赖 Provider + Model，都是启动期常量 → Singleton。
+        // 注册表只依赖 Provider + Model，都是启动期常量 → Singleton。
         // 不依赖 QuickSqlOrmOptions（那是 Scoped 的），直接从 Provider 拿 Model。
-        services.AddSingleton<IEntitySchemaRegistry>(sp =>
-        {
-            var provider = sp.GetRequiredService<IDbProvider>();
-            return new EntitySchemaRegistry(new ContractResolver(provider, builder.Model,
-                defaultStringLength: builder.DefaultStringLength));
-        });
+        services.AddSingleton(registryFactory);
 
         // QuickSqlOrmOptions 走 Scoped：连接串每个请求可以不同（多租户每库一串）。
         // 与 EF Core 的 DbContextOptions<T> 同一条判据。

@@ -944,7 +944,9 @@ sealed class EntityTracker<T> : ITypeTracker where T : class
         if (backfill)
             await engine.ExecuteGeneratedAsync(ct).ConfigureAwait(false);
         else
-            await engine.ExecuteAffrowsAsync(ct).ConfigureAwait(false);
+            // 直调文本出口而不走链式默认档的钩子感知 Auto：下面的 Operation 报告要回放 plan.Chunks 的语句文本，
+            // 装载通道没有文本可回放——报告说发了 INSERT 而实际走 BULK COPY 是谎报。会话批量通常也到不了 Auto 门槛。
+            await engine.ExecuteAffrowsTextAsync(ct).ConfigureAwait(false);
 
         return [Operation(WriteOperation.Insert, plan.Chunks.Count, rows,
             [.. plan.Chunks[0].Ast.Columns.Select(static column => column.ColumnName)], plan.Chunks[0].Sql.Text)];

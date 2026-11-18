@@ -78,8 +78,8 @@ public class DbContext : IAsyncDisposable, IDisposable
     internal ChangeTracker Tracker
     {
         // RUC/RDC 挂在 EnsureTracker 上（特性上不了属性访问器）。
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "触点已按 G2 入口税标注；EnsureTracker 自带 RUC。")]
-        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "同上。")]
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "EnsureTracker 的反射档只在覆写 OnModelCreating 时构建 G2 会话注册表（Fluent 档）；未覆写的上下文走组装根注册表（AOT 档为 G1-only），跟踪器构建本身零反射。覆写判定的 IL2075 已在 EnsureModel 内抑制。")]
+        [UnconditionalSuppressMessage("AOT", "IL3050", Justification = "同上：G2 会话注册表的编译只在覆写 OnModelCreating 时发生；AOT 档不覆写（Fluent 不可用），跟踪器构建不产生动态代码。")]
         get => EnsureTracker();
     }
 
@@ -190,10 +190,9 @@ public class DbContext : IAsyncDisposable, IDisposable
     }
 
     /// <summary>某一类实体的会话入口。同一个类型在同一会话里是同一只对象，调两次共享的确实是同一份身份映射，
-    /// 而不是"共享但每次重新装一遍"。这一格上的 RUC/RDC 是读路径的入口税（按 Type 向注册表取契约）；
-    /// 写侧那几个便利方法没有这两个标注，因为 Set〈T〉() 已经把契约取好了。</summary>
-    [RequiresUnreferencedCode("按 Type 向注册表取实体契约（G2）。")]
-    [RequiresDynamicCode("G2 注册表编译读写委托。")]
+    /// 而不是"共享但每次重新装一遍"。入口本身零反射零动态代码：契约经注册表接口取（G1-only 实现静态干净），
+    /// 跟踪器懒建的反射档只在覆写 OnModelCreating 时发生（Fluent 档，见 Tracker 属性口的抑制声明）。
+    /// 写侧那几个便利方法同样没有标注，因为 Set〈T〉() 已经把契约取好了。</summary>
     public DbSet<T> Set<T>() where T : class
         => (DbSet<T>) _sets.GetOrAdd(typeof(T), _ =>
         {

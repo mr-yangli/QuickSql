@@ -66,8 +66,13 @@ static class EntityFactsWriter
          .AppendLine("    public object? GetValue(" + type + " entity, int ordinal) => ordinal switch")
          .AppendLine("    {");
 
+        // 每一臂显式 (object?) 装箱，不借 switch 的自然公共类型：int 与 decimal 同场时
+        // C# 会把整颗 switch 推成 decimal（int→decimal 隐式），所有列都按 decimal 交回——
+        // 键读跨实体缝合时 boxed decimal ≠ boxed int，字典永远命不中（2026-11-17 AOT 冒烟闸审出）。
+        // 逐臂装箱才是「按列序读值」的本义，G2 反射侧的 Expression.Convert(typeof(object)) 同形。
+
         for (var i = 0; i < m.Columns.Count; i++)
-            b.AppendLine("        " + i + " => entity." + m.Columns[i].Member + ",");
+            b.AppendLine("        " + i + " => (object?)entity." + m.Columns[i].Member + ",");
 
         b.AppendLine("        _ => throw OutOfRange(ordinal),")
          .AppendLine("    };")
@@ -281,6 +286,25 @@ static class EntityFactsWriter
             {
                 b.AppendLine("                NavigationReader = static o => (object?)(((" + m.Entity + ")o)." + relationship.Member + "),")
                  .AppendLine("                CascadeEnter = static (sink, o) => sink.Enter(((" + m.Entity + ")o), (((" + m.Entity + ")o)." + relationship.Member + "), " + Lit(relationship.Member) + "),");
+
+                // 集合缝合的四把委托里的后三把（读口 NavigationReader 已在上面）：只对「公共非 init 写口 +
+                // 声明类型可追加（ICollection<TChild>）」这一档生成，其余形状留 null 退回 MemberAccessors.BindCollection。
+                // 全是强类型 lambda：造表口是字面 new List<TChild>()（AOT 裁剪看得见，不再 Expression.New 被裁的 ctor），
+                // 追加口把集合强转成声明类型再 Add（与反射侧 appendable 时 target=声明类型同口径），写口直接强转赋值。
+                if (relationship.CollectionWritable && relationship.CollectionAppendable)
+                {
+                    b.AppendLine("                CollectionSetter = static (o, v) => (((" + m.Entity + ")o)." + relationship.Member + ") = (" + relationship.CollectionType + ")v!,")
+                     .AppendLine("                CollectionAdd = static (c, i) => ((" + relationship.CollectionType + ")c).Add((" + relationship.TargetType + ")i),")
+                     .AppendLine("                NewCollection = static () => new global::System.Collections.Generic.List<" + relationship.TargetType + ">(),");
+                }
+            }
+            else if (relationship.Writable)
+            {
+                // to-one 的缝回写口：直接强转赋值，导航缝合（拆查/Include/Load）每行只调这把 lambda。
+                // v! 把 object? 收成 object 再转目标型：null 经引用型强转仍是 null（与 MemberAccessors
+                // 的 Expression.Convert 运行期语义逐字一致），编译期不欠可空警告。
+                // 只读/protected set/init 的导航不带这一格（Writable=false），消费侧退回编译委托。
+                b.AppendLine("                NavigationWriter = static (o, v) => (((" + m.Entity + ")o)." + relationship.Member + ") = (" + relationship.TargetType + ")v!,");
             }
 
             b.AppendLine("            },");

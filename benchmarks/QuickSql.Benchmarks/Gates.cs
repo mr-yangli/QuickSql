@@ -186,8 +186,33 @@ static class Gates
         /// "捕获读委托 + 契约 + 已探的 reader + 票"，而读委托侧少了一次装箱包装），三段拆分给不出更细的落点 ——
         /// 与上面 v0.12 那一格同一处境：这是<em>排除法得到的形状，不是定位到的分配点</em>。
         /// 值不值这一枚：票按场次付一次，省的是每行每列那 24 B（30 列的 <c>Order</c> 一行就回本），
-        /// 而它在这一格只留下 8 B —— 也就是说这一枚是丙在分配那一侧看得见的全部代价，另一侧的读数在第 2 行与第 3 行。</para></summary>
-        public const double PerQueryBytes = 5_488;
+        /// 而它在这一格只留下 8 B —— 也就是说这一枚是丙在分配那一侧看得见的全部代价，另一侧的读数在第 2 行与第 3 行。</para>
+        /// <para><b>v11.0.0 重钉成 5 840</b>（5 488 → 5 840，+352；来源场 <c>obj/logs/net11-rc-pgoff-gate-1/2/3.log</c>，
+        /// 三场逐字节一致）。<b>本笔先钉一条测量口径，因为它改了整张表的读法</b>：门禁宿主从此关 TieredPGO
+        /// （<c>runtimeconfig.template.json</c> 把 <c>System.Runtime.TieredPGO</c> 钉成 false，结构性强制，不靠环境变量记忆）。
+        /// 根源是查出来的而不是推得的：第 1/3 行先前每行斜率随跑次翻（556/604/592/652），一次性探针
+        /// （<c>obj/logs/net11-pgo-noise-probe.log</c>）证得 <c>DOTNET_TieredPGO=0</c> 后 warmup=25 即五轮逐字节确定、
+        /// 每行回到 736 与 net10 旧钉逐字一致，而 PGO 开着时热方法重 JIT 消装箱、重 JIT 时机不确定 → 分配数随暖机状态翻。
+        /// 所以那不是产品回归，是量具的 JIT 状态在抖；关 PGO 量的是稳定基线，真实 PGO 暖机后的吞吐/分配交给 BDN
+        /// （<c>DOTNET_TieredPGO=1</c> 覆盖）。<b>第 3 行 PerRow 因此一字未动（736）</b>：先前 CHANGELOG 那句
+        /// 「物化 736→592（−19.6%）net11 增益」是 PGO 消装箱的产物，不是纯运行时增益，已在 CHANGELOG 11.0.0 改判。</para>
+        /// <para><b>+352 的归属分两半，一半定位到、一半按读数记账</b>：① <b>发射缓存冷税（定位到载体）</b>——
+        /// v11.0.0 落地重复链 SQL 发射缓存（<c>QueryEngine.Build</c>/<c>Effective</c>），新增两只 record
+        /// <c>EmissionCache(FilterVersion, Model, Ast, Sql)</c> 与 <c>EffectiveCache(FilterVersion, Model)</c>，
+        /// 引擎上多两颗引用字段 <c>_emission</c>/<c>_effective</c>；而本行 build 段自 v11.0.0 起量<em>冷</em>发射
+        /// （每次测量新建链，见 <c>Gates.Allocation</c> 里那段注释），缓存必 miss → 每次冷发射把这两只缓存对象建出来，
+        /// 落在截距里（斜率两点相减抵掉，所以第 3 行不受这笔）。② <b>其余按读数记账</b>：net11.0 单档重定向
+        /// （运行时对象布局/JIT/库内分配与 net10 不同源）与导航键读迁 Accessors、热路径小件那一批 initiative 改动
+        /// 合在一起，<em>没有逐颗隔离到字段</em>——这批改动落地时没有逐笔版本标记，且运行时重定向与代码改动两个变量叠在同一笔差里，
+        /// 要拆开需净10/净11 对照构建，本笔不做。<b>按 v0.38 第二笔那条先例</b>（载体定位不到时按读数记账、欠账记 §14），
+        /// 本笔与下面各枚漂移钉一起把「载体未逐颗隔离」记进 §14，不替它编一个单字段解释。
+        /// 控制组：第 3 行（736）与第 5 行两枚计数钉（0/0）三场逐字未动，第 1b 行热再发射仍是 0 ——
+        /// 缓存命中路径不付冷税，正是发射缓存设计的那一面。</para></summary>
+        public const double PerQueryBytes = 5_840;
+
+        /// <summary>第 1b 行：同一条链热再发射（第二次起 ToSql()）的字节。v11.0.0 发射缓存落地新增，
+        /// 首钉以 0 上册，按来源场重钉（obj/logs/net11-cache-gate-1.log）。</summary>
+        public const double WarmReEmissionBytes = 0;
 
         /// <summary>第 2 行：物化吞吐 vs Dapper 的中位数之比。<b>单向地板，不是"当前值"</b> ——
         /// 测量代码一字未变的四十场（跨四次版本复核，逐次值与按版本的结算在 §12.8 第 2 行）给过 83%~96%，
@@ -216,7 +241,11 @@ static class Gates
         /// <b>v0.38 第五笔丙之后，这一枚量的是量具而不是产品</b>：<c>DataTableReader</c> 的原始访问器自己就"取 object 再转"，
         /// 所以装箱口与直读臂在这片驱动上每值同一笔钱（探针 B 段，<c>obj/logs/v38-c-plan-probe-3/4.log</c> 两场逐字同形：
         /// int 门 24 B 对臂直读 24 B，decimal 32 B 对 32 B，string 两侧都 0 B），
-        /// 736 这个数既不因丙降、也不因丙升。它的判读口径与本行说明串末段、<see cref="RatioFloor" /> 那一段一起看。</summary>
+        /// 736 这个数既不因丙降、也不因丙升。它的判读口径与本行说明串末段、<see cref="RatioFloor" /> 那一段一起看。
+        /// <para><b>v11.0.0 不动（仍 736）</b>：门禁关 TieredPGO 后 warmup=25 即逐字节确定，本枚三场
+        /// （<c>net11-rc-pgoff-gate-1/2/3.log</c>）逐字交回 736，与 net10 旧钉一致。先前 PGO 开着时读到的 556/604/592/652
+        /// 是重 JIT 消装箱的暖机噪声，不是产品改进 —— 「736→592 net11 增益」那句已在 CHANGELOG 改判，口径全文见
+        /// <see cref="PerQueryBytes" /> 的 v11.0.0 段。</para></summary>
         public const double PerRowBytes = 736;
 
         /// <summary>第 4 行 ①②：每谓词字节，25 档与 100 档（B）。
@@ -255,11 +284,16 @@ static class Gates
         /// 载体是 <c>QueryModel</c>（急切加载那两颗引用字段，归属与量到的 136 B/只见 <see cref="PerQueryBytes" /> 末段）。
         /// 为什么这一格也付：一个谓词就是一次 <c>Where</c> = <c>AddPredicate</c> 里一只 <c>with {}</c> 的新模型，
         /// 所以"每查询一只"与"每谓词一只"仍是同一个自由度，两档差值逐字相等（16/16）正是这条形状的自检 ——
-        /// 与 v0.16 ∶ v0.26 那两次同一式。第 1 行同幅 +16、第 3/6 行逐字未动，三处对得上。</para></summary>
-        public const double PredicateBytesShort = 1_908;
+        /// 与 v0.16 ∶ v0.26 那两次同一式。第 1 行同幅 +16、第 3/6 行逐字未动，三处对得上。</para>
+        /// <para><b>v11.0.0 两格各 +312</b>（1 908→2 220、2 228→2 540；来源场 <c>net11-rc-pgoff-gate-1/2/3.log</c> 三场逐字）。
+        /// 两档差值仍逐字相等（312/312），"每谓词一次"的形状没动 —— 动的还是地价。载体本笔<em>未逐颗隔离</em>：
+        /// <c>QueryModel</c> 本版一字未改（不在 initiative diff 里），所以这次不是 v0.38 那两颗字段；它是 net11 单档重定向
+        /// 与发射缓存冷税（每谓词派生一只新引擎、冷发射建缓存对象）、导航迁移那一批的合账，归属与口径全文见
+        /// <see cref="PerQueryBytes" /> 的 v11.0.0 段，欠账同记 §14。第 1 行同向 +352、第 3 行逐字未动，控制组同 v0.38 那式。</para></summary>
+        public const double PredicateBytesShort = 2_220;
 
-        /// <summary>第 4 行的长档，见 <see cref="PredicateBytesShort" />（v0.16 与它一起 +8：同一个槽位；v0.26 与它一起 +8：<c>_ignoresFilters</c>；v0.34 第二笔与它一起 +8：<c>DriverName</c> 字段；v0.38 第二笔与它一起 +16：<c>QueryModel</c> 那两颗引用字段）。</summary>
-        public const double PredicateBytesLong = 2_228;
+        /// <summary>第 4 行的长档，见 <see cref="PredicateBytesShort" />（v0.16 与它一起 +8：同一个槽位；v0.26 与它一起 +8：<c>_ignoresFilters</c>；v0.34 第二笔与它一起 +8：<c>DriverName</c> 字段；v0.38 第二笔与它一起 +16：<c>QueryModel</c> 那两颗引用字段；v11.0.0 与它一起 +312：net11 重定向 + 发射缓存冷税批次，载体未逐颗隔离，见 <see cref="PerQueryBytes" /> v11.0.0 段）。</summary>
+        public const double PredicateBytesLong = 2_540;
 
         /// <summary>第 5 行 ①：两个注册表里 <c>ConcurrentDictionary&lt;</c> 的处数。
         /// 变多是回归，变少是 G1 那半边在推进 —— 后者同样要重钉，否则网眼留着。
@@ -333,8 +367,23 @@ static class Gates
         /// 与收口编排、省下的是 15 条连接，净 +1 264 B；② <b>基线与产品同形重定型</b>——<c>AdoInsert</c> 从
         /// "每块一条连接"改为"一条连接 + 一条事务 + N 条命令"，两侧同形后差值里不再有连接编排的差。
         /// ① − ② 从 3 096 变成 4 096（执行段编排 +1 000 B：事务收口那一段），② 本身 +264（纯构建段），见
-        /// <see cref="BulkBuildBytes" />。</para></summary>
-        public const double BulkInsertBytes = 8_833_096;
+        /// <see cref="BulkBuildBytes" />。</para>
+        /// <para><b>v11.0.0 重钉成 8 768 728</b>（8 833 096 → 8 768 728，<b>−64 368，改进</b>；来源场
+        /// <c>net11-rc-pgoff-gate-1/2/3.log</c> 三场逐字）。按门禁那句"比基线好也要重钉成新的基线才算跟上，否则网眼留着"重钉。
+        /// 这一笔是<em>省</em>的一侧，载体未逐颗隔离：net11 单档重定向（运行时 string/SqlWriter/库内分配与 net10 不同源）
+        /// 与热路径小件那一批 initiative 改动的合账，归属口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14。
+        /// 两半一起降：② 纯构建段 −64 240（见下格），① − ② 从 4 096 变 3 968（执行段 −128），
+        /// 省的几乎全在构建段那 16 块的文本与参数表上，落地编排只少 128 B —— 与这一格历来"写侧开销几乎全在构建"的形状一致。
+        /// 判据仍红（预算 ArrayPool 0 分配，src/ 里 0 处 ArrayPool 这一条本版没动），重钉消的是钉漂移不是那笔机制欠账。</para>
+        /// <para><b>v11.0.0 再重钉成 6 264 128</b>（8 768 728 → 6 264 128，<b>−2 504 600，改进</b>；来源场
+        /// <c>net11-sqlserver-namecache-gate.log</c>，复验三场逐字 6 264 128）。归属<em>定位到载体</em>：
+        /// <c>SqlServerDialect.ParameterNamer</c> 把批量插入的具名参数名 "@pN" 改成跨块复用的缓存串（静态 string?[4096] 良性竞态）。
+        /// 默认发号方案 <c>prefix + "p" + count</c> 每格造<em>三颗</em>串——"@p" 中间串 + count.ToString() + 最终拼接，
+        /// 本批 29 000 颗参数 × ≈86 B = 2 504 600 B 整除对上（② 纯构建段同降 2 504 600，① − ② 仍 3 968 执行段一分未动）。
+        /// 缓存名与默认 "@pN" 文本逐字相同（方言册 1656 金样全过），只共享串实例降分配，绑定按名不变。
+        /// 这是 provider 中性赢面（Core 发射层）：SQLite 编号 ?N 同款缓存另省 0.92 MB（活库），SqlServer/MySQL/PG 凡挂这颗 namer 的批量插入同享。
+        /// 判据仍红（ArrayPool 0 处那条没动）。</para></summary>
+        public const double BulkInsertBytes = 6_264_128;
 
         /// <summary>第 6 行 ②：同一批的纯构建段（16 块的文本 + AST + 参数表，不连库）。
         /// 与 ① 不是同一个自由度：① 还含执行段的编排，而这一段是"审阅用的那条 SQL"也要付的 ——
@@ -370,8 +419,16 @@ static class Gates
         /// 这一枚与第 11 行那对 +24 是同一族欠账（重钉了而说不出哪一版多了它），一起记 §14。</para></summary>
         /// <para><b>v0.41 重钉成 8 829 000</b>（8 828 736 → 8 829 000，+264；来源场同 <see cref="BulkInsertBytes"/>，
         /// 两场逐字同值）。+264 的落点在构建段那 16 块的发射上——多块收口本身不产文本，这一格涨的形状与 v0.26
-        /// 那次"两半之间搬家"同族：① − ② 从 3 096 变 4 096，涨的那 1 000 B 是执行段的事务收口编排，不在这格里。</para></summary>
-        public const double BulkBuildBytes = 8_829_000;
+        /// 那次"两半之间搬家"同族：① − ② 从 3 096 变 4 096，涨的那 1 000 B 是执行段的事务收口编排，不在这格里。</para>
+        /// <para><b>v11.0.0 重钉成 8 764 760</b>（8 829 000 → 8 764 760，<b>−64 240，改进</b>；来源场同
+        /// <see cref="BulkInsertBytes" />，三场逐字）。与 ① 同笔同向，省的几乎全在这一格（纯构建段，一颗都没绑进驱动）——
+        /// 载体未逐颗隔离，是 net11 重定向 + 热路径小件批次的合账，口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14。
+        /// 另：v0.26/v0.38 记的那笔 120 B 抖（"五场里第三场偏低"）在关 PGO 后三场逐字同值、不再现 ——
+        /// 那笔抖与第 1/3 行的噪声同族（JIT/PGO 状态），口径改后消失，不是产品又改了 120 B。</para>
+        /// <para><b>v11.0.0 再重钉成 6 260 160</b>（8 764 760 → 6 260 160，<b>−2 504 600，改进</b>；来源场同
+        /// <see cref="BulkInsertBytes" />，三场逐字）。与 ① 同笔同幅：SqlServerDialect 具名参数名 "@pN" 缓存消掉每格三颗串分配，
+        /// 全落在纯构建段（一颗都没绑进驱动），① − ② 仍 3 968（执行段一分未动）。归属与算账见 <see cref="BulkInsertBytes" /> 末段。</para></summary>
+        public const double BulkBuildBytes = 6_260_160;
 
         /// <summary>第 10 行 ①：一条 30 列宽表的出口查询上，注册<em>一颗</em>全局过滤器比不注册多付的字节。
         /// <para>这一格与 ② 都是 v0.27 新立的钉，立它的原因写在 §10.7 约束 4 那一格与 §12.8 第 10 行。
@@ -393,8 +450,14 @@ static class Gates
         /// 而这一档在出口上折两只模型 —— <c>FilterRegistry.Apply</c> 那一次"整模型拷贝"一只、谓词追加一只，
         /// 于是 1 颗付 2 × 16。这与下面 ② 那一段 2 616→2 680（4 × 16）合起来正好是本格一直写着的形状：
         /// <b>拷贝是一次性的、每颗只加自己那一小段</b>，所以 ② 给 1 + 3 = 4 只而不是 3 只。
-        /// 比值仍按当场两枚自除：1 320 与 2 680 之比 2.03，与 v0.34 那档同一数，形状一分没动，动的只有地价。</para></summary>
-        public const double FilterBytesOne = 1_320;
+        /// 比值仍按当场两枚自除：1 320 与 2 680 之比 2.03，与 v0.34 那档同一数，形状一分没动，动的只有地价。</para>
+        /// <para><b>v11.0.0 重钉成 1 512</b>（1 320 → 1 512，+192；来源场 <c>net11-rc-pgoff-gate-1/2/3.log</c> 三场逐字）。
+        /// 载体本笔<em>未逐颗隔离</em>：<c>FilterRegistry.Apply</c> 的克隆结构与 <c>QueryModel</c> 本版都没改
+        /// （Apply 只删了 RDC 标注、加了每注册表一颗的 _version 字段，不在每出口测量窗里），所以这次不是 v0.38 那两只模型；
+        /// 它是发射缓存冷税（过滤器在册时 Effective 每次交新模型 → 每出口必 miss 建缓存对象）与 net11 重定向批次的合账，
+        /// 口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14。与第 12 行 ① 同幅 +192（同一笔钱在出口与整链两格各显一次）。
+        /// 比值 3 256 ÷ 1 512 = 2.15，仍在判据 ⑥ 那道 3.5 闸门内 —— 形状没塌，动的还是地价。</para></summary>
+        public const double FilterBytesOne = 1_512;
 
         /// <summary>第 10 行 ②：同一条链上注册三颗时多付的字节。②÷① 就是"线不线性"，
         /// 但那一维由本行的判据直接判（不靠读两格相除），这里钉的是"哪天第 2~3 颗变贵了"。
@@ -412,8 +475,13 @@ static class Gates
         /// <para><b>v0.38 第二笔 +64</b>（2 616 → 2 680），与 ① 同笔同载体：三颗过滤器在这一档折 4 只模型
         /// （一次共用拷贝 + 每颗一次追加），每只 +16 B ⇒ 4 × 16 = 64。自检就在两枚之间：② − ① = 1 360，
         /// 与 v0.34 那档的 1 328 差 32 = 两颗模型的差额，也就是"多出来的那两只各付 16" ——
-        /// 拷贝侧一次、追加侧每颗一次，这条不变式在本版仍然成立（比值 2 680 ÷ 1 320 = 2.03，与旧账同档）。</para></summary>
-        public const double FilterBytesMany = 2_680;
+        /// 拷贝侧一次、追加侧每颗一次，这条不变式在本版仍然成立（比值 2 680 ÷ 1 320 = 2.03，与旧账同档）。</para>
+        /// <para><b>v11.0.0 重钉成 3 256</b>（2 680 → 3 256，+576；来源场同 <see cref="FilterBytesOne" />，三场逐字）。
+        /// 与 ① 同笔，载体未逐颗隔离（口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14）。
+        /// 自检：② − ① = 3 256 − 1 512 = 1 744，旧账 2 680 − 1 320 = 1 360，差 384；摊到第 2~3 颗每颗 872 B
+        /// （旧档 680 B），增量之差的形状仍是"每颗各加自己那一小段"。比值 2.15 在 3.5 闸门内，判据 ⑥ 没被推动。
+        /// 与第 12 行 ② 同幅 +576。</para></summary>
+        public const double FilterBytesMany = 3_256;
 
         /// <summary>第 11 行 ①：<c>SaveChanges</c> 走<em>合并档</em>时，一次保存（13 行 × 1 列）的 QuickSql 侧字节。
         /// <para>v0.28 新立的钉。立它的原因就是 §14 那一格「合并档没有耗时与分配的见证」：§12.5 的合并从 v0.19 起
@@ -461,8 +529,14 @@ static class Gates
         /// 它只在"至少有一颗要写的实体"那条路上 —— 又因为两腿同幅，它不可能是每桶或每语句一颗。
         /// <b>给下一笔的证伪法</b>：在写链入口（<c>Write/</c> 下那两链的公共段：分桶计划、拓扑序结果、写报告三类候选）
         /// 找那一次新建的单字段对象，把它换成栈上局部量或复用一个既有对象，重建复跑 —— 这一枚回到 29 528 就是它，
-        /// 不动就是错；复跑时地板那一块必须仍是 6 272，否则改到的不是这一格而是侦测段。欠账同步记 §14。</para></summary>
-        public const double MergedSaveBytes = 29_552;
+        /// 不动就是错；复跑时地板那一块必须仍是 6 272，否则改到的不是这一格而是侦测段。欠账同步记 §14。</para>
+        /// <para><b>v11.0.0 重钉成 31 288</b>（29 552 → 31 288，+1 736；来源场 <c>net11-rc-pgoff-gate-1/2/3.log</c> 三场逐字）。
+        /// <b>这一次两腿不同幅</b>（与 v0.38 那笔 +24/+24 相反）：合并 +1 736、逐条 +2 568（见下格），差 832 ——
+        /// 所以这一笔不全在"一次保存"的共用段上，有 832 B 跟着逐条腿的语句搭建那一侧走（13 条语句对 1 条）。
+        /// 载体未逐颗隔离：写链那批 initiative 改动（导航迁移、热路径小件）与 net11 重定向的合账，
+        /// 口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14。判据仍绿（合并 1 条 / 逐条 13 条、参数 26=26、事务 1/1/0 那几条本版没动），
+        /// 重钉消的是钉漂移。地板腿（同一批不弄脏）那一段是否仍逐字未动，逐场读数记 §12.8 第 11 行。</para></summary>
+        public const double MergedSaveBytes = 31_288;
 
         /// <summary>第 11 行 ②：同一批走<em>逐条档</em>时一次保存的字节。它是 ① 的对照腿，不是"上一版的 ①" ——
         /// 两腿在同一次运行里各测一遍，所以这一格从来不跨运行搬数。
@@ -483,8 +557,13 @@ static class Gates
         /// 它落在两腿<em>共用</em>的那一段（打开/提交/那次 <c>SaveChanges</c> 的编排）上，不落在语句搭建上。
         /// 载体与 ① 同样是<em>没有定位到</em>（判读、三条形状事实与证伪法都在 <see cref="MergedSaveBytes" /> 末段那一条，这里不复述）；
         /// 本格因此和 ① 一起成为 15 枚钉里唯一一对「重钉了而归属只能写成'共用那一段'」的数 —— 这一对要如实留在 §14 的欠账清单上，
-        /// 不许因为"两腿同号所以看着像有解释"就当它已经归了属。</para></summary>
-        public const double SingularSaveBytes = 60_304;
+        /// 不许因为"两腿同号所以看着像有解释"就当它已经归了属。</para>
+        /// <para><b>v11.0.0 重钉成 62 872</b>（60 304 → 62 872，+2 568；来源场同 <see cref="MergedSaveBytes" />，三场逐字）。
+        /// 与 ① 同笔但<em>不同幅</em>：① +1 736、② +2 568，② 比 ① 多 832 —— 这 832 B 跟着逐条腿的语句搭建走
+        /// （13 条语句对 1 条），不再像 v0.32/v0.34/v0.38 那三笔"两腿逐字相等、跟着参数颗数走"。
+        /// 载体未逐颗隔离（口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14）。判据 ⑤（① ÷ 行数 ≤ ② ÷ 行数）仍成立：
+        /// 每行 2 407 B 对 4 836 B，合并的相对优势没丢。</para></summary>
+        public const double SingularSaveBytes = 62_872;
 
         /// <summary>第 12 行 ①：第 2 行那条物化链（1 001 行 × 30 列的一次 <c>ToListAsync()</c>）在
         /// <em>注册一颗</em>全局过滤器之后的整链增量子节。
@@ -517,8 +596,13 @@ static class Gates
         /// 一颗过滤器在<em>出口</em>那一段要一次共用拷贝 + 一次追加（<c>FilterRegistry.Apply</c> 里的两次 <c>with {}</c>），
         /// 所以 +32 = 2 × 16 在第 10 行与第 12 行两格上<em>各自独立</em>对上，不是把同一枚数搬了两次。
         /// 同场控制有两条：① 1 行档与 1 001 行档之差仍是 0 B（判据 ⑤ 没动），所以这一笔不随行数放大，
-        /// 它只能落在"每次注册/每颗过滤器一次"的东西上；② 三颗那一枚 +64 = 4 × 16 同式，见下格。</para></summary>
-        public const double FilteredChainBytesOne = 1_472;
+        /// 它只能落在"每次注册/每颗过滤器一次"的东西上；② 三颗那一枚 +64 = 4 × 16 同式，见下格。</para>
+        /// <para><b>v11.0.0 重钉成 1 664</b>（1 472 → 1 664，+192；来源场 <c>net11-rc-pgoff-gate-1/2/3.log</c> 三场逐字）。
+        /// 与第 10 行 ① 同幅 +192（同一笔钱在出口与整链两格各显一次），载体未逐颗隔离 —— 不是 v0.38 那两只模型
+        /// （<c>QueryModel</c>/<c>Apply</c> 本版没改），是发射缓存冷税 + net11 重定向批次，口径见
+        /// <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14。判据 ⑤ 仍成立：1 行档与 1 001 行档之差 0 B（三场逐字），
+        /// 这一笔不随行数放大；判据 ④（链 ÷ 出口 = 1.08 ≤ 1.5）也没动。</para></summary>
+        public const double FilteredChainBytesOne = 1_664;
 
         /// <summary>第 12 行 ②：同一条链<em>注册三颗</em>过滤器之后的整链增量子节。与 ① 的关系同第 10 行那对：
         /// ① 是"贴一颗"、② 是"贴三颗"，两枚一起才把超线性拦住（判据里那条 ② ≤ 3.5 × ① 沿用第 10 行的闸门），
@@ -538,8 +622,12 @@ static class Gates
         /// 而比值 3 072 ÷ 1 472 = 2.09 仍在第 10 行那道 3.5 的闸门内，判据 ⑥ 没被这一笔推动。
         /// 1 行档同读 3 072（与 1 001 行档之差 0 B，<c>v38-gate-2</c>），所以 ⑤ 也照旧：这一笔不随行数放大。
         /// 归属、量法（136 B/只）与那批<em>没有落笔记录的落地产品</em>都在 <see cref="PerQueryBytes" /> 末段，
-        /// 与 <see cref="FilteredChainBytesOne" /> 那一条；本格不另起一套解释。</para></summary>
-        public const double FilteredChainBytesMany = 3_072;
+        /// 与 <see cref="FilteredChainBytesOne" /> 那一条；本格不另起一套解释。</para>
+        /// <para><b>v11.0.0 重钉成 3 648</b>（3 072 → 3 648，+576；来源场同 <see cref="FilteredChainBytesOne" />，三场逐字）。
+        /// 与第 10 行 ② 同幅 +576，载体未逐颗隔离（口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14）。
+        /// 自检：② − ① = 3 648 − 1 664 = 1 984，比值 3 648 ÷ 1 664 = 2.19 仍在 3.5 闸门内（判据 ⑥）；
+        /// 1 行档同读 3 648（与 1 001 行档之差 0 B），判据 ⑤ 照旧：不随行数放大。</para></summary>
+        public const double FilteredChainBytesMany = 3_648;
 
         /// <summary>第 13 行 ①：<b>1 000 只已跟踪实体、全员未变的一轮 <c>DetectChanges</c></b> 的字节。
         /// <para>这一枚就是 §8.2 末尾那句「快照的装箱税」的所在：<c>EntityTracker.DetectChanges</c> 逐列
@@ -555,16 +643,25 @@ static class Gates
         /// <see cref="SaveLeg"/> 的注释里。这一枚与 <c>ChangeTrackerBench</c> 报的 507.84 KB 是同一条账而不同档：
         /// 那里 1 000 只由 <c>Harness.Table</c> 逐列灌值（可空列也有值 ⇒ 520 B/只），这里 1 000 只由
         /// <c>Attach(new WideRow { Id = i + 1 })</c> 造（可空列全是 null、压根不装箱 ⇒ 472 B/只），
-        /// 后者对得上第 11 行地板腿那一格的 482 B/只。两把尺子不许互相换算。</para></summary>
-        public const double DetectCleanBytes = 472_032;
+        /// 后者对得上第 11 行地板腿那一格的 482 B/只。两把尺子不许互相换算。</para>
+        /// <para><b>v11.0.0 重钉成 472 000</b>（472 032 → 472 000，<b>−32，改进</b>；来源场
+        /// <c>net11-rc-pgoff-gate-1/2/3.log</c> 三场逐字）。与 ② 同幅 −32，跟着"一轮侦测"走而不是每只（1 000 只）——
+        /// 32 B 是一只小对象/数组头的量级，一轮省一只。载体未逐颗隔离（net11 重定向 + 热路径小件批次，
+        /// 口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14）。装箱那半（§12.7 struct 快照欠账）本版没动，
+        /// 这 32 B 不是它 —— 472 B/只那一档形状照旧。</para></summary>
+        public const double DetectCleanBytes = 472_000;
 
         /// <summary>第 13 行 ②：同一档规模、<b>每只实体都有一列被改过</b>的一轮 <c>DetectChanges</c> 的字节。
         /// <para>它与 ① 同价<em>就是</em>「§8.2 那句 hash 短路没接线」的实测形状（上册 475 704 vs 472 032，
         /// 差 0.8%）。本格不把相等做成判据（第 12 行那句教训：把一条待办的形状钉成契约，接线那天它会站在错的一侧），
         /// 只把两枚各自钉着 —— 哪天短路接上了，① 会掉下来而 ② 照旧，那是要重钉而不是要红。
         /// 那 0.8%（3 672 B = 3.7 B/只）不是噪声，是<em>状态跃迁</em>那一格的代价：脏腿每只都要把 <c>State</c>
-        /// 从 Unmodified 推到 Modified 并置粘性位，而 clean 腿一步都不推。没接线时它已经在 ② 里，接线之后它就是 ② 的全部。</para></summary>
-        public const double DetectDirtyBytes = 475_704;
+        /// 从 Unmodified 推到 Modified 并置粘性位，而 clean 腿一步都不推。没接线时它已经在 ② 里，接线之后它就是 ② 的全部。</para>
+        /// <para><b>v11.0.0 重钉成 475 672</b>（475 704 → 475 672，<b>−32，改进</b>；来源场同 <see cref="DetectCleanBytes" />，
+        /// 三场逐字）。与 ① 同幅 −32（同一只小对象在一轮侦测里省一次，clean/dirty 两腿都付那一段）。
+        /// ② − ① 仍 3 672 B（状态跃迁那 0.8% 一分没动），hash 短路仍未接线 —— 本格不把相等做成判据那条照旧。
+        /// 载体未逐颗隔离，口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14。</para></summary>
+        public const double DetectDirtyBytes = 475_672;
 
         /// <summary>第 13 行 ③：<b>1 000 只已跟踪实体、其中一只脏着的一次 <c>SaveChanges</c></b> 的字节。
         /// <para>这一枚量的是<em>会话级</em>那一半税：一句 UPDATE 的发射只跟批次走，而
@@ -598,8 +695,14 @@ static class Gates
         /// <b>−288 B</b>（合并 29 952 → 29 664、逐条 61 952 → 61 664），那一格是 13 只 ⇒ 2 ×（40 + 8 × 13）= 288，
         /// 同一处代码在另一个规模上的同幅读数。<b>本格不把第 11 行的钉一起改掉</b>：那一格今天还挂着 +400 / +1 648
         /// 两笔与跟踪层无关的回归（条件 <c>Where</c> 那一版推上来的，见其自己的回归位），把 −288 折进那一版的账
-        /// 等于替别人落一笔归属错的钉。谁重钉第 11 行，谁要同时说清这两笔的方向。</para></summary>
-        public const double OneWriteSaveBytes = 509_784;
+        /// 等于替别人落一笔归属错的钉。谁重钉第 11 行，谁要同时说清这两笔的方向。</para>
+        /// <para><b>v11.0.0 重钉成 511 376</b>（509 784 → 511 376，+1 592；来源场 <c>net11-rc-pgoff-gate-1/2/3.log</c> 三场逐字）。
+        /// 方向与 ①② 相反：那一轮侦测两枚本版各 −32（见上两格），而这一枚<em>侦测之外</em>的保存编排涨了 1 592 ——
+        /// 所以涨的不是侦测段，是 <c>WritesAreDue → AnyDue / WriteCluster / PostFlush</c> 那一段按会话规模过的编排
+        /// （写链那批 initiative 改动：<c>UpdateEngine</c> 与导航迁移，叠 net11 重定向）。载体未逐颗隔离，
+        /// 口径见 <see cref="PerQueryBytes" /> v11.0.0 段，欠账记 §14。判据 ⑥（每只税与纯侦测每只税之差 &lt; 200 B）仍成立：
+        /// 每只税 504 B、纯侦测 472 B/只，差 32 B（v0.39 那笔 −16 080 把每只税从 48 降到 32 的形状本版没动）。</para></summary>
+        public const double OneWriteSaveBytes = 511_376;
     }
 
     /// <summary>有红行比基线更差时加到退出码上的那一位。<b>CI 要硬断言的是这一位没亮</b>，
@@ -679,6 +782,7 @@ static class Gates
 
         return [
             Allocation(generated),
+            WarmReEmission(generated),
             ThroughputVsDapper(generated),
             PerRowAllocation(generated),
             SqlBuild(),
@@ -707,10 +811,11 @@ static class Gates
         // —— 两数一比就知道这笔钱是"每列一次"还是"每查询一次"，而那决定了该去哪一层省。
         var one = Harness.Table(schemas, typeof(WideRow), One);
         var orm = Harness.Orm(_ => one, schemas);
-        var root = orm.Select<WideRow>();
 
         var entry = Measuring.Bytes(() => _ = orm.Select<WideRow>());
-        var build = Measuring.Bytes(() => _ = root.ToSql());
+        // v11.0.0 起 build 段量冷发射（每次测量新建链，减 entry）：发射缓存落地后复用 root 量到的是
+        // 热路径（≈0），而这一段的语义是"一次发射的价格"，必须保持冷。热再发射单独钉在 WarmReEmission 行。
+        var build = Measuring.Bytes(() => _ = orm.Select<WideRow>().ToSql()) - entry;
         var narrow = Measuring.Bytes(() => _ = orm.Select<BenchOrder>().ToSql());
 
         // 列数从契约拿，不写死：这两个数字一改（加字段、或哪天有列被忽略），摊平的每列字节就得跟着变，
@@ -741,6 +846,34 @@ static class Gates
             + "因为每场次那张取数票是值类型、只带一颗 <c>byte[]</c>（30 列实测 56 B，归属与那一版 232 B 的来龙去脉写在 Baselines.PerQueryBytes 末段）。"
             + "所以这一格的结论形状没变：要省的还是发射层那每列 114 B，物化层这一笔已经小到进入「每查询一个引用槽」的噪声档。",
             Pins: [new Pin("每查询字节（除结果对象外）", Baselines.PerQueryBytes, Math.Round(quicksql))]);
+    }
+
+    // ---------- 第 1b 行 ----------
+
+    /// <summary>热再发射：同一条链第二次起 ToSql() 的分配（v11.0.0 发射缓存落地后新增）。
+    /// 缓存的合法性边界（链不可变、值在算子时刻已翻进 AST；过滤器在册不记忆、后注册靠版本号顶掉）
+    /// 由 SqlEmissionCacheTests 六颗用例钉住，本格只钉分配形状：命中路径应只剩缓存查找，
+    /// 0 B 是目标，钉按来源场重钉。与第 1 行 build 段（冷发射）是同一层的两面：
+    /// 冷的那格量"发射一次多贵"，这格量"重复发射还付不付钱"。</summary>
+    static GateRow WarmReEmission(IEntitySchemaRegistry schemas)
+    {
+        var one = Harness.Table(schemas, typeof(WideRow), One);
+        var orm = Harness.Orm(_ => one, schemas);
+        var root = orm.Select<WideRow>();
+
+        var warm = Measuring.Bytes(() => _ = root.ToSql());
+
+        return new GateRow(
+            "同一条链热再发射（第二次起 ToSql()）的托管分配",
+            "0 B（缓存命中只剩查找路径）",
+            $"{N(warm)} B/次（30 列实体，无 Where 无过滤器；首发建缓存不在测量窗内）",
+            warm <= Baselines.WarmReEmissionBytes ? Verdict.Green : Verdict.Red,
+            "发射缓存按模型引用 + 过滤器版本命中：链不可变、ParameterValue 在算子时刻已定值，"
+            + "同模型重复 Compile + SqlWriter + Emit 是纯重复劳动。过滤器在册时 Effective 每次交新模型 → 天然 miss，"
+            + "租户新鲜性不靠缓存担保（正确性判据在 SqlEmissionCacheTests，不在本格）。"
+            + "执行期变体（Capped/Paged/Aggregate 的 with 模型）引用不同 → miss 重建并占槽，"
+            + "变体与本体交替执行会互相顶掉——那是少数派形状，本格量的是经典复用形状。",
+            Pins: [new Pin("热再发射字节", Baselines.WarmReEmissionBytes, warm)]);
     }
 
     // ---------- 第 2 行 ----------
@@ -945,7 +1078,9 @@ static class Gates
         // 手段那一半数的是"这个机制存不存在"，不数它用了几次：一次都没有就说明判据里没有这一项。
         var pooled = Repo.Sources().Sum(f => Repo.Count(f, "ArrayPool"));
 
-        async Task Insert() => await orm.InsertRange(rows).ExecuteAffrowsAsync();
+        // 显式钉文本档：本行量的是 L3 的 ArrayPool/稳态分配，v11.0.0 起默认出口是钩子感知 Auto，
+        // 不点名就把"量哪一层"交给假驱动能不能解析出装载类这种巧合。
+        async Task Insert() => await orm.InsertRange(rows).WithBulk(BulkMethod.MultiValue).ExecuteAffrowsAsync();
 
         return new GateRow(
             $"{BulkRows:N0} 行 × {plan.ColumnsPerRow} 列 批量插入",
@@ -1227,17 +1362,15 @@ static class Gates
         // 它为什么不动摇这一格的判据：钉的是增量（减掉同一次运行里的自家基数），绝对值只报不钉，
         // 所以那 32 B 在减号两边同时出现、互相抵掉。反过来说，这一格印出来的 4 760 也别搬去和第 1 行的
         // 4 792 比大小 —— 那正是这一格最初那句"同源"写错的地方。
+        // v11.0.0 改冷测量（每次测量新建链）：发射缓存落地后，复用根链的无过滤器腿会变热（0 B），
+        // 而有过滤器腿天然冷（在册不记忆），增量会把整段发射价钱混进"过滤器的价钱"。
+        // 新链每次多付一只引擎（entry 段），但四腿同付，增量里互相抵掉——钉的是增量，绝对值只报不钉，
+        // 所以这一改不动判据，只把绝对值抬了一个 entry（与第 1 行 build 段的冷改同一条理由）。
         static long PerExit(QuickSqlOrm orm)
-        {
-            var root = orm.Select<WideRow>();
-            return Measuring.Bytes(() => _ = root.ToSql());
-        }
+            => Measuring.Bytes(() => _ = orm.Select<WideRow>().ToSql());
 
         static long PerExitWithWhere(QuickSqlOrm orm)
-        {
-            var root = orm.Select<WideRow>();
-            return Measuring.Bytes(() => _ = root.Where(w => w.Id > 0).ToSql());
-        }
+            => Measuring.Bytes(() => _ = orm.Select<WideRow>().Where(w => w.Id > 0).ToSql());
 
         var atNone = PerExit(none);
         var atOne = PerExit(one);
@@ -1275,10 +1408,7 @@ static class Gates
             ]);
 
         static Func<Task> Root(QuickSqlOrm orm)
-        {
-            var root = orm.Select<WideRow>();
-            return () => { _ = root.ToSql(); return Task.CompletedTask; };
-        }
+            => () => { _ = orm.Select<WideRow>().ToSql(); return Task.CompletedTask; };
     }
 
     // ---------- 第 11 行 ----------
@@ -1537,10 +1667,11 @@ static class Gates
         var nanos = Measuring.Nanoseconds(materialize);
         var counted = orm.Select<WideRow>().ToListAsync().GetAwaiter().GetResult().Count;
 
-        var root = orm.Select<WideRow>();
-        var exit = Measuring.Bytes(() => _ = root.ToSql());
+        // v11.0.0 起出口段也量冷（每次新建链）：发射缓存会让无过滤器腿变热（0 B），
+        // 增量混进整段发射价钱，判据 ④ 的"链 ÷ 出口 ≈ 1"随之失真。四腿同付 entry，增量里抵掉。
+        var exit = Measuring.Bytes(() => _ = orm.Select<WideRow>().ToSql());
 
-        return (bytes, counted, exit, root.ToSql().Length, nanos);
+        return (bytes, counted, exit, orm.Select<WideRow>().ToSql().Length, nanos);
     }
 
     /// <summary>§12.8 第 12 行：注册全局过滤器之后，<b>第 2 行那条物化链</b>多付多少。

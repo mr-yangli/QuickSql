@@ -1,0 +1,66 @@
+SOURCE=file
+DATA_SOURCE=192.168.0.102,1433 DATABASE=LightDB
+PROBE=13.0.5108.50 | SP2 | Enterprise Edition (64-bit) | LightDB | Chinese_PRC_CI_AS | 936
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 11.0.0)
+  Discovering: QuickSql.Tests.Integration
+  Discovered:  QuickSql.Tests.Integration
+  Starting:    QuickSql.Tests.Integration
+    QuickSql.Tests.Integration.ScratchSqliteReconTests.ReconAsync [SKIP]
+      只有 sqlite 一支要量
+[bulk-timing] rows=2000 copy_ms=62 l3_ms=1979
+    QuickSql.Tests.Integration.BulkPathTests.The_local_infile_gate_moves_the_batch_to_l3_and_names_the_parameter_it_needs [SKIP]
+      SqlServer 这一家的装载通道不欠连接串参数（MySQL 血统走 LOAD DATA LOCAL 才要客户端放行），这一格在本家没有对象；通道本身由下面那几条判。
+    QuickSql.Tests.Integration.BulkPathTests.The_same_batch_lands_on_l1_once_the_connection_string_allows_local_infile [SKIP]
+      SqlServer 这一家的装载通道不欠连接串参数，这一格问的是欠参数那一家的两种读数。
+    QuickSql.Tests.Integration.IntegrityErrorTranslationPathTests.A_constraint_outside_the_contract_leaves_columns_null [SKIP]
+      要在真实现场拿到约束名，今天只有 PG 系一档。
+    QuickSql.Tests.Integration.IntegrityErrorTranslationPathTests.Columns_are_resolved_from_the_contract_when_the_driver_names_the_constraint [SKIP]
+      约束名今天只有 PG 系交回（Data["ConstraintName"]）；SQL Server/MySQL 的号在结构化字段之外、SQLite 连名字都不给——那三家的 Columns 走下一颗反向用例。
+    QuickSql.Tests.Integration.PostgreSqlTimestampPathTests.The_column_declared_with_a_time_zone_keeps_the_instant_across_the_round_trip [SKIP]
+      本案判的是 Npgsql 按 DateTime.Kind 分型那一格（6.0 起的驱动行为），另几家没有这一问：Utc 钟面在 T-SQL/SQLite 上直接写进裸时刻列。
+    QuickSql.Tests.Integration.PostgreSqlTimestampPathTests.A_utc_clock_face_written_to_a_bare_timestamp_column_comes_back_as_the_same_clock [SKIP]
+      本案判的是 Npgsql 按 DateTime.Kind 分型那一格（6.0 起的驱动行为），另几家没有这一问：Utc 钟面在 T-SQL/SQLite 上直接写进裸时刻列。
+    QuickSql.Tests.Integration.BulkWritePathTests.Never_seals_the_fallback_and_writes_nothing [SKIP]
+      SqlServer 表过态（SupportsMergedStatements=true），Never 在这一家不咬 —— 它只在拿不到的那一格咬人。
+    QuickSql.Tests.Integration.BulkWritePathTests.An_upsert_with_a_key_left_at_its_default_refuses_before_any_row_moves [SKIP]
+      SqlServer 没交一句 upsert 的句尾（UpsertClause 交回 null），这一档在这一家要点名才降级、永远不可达 —— 那两格由离线册 Naming_upsert_lands_the_tier 判，本条只判接了句尾那一边在活库上的样子。
+    QuickSql.Tests.Integration.BulkWritePathTests.The_upsert_tier_and_the_merged_tier_land_the_same_columns_on_rows_that_exist [SKIP]
+      SqlServer 没交一句 upsert 的句尾（UpsertClause 交回 null），这一档在这一家要点名才降级、永远不可达 —— 那两格由离线册 Naming_upsert_lands_the_tier 判，本条只判接了句尾那一边在活库上的样子。
+    QuickSql.Tests.Integration.BulkWritePathTests.A_named_merged_request_on_a_family_that_has_not_adopted_degrades_and_names_the_provider [SKIP]
+      SqlServer 表过态（SupportsMergedStatements=true），点名 Merged 在这一家拿得到，没有降级可判 —— 那一格由上面 Auto 那条判。
+[bulk-write-timing] rows=200 merged_ms=246 single_ms=133 in_list_ms=10 posture=SqlServer
+    QuickSql.Tests.Integration.BulkWritePathTests.A_split_upsert_batch_pays_one_transaction_for_its_commands [SKIP]
+      SqlServer 没交一句 upsert 的句尾（UpsertClause 交回 null），这一档在这一家要点名才降级、永远不可达 —— 那两格由离线册 Naming_upsert_lands_the_tier 判，本条只判接了句尾那一边在活库上的样子。
+    QuickSql.Tests.Integration.BulkWritePathTests.An_upsert_updates_the_matched_rows_and_inserts_the_key_that_was_not_there [SKIP]
+      SqlServer 没交一句 upsert 的句尾（UpsertClause 交回 null），这一档在这一家要点名才降级、永远不可达 —— 那两格由离线册 Naming_upsert_lands_the_tier 判，本条只判接了句尾那一边在活库上的样子。
+[tree-tax] provider=sqlserver rows=10000 slice_sql=1 slice_ms=41 crawl_sql=8 crawl_max_params=1890 crawl_ms=2378
+    QuickSql.Tests.Integration.TreePathTests.Binary_keys_stitch_by_content_not_by_reference [SKIP]
+      建表拦在前：SqlServer 的 binary 列类型映射今天不认 Length（varbinary(max)/BLOB 不能当索引键），这一格是 CodeFirst 的账，与树形闭包无关；键表按内容比这一判据由 SQLite 与 PostgreSQL 两家守。
+    QuickSql.Tests.Integration.DataSourcePathTests.Two_replicas_are_visited_in_the_order_configured [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（两颗从库文件、每颗装着自己那一份内容），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    QuickSql.Tests.Integration.DataSourcePathTests.A_session_that_wrote_reads_its_own_row_back_while_an_explicit_replica_stays_stale [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（主从两座的陈旧差是手写的替身，不是量出来的延迟），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    QuickSql.Tests.Integration.DataSourcePathTests.Replica_choice_inside_a_transaction_is_refused_on_a_live_connection [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（事务占住的那一条是刚打开的真连接），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    QuickSql.Tests.Integration.DataSourcePathTests.A_session_released_asynchronously_does_not_leave_the_flow_marked_as_written [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（同一座主库与它的替身从库，差别只在会话怎么关），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    QuickSql.Tests.Integration.DataSourcePathTests.A_default_read_lands_on_the_replica_and_sees_only_what_replication_got [SKIP]
+      这条用例的裁判 SQL 是写给 Sqlite 的（主库与从库是两颗自建文件库（没有任何一台授权实例配了复制）），当前目标库是 SqlServer。缺的那一格要么按这一家重写裁判（下一版的活），要么把这一家加进 §13.4 的授权清单——不是把这一句删掉。
+    QuickSql.Tests.Integration.NullabilityTighteningPathTests.A_clean_store_is_not_reported_skipped_and_the_startup_still_survives [SKIP]
+      本用例的靶表按 SQLite 的裸 DDL 摆（内联自增键那一形没有跨家写法可折），而这一档要量的探针与跳过清单在本家是文件库上当场读得回的；其余家欠的是活库连接串，归另两册。
+    QuickSql.Tests.Integration.NullabilityTighteningPathTests.A_dirty_store_survives_the_startup_sync_and_reports_the_skip [SKIP]
+      本用例的靶表按 SQLite 的裸 DDL 摆（内联自增键那一形没有跨家写法可折），而这一档要量的探针与跳过清单在本家是文件库上当场读得回的；其余家欠的是活库连接串，归另两册。
+    QuickSql.Tests.Integration.SessionTransactionPathTests.A_second_connection_cannot_read_the_uncommitted_write_of_the_pinned_transaction [SKIP]
+      这一问要快照读法：SQLite 无 MVCC、SQL Server 默认 READ COMMITTED 不开 RCSI，两家的读数都是锁等待
+标量出口 ∶ SqlServer ∶ Id（Int32）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ Amount（Decimal）∶ 落臂 ∶ 门 32 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ CreatedAt（DateTime）∶ 落臂 ∶ 门 24 B/值 ∶ 出口 0 B/值
+标量出口 ∶ SqlServer ∶ CustomerName（String）∶ 落臂 ∶ 门 0 B/值 ∶ 出口 0 B/值
+    QuickSql.Tests.Integration.DefaultStringLengthPathTests.Without_the_option_the_column_stays_unbounded [SKIP]
+      默认长度的活库档只有 PG 与虚谷两台靶子（当前 SqlServer）。
+    QuickSql.Tests.Integration.DefaultStringLengthPathTests.The_default_reaches_the_catalog_and_binds_the_real_column [SKIP]
+      默认长度的活库档只有 PG 与虚谷两台靶子（当前 SqlServer）。
+  Finished:    QuickSql.Tests.Integration (ID = '36fb9a1d299f24a33ddd75012f3bce697829903b2a62478b75c1c5b1919c8fcf')
+=== TEST EXECUTION SUMMARY ===
+   QuickSql.Tests.Integration  Total: 283, Errors: 0, Failed: 0, Skipped: 24, Not Run: 0, Time: 94.123s
+EXIT=0

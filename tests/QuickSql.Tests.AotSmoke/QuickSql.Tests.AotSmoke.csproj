@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>QuickSql.Tests.AotSmoke</RootNamespace>
+    <Description>Native AOT 真发布冒烟闸：G1-only 注册表 + 显式驱动工厂，scratch SQLite 上跑 CRUD/Where/引用 Include/非生成实体拒绝。量的是「AOT 产物里跑不跑得动」，不是「静态干不干净」——后者归 src/ 的分析器闸。</Description>
+    <PublishAot>true</PublishAot>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    <!-- 本闸故意跑反射兼容档（Where 的闭包反射走解释器、Include 写口退路等），库侧的 RUC/RDC
+         标注在这一档是预期警告而不是病：静态干净由 src/ 的 IsAotCompatible 闸担保，两颗闸各量各的。
+         所以这里关掉警告即错误并点名豁免 IL2026/IL3050——不是绕检查，是检查的口径变了。 -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);IL2026;IL3050</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuickSql.Core\QuickSql.Core.csproj" />
+    <ProjectReference Include="..\..\src\QuickSql.Providers.Sqlite\QuickSql.Providers.Sqlite.csproj" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+
+  <!-- G1 生成器：编译期产出实体事实册与 provider 登记（与 samples 同一挂法） -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\QuickSql.Generators\QuickSql.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(EmitCompilerGeneratedFiles)' == 'true'">
+    <Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />
+  </ItemGroup>
+
+</Project>

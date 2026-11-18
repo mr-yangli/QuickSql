@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- TFM 由根 props 统一给（net10.0;net11.0 双目标），此处不再单钉。 -->
+    <!-- TFM 由根 props 统一给（net11.0 单目标，2026-11-16 起），此处不再单钉。 -->
     <RootNamespace>QuickSql</RootNamespace>
     <Description>QuickSql ORM 内核：元数据解析、QueryModel、AST、LINQ 归约、执行、物化、事务。</Description>
   </PropertyGroup>
@@ -10,8 +10,15 @@
     <ProjectReference Include="..\QuickSql.Abstractions\QuickSql.Abstractions.csproj" />
   </ItemGroup>
 
+  <!-- 表达式树运算符的裁剪保留指令：逻辑名必须恰为 ILLink.Descriptors.xml，trimmer 才认。
+       只在 trim/AOT 发布时被消费，普通构建忽略——JIT 档零影响。理由详见该文件头注。 -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <EmbeddedResource Include="ILLink.Descriptors.xml">
+      <LogicalName>ILLink.Descriptors.xml</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
+
+  <!-- DI 注册入口（AddQuickSqlOrm）只依赖 Microsoft.Extensions.DependencyInjection.Abstractions，
+       net11.0 起它已进共享框架（NU1510：显式 PackageReference 反而报错），不再单引。 -->
 
 </Project>

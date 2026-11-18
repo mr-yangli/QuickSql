@@ -24,6 +24,9 @@ public sealed class MySqlValues : IValueBinder
         return new AdoParameter(name, Normalize(value), DbTypeOf(value, hint), SizeOf(value), hint);
     }
 
+    /// <summary>装载通道直取归一值（与 CreateParameter 的 .Value 同口径 Normalize），不分配 AdoParameter record。</summary>
+    public object? NormalizeValue(object? value, ColumnContract? hint) => Normalize(value);
+
     static object? Normalize(object? value) => value switch
     {
         null => DBNull.Value,

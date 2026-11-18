@@ -65,6 +65,22 @@ var report = await orm.InsertRange(rows)
 Console.WriteLine($"{report.Method} / {report.RoundTrips} 往返 / {report.RowCount} 行 / 降级={report.Degraded}");
 ```
 
+量多时不必点名——`ExecuteBulkAsync` 不调 `WithBulk` 时默认取 `Auto`，它自己按行数换层：
+
+```csharp
+// 按文本层分块要发的语句数 ≥ 8（BulkLadder.AutoCopyRoundTrips）才换装载通道；
+// 量少自动留在多值语句（L3），两档都带着 BulkReport。
+var report = await orm.InsertRange(rows).ExecuteBulkAsync();
+```
+
+**只要行数、不要报告时，默认出口也自动选层**（v11.0.0 起）：
+
+```csharp
+// 没订阅 CudBuilding / ParameterBinding 时与上面同一颗 Auto 判据：量多走装载通道、量少多值语句。
+// 订阅了任一颗改写钩子就钉回文本层（钩子要看得见整句/逐颗参数）。
+var affected = await orm.InsertRange(rows).ExecuteAffrowsAsync();
+```
+
 ```csharp
 public enum BulkMethod { Auto, CopyChannel, MultiValue, SingleRow }        // 在 QuickSql.Providers 命名空间
 public enum FallbackPolicy { DegradeAndLog, DegradeSilently, Never }
@@ -72,10 +88,11 @@ public enum FallbackPolicy { DegradeAndLog, DegradeSilently, Never }
 
 要点：
 
-- **通道目前只有 SQL Server 接了**（`SqlBulkCopy` 装载链）；其余各家请求 `CopyChannel` 会整批退回文本层多值（L3）——**退层不是错误**：`BulkReport.Degraded = true` + `Reason` 说明原因，`Aop.BulkDegraded` 钩子只在真降级时派发。要"绝不静默降级"就 `FallbackPolicy.Never`。
+- **`Auto` 带行数门槛（量多自动走批量）**：它按"不切要付多少"——文本层分块后的往返次数——决定换不换通道，达到 `BulkLadder.AutoCopyRoundTrips`（8）才走装载通道，量少自动落在多值语句。门槛随参数预算自适应（SQL Server 30 列宽表 442 行到数、7 列表 1891 行；预算大的 MySQL/PG 天然少切）；显式点名 `CopyChannel` 不看门槛，3 行也走通道。要问"这一批会走哪层"用 `ExplainBulk()`（不连库、纯函数）。**`ExecuteAffrowsAsync` 不调 `WithBulk` 时走钩子感知 Auto**（v11.0.0 改判）：无 `CudBuilding`/`ParameterBinding` 订阅时与 `ExecuteBulkAsync` 同判据，订阅任一颗钉回文本层；点名 `MultiValue/SingleRow` 也钉文本。
+- **通道今天接了三家**（SQL Server 的 `SqlBulkCopy`、MySQL 血统的 `MySqlBulkCopy`、PG 血统的二进制 COPY）；其余各家请求 `CopyChannel` 会整批退回文本层多值（L3）——**退层不是错误**：`BulkReport.Degraded = true` + `Reason` 说明原因，`Aop.BulkDegraded` 钩子只在真降级时派发。要"绝不静默降级"就 `FallbackPolicy.Never`。
 - **一列不合格整批退层**（不会把那一列省掉；省一列=值不进库）。SQL Server 装载通道收 14 种 CLR 形状，`char`/`DateOnly`/`TimeOnly`/无符号整数/`object` 不在内。
-- **装载通道那一档不产 SQL 文本**：`Explain()` 永远给文本层语句，层的问题问 `ExplainBulk()`；`CudBuilding`/`ParameterBinding` 改写钩子不适用；**回填口 `ExecuteReturnKeysAsync`/`ExecuteIdentityAsync` 永不借道**。
-- **`ExecuteAffrowsAsync` 拒绝高速层**（它返回 int 装不下"走了哪一层/几次往返"），要用 `ExecuteBulkAsync`。
+- **装载通道那一档不产 SQL 文本**：`Explain()` 永远给文本层语句，层的问题问 `ExplainBulk()`；`CudBuilding`/`ParameterBinding` 改写钩子不适用（默认出口订阅了它们就钉文本层，`ExecuteBulkAsync` 点名要层时由调用方负责）；`AuditValue` 照旧生效（取值段跑）、`CommandTerminating` 闸门照旧过；**回填口 `ExecuteReturnKeysAsync`/`ExecuteIdentityAsync` 永不借道**。
+- **`ExecuteAffrowsAsync` 拒绝点名高速层**（它返回 int 装不下"走了哪一层/几次往返"）：`WithBulk(Auto/CopyChannel)` 后调它会当场抛，要报告用 `ExecuteBulkAsync`；不调 `WithBulk` 的默认档自己选层（见上）。
 - `rowsPerRoundTrip` 只压不抬：文本层是每块行数，装载通道是每次递交几行。**有环境事务时整串递交挂在同一条事务上**；没有事务时块与块之间不原子。
 - 通道少报行数当场抛 `QuickSqlException`（拦"悄悄交出假数"，不回滚）。
 - **列宽默认口径**：默认每句参数数 = 预算九成（如 SQL Server 恒 1890 颗）。实测"每句耗时 vs 每句颗数"非线性，超大批量自己压 `rowsPerRoundTrip`。

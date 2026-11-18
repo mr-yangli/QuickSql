@@ -50,8 +50,17 @@ public sealed class QuickSqlOrmOptions
 
     public int CommandTimeoutSeconds { get; init; } = 30;
 
+    /// <summary>连接打开回调：每颗新打开的连接在投入使用前调用（如 SQLite 的 PRAGMA busy_timeout）。
+    /// 同步委托——驱动打开后紧接着执行，异常会中止取用。</summary>
+    public System.Action<System.Data.Common.DbConnection>? OnConnectionOpened { get; init; }
+
     /// <summary>默认 Throw：宁可少跑一条 SQL，也不要一个"数据库不保证的行序"被当成稳定的分页结果。</summary>
     public PagingOrderingPolicy PagingOrdering { get; init; } = PagingOrderingPolicy.Throw;
+
+    /// <summary>约定开关：整型主键（int/long/short 名为 Id 形态）未声明时是否按自增处理。默认 true
+    /// （QuickSql 独立使用：库给号）。客户端自己生成主键的框架（如 Fulcrum 的雪花 id）设为 false，
+    /// 否则 INSERT 撇掉已赋值的 Id、库另发号，实体上的 id 与落库行对不上。</summary>
+    public bool IntegralPrimaryKeyAutoIncrement { get; init; } = true;
 
     /// <summary>结构同步策略。默认 Disabled：生产库常禁 DDL 权限，不自动执行。
     /// Development 环境可设为 Execute 自动建表；非 Development 环境要求同时设 ForceSchemaSync，否则启动期抛错。</summary>
@@ -90,7 +99,7 @@ public sealed class QuickSqlOrm
     [RequiresDynamicCode("G2 兜底注册表编译读写委托。")]
     public QuickSqlOrm(QuickSqlOrmOptions options)
         : this(options, new EntitySchemaRegistry(new ContractResolver(options.Provider, options.Model,
-            defaultStringLength: options.DefaultStringLength)))
+            options.IntegralPrimaryKeyAutoIncrement, defaultStringLength: options.DefaultStringLength)))
     {
     }
 
@@ -109,7 +118,7 @@ public sealed class QuickSqlOrm
         DefaultStringLength = options.DefaultStringLength;
         Sources = new ConnectionSources(options.ConnectionString, options.Replicas, options.Clusters);
         Compiler = new QueryCompiler(Provider);
-        Ado = new AdoExecutor(Provider, Sources, options.Aop, options.CommandTimeoutSeconds, ContractByTableName);
+        Ado = new AdoExecutor(Provider, Sources, options.Aop, options.CommandTimeoutSeconds, ContractByTableName, options.OnConnectionOpened);
         Filters = new FilterRegistry(this);
         Behaviors = new BehaviorRegistry(this);
     }
@@ -194,34 +203,37 @@ public sealed class QuickSqlOrm
     /// 三处删除出口（Delete 链、DeleteRange、SaveChanges 里被摘掉的行）都读这一份。</summary>
     public BehaviorRegistry Behaviors { get; }
 
-    /// <summary>lambda → AST 的归约器。按需构造：只有真正走到链式翻译的调用方才为它付 AOT 代价。
-    /// 标注只能落在 get 上——RequiresUnreferencedCode 的目标是方法，属性本身不是合法目标（CS0592）。</summary>
+    /// <summary>lambda → AST 的归约器。按需构造：只有真正走到链式翻译的调用方才为它付裁剪税。
+    /// 标注只能落在 get 上——RequiresUnreferencedCode 的目标是方法，属性本身不是合法目标（CS0592）。
+    /// 只有 RUC 没有 RDC：闭包求值的退路走 CompileAotSafe（AOT 下解释执行），不产生动态代码。</summary>
     internal ExpressionTranslator Expressions
     {
         [RequiresUnreferencedCode("闭包常量求值按 MemberInfo 读字段/属性。")]
-        [RequiresDynamicCode("不可约子表达式的退路是 LambdaExpression.Compile()。")]
         get => _expressions ??= new ExpressionTranslator(Provider, Schemas, TableRefFactory);
     }
 
     internal ProjectionTranslator Projections
     {
         [RequiresUnreferencedCode("转调 ExpressionTranslator。")]
-        [RequiresDynamicCode("转调 ExpressionTranslator。")]
         get => _projections ??= new ProjectionTranslator(Expressions);
     }
 
     /// <summary>读侧入口。返回的对象是不可变的值，可以复用、传出去、不需要 Clone。没有非泛型口：
     /// 按运行期 Type 造查询只能靠 Activator.CreateInstance + MakeGenericMethod，那是点名要避开的形态；
-    /// 动态表名/影子表请走 ModelConfiguration 的表名映射。这里的标注是整条读路径的入口税。</summary>
-    [RequiresUnreferencedCode("G2/G3 读路径：闭包求值与投影组装按运行期 Type 反射。")]
-    [RequiresDynamicCode("G2/G3 读路径：投影与比较委托要编译表达式树，AOT 下不可用。")]
+    /// 动态表名/影子表请走 ModelConfiguration 的表名映射。
+    /// 入口本身零反射零动态代码：契约经 IEntitySchemaRegistry 接口取（G1-only 实现静态干净），
+    /// 引擎构造只接线。反射档的税在算子口（Where/Select 投影/Include 的 lambda 归约与导航缝合）
+    /// 与物化分派口（DTO 投影）——经 IQuery 接口调用不携带警告是本库的接口口径（§12.7），
+    /// trim/AOT 宿主请用 AddQuickSqlOrmAotSafe / G1OnlyEntitySchemaRegistry 把元数据档钉死在 G1。</summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "入口构造零反射：契约经注册表接口取（G1-only 实现静态干净），根模型与引擎构造只接线。链式实现类的类级税覆盖的是 lambda 算子与导航缝合，不是构造。")]
+    [UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "同上：构造不产生动态代码。DTO 装配与集合导航缝合的动态代码税在物化分派口（Materializer）与 MemberAccessors。")]
     public IQuery<T> Select<T>() where T : class => new QuickSqlQuery<T>(RootEngine(typeof(T)));
 
-    /// <summary>根模型：一个表位 + 实体投影。取契约这一步就是 G2（按 Type 反射解析实体），标注跟着 Select。
+    /// <summary>根模型：一个表位 + 实体投影。取契约经注册表接口（G1-only 实现零反射），构造期零动态代码。
     /// tracker 是会话的跟踪器，null 就是这条链不跟踪——它不进模型，所以 orm.Select〈T〉() 与
     /// db.Set〈T〉().AsNoTracking() 的模型文本逐字节相等。gate 是会话的并发闸，null 就是根链，不进闸。</summary>
-    [RequiresUnreferencedCode("按 Type 向注册表取实体契约（G2）。")]
-    [RequiresDynamicCode("G2 注册表编译读写委托。")]
     internal QueryEngine RootEngine(Type clrType, ChangeTracker? tracker = null, SessionGate? gate = null, Schema.IEntitySchemaRegistry? schemas = null)
     {
         var table = NewTableRef(clrType, 0, schemas);
@@ -329,20 +341,21 @@ public sealed class QuickSqlOrm
     public IStorageable<T> Storageable<T>(IEnumerable<T> rows) where T : class => new StorageableChain<T>(this, rows);
 
     /// <summary>UPDATE 链（orm.Update〈Item〉().Set(...).ExecuteAffrowsAsync(ct)）。
-    /// 这一条链与 Select 一样要付 RUC/RDC 入口税，而 Insert 不付：条件与表达式值要过 ExpressionTranslator
-    /// （闭包求值 + 退路编译），插入只向注册表要列契约与委托——这是"写侧两条链的 AOT 成本不同"的唯一出处。
-    /// Filters 上在册的过滤器会叠进这一句的 WHERE，口径与 Delete 相同。</summary>
-    [RequiresUnreferencedCode("Where/Set 的 lambda 归约走闭包常量求值。")]
-    [RequiresDynamicCode("不可约子表达式的退路是编译表达式树。")]
+    /// 入口本身零反射：契约经注册表接口取、引擎构造只接线。lambda 算子（Where/Set 表达式档）
+    /// 的裁剪税在算子口（闭包求值按 MemberInfo 反射）；常量 Set 与按实体那一档全程走 schema 读写口，
+    /// G1-only 注册表下静态干净。Filters 上在册的过滤器会叠进这一句的 WHERE，口径与 Delete 相同。</summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "构造只接线：契约经注册表接口取，零反射。引擎类级 RUC 覆盖的是 Where/Set 表达式算子与过滤器叠加的闭包反射，不是构造。")]
     public IUpdate<T> Update<T>() where T : class => new UpdateEngine<T>(this);
 
     /// <summary>DELETE 链（orm.Delete〈Cart〉().Where(...)）。这一句改的是行本身还是 deleted 那一格，
     /// 取决于这张表上有没有在册的软删行为：注册过 SoftDelete 的实体，这一句在构建时就换成"置位 + 记时间"的
     /// UPDATE（改形状那一步在 EmitDelete 之前，文本仍走 ApplyCud 与 ApplyBinding，日志与审计看到的永远是
     /// 真正发出去的那一句）。没注册的实体仍发物理 DELETE，调用方自己的 CudBuilding 订阅者仍能在文本层再改一次
-    /// ——三种情形 Explain().Reason 各说一句，按最终状态自陈。Filters 上在册的过滤器会叠进 WHERE。</summary>
-    [RequiresUnreferencedCode("Where 的 lambda 归约走闭包常量求值。")]
-    [RequiresDynamicCode("不可约子表达式的退路是编译表达式树。")]
+    /// ——三种情形 Explain().Reason 各说一句，按最终状态自陈。Filters 上在册的过滤器会叠进 WHERE。
+    /// 入口税口径与 Update〈T〉() 相同：入口零反射，lambda 算子的裁剪税在算子口。</summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "构造只接线：契约经注册表接口取，零反射。引擎类级 RUC 覆盖的是 Where 算子与过滤器叠加的闭包反射，不是构造。")]
     public IDelete<T> Delete<T>() where T : class => new DeleteEngine<T>(this);
 
     /// <summary>按实体定位的单行 UPDATE（orm.Update(order).ExecuteAffrowsAsync()）：列清单来自这只实体，
@@ -353,9 +366,11 @@ public sealed class QuickSqlOrm
     /// 或主键由库给值而交来的是没给的形态，当场拒。分表实体按它自己的分片键换算那一张片；
     /// 全局过滤器与软删那两道闸门在这条路上与链式同一条。交回的仍是 IUpdate，可以再叠 Where；
     /// Set 只补得动实体没带（即 null）的那些列——带值的那一列再点一次会被"设置了两次"守卫拦下。
-    /// 取值段跑在这一颗入口的调用时刻，之后改实体不会再改出一份文本。</summary>
-    [RequiresUnreferencedCode("全局过滤器的叠加走闭包常量求值。")]
-    [RequiresDynamicCode("与 RequiresUnreferencedCode 同一条：谓词翻译的退路是编译表达式树。")]
+    /// 取值段跑在这一颗入口的调用时刻，之后改实体不会再改出一份文本。
+    /// 全程走 schema 读写口与契约尺子（G1-only 注册表下静态干净）；全局过滤器若在册，
+    /// 叠加那一步的裁剪税在 FilterRegistry 的翻译口（注册口已带 RUC）。</summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "FromEntity 的取值与主键定位走 schema 读写口（G1-only 注册表下零反射）；引擎类级 RUC 覆盖的是后续 Where/Set 算子与 Build 里的过滤器叠加。")]
     public IUpdate<T> Update<T>(T entity) where T : class
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -367,9 +382,10 @@ public sealed class QuickSqlOrm
     /// <summary>按实体定位的单行 DELETE（orm.Delete(order).ExecuteAffrowsAsync()）：这一格只借主键，不借值
     /// ——实体上其余列一列都不读，"哪几列是 null"在这条路上没有含义。发出去的是 DELETE 还是置位的 UPDATE，
     /// 与 Delete() 链同一条规则。复合主键在这里支持（逐列 = 再 AND）：DeleteRange 拒它靠的是
-    /// "IN 清单装不下元组"，那一句在单行上根本不成立。分表实体同样按自己的分片键换算那一片。</summary>
-    [RequiresUnreferencedCode("全局过滤器的叠加走闭包常量求值。")]
-    [RequiresDynamicCode("与 RequiresUnreferencedCode 同一条：谓词翻译的退路是编译表达式树。")]
+    /// "IN 清单装不下元组"，那一句在单行上根本不成立。分表实体同样按自己的分片键换算那一片。
+    /// 入口税口径与 Update(entity) 相同：主键取值走 schema 读口，零反射。</summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "FromEntity 只借主键定位，走 schema 读口（G1-only 注册表下零反射）；引擎类级 RUC 覆盖的是后续 Where 算子与 Build 里的过滤器叠加。")]
     public IDelete<T> Delete<T>(T entity) where T : class
     {
         ArgumentNullException.ThrowIfNull(entity);

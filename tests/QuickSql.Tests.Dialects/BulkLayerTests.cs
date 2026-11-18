@@ -75,24 +75,49 @@ public sealed class BulkLayerTests
     }
 
     [Fact]
-    public void Auto_takes_the_copy_channel_the_moment_a_provider_offers_one()
+    public void Auto_takes_the_copy_channel_once_the_text_layer_hits_the_round_trip_threshold()
     {
-        var insert = orm(CopyChannelProvider.OfferingChannel(Real())).InsertRange(rows(3));
+        // 门槛的口径是文本层的往返次数，不是这批的行数本身：rowsPerRoundTrip 压到 1 行一块，
+        // 门槛数目的行就恰好是门槛数目的往返，到数 → 通道。
+        // 数的是"不切要付多少"的那一笔——块宽由参数预算与请求压宽一起算（Trips 与 ChunkRows 同一颗出口）。
+        var insert = orm(CopyChannelProvider.OfferingChannel(Real()))
+            .InsertRange(rows(BulkLadder.AutoCopyRoundTrips))
+            .WithBulk(BulkMethod.Auto, rowsPerRoundTrip: 1);
 
         var report = insert.ExplainBulk();
 
         Assert.Equal(BulkMethod.Auto, report.Requested);
         Assert.Equal(BulkMethod.CopyChannel, report.Method);
         Assert.False(report.Degraded);
-        Assert.Equal(3, report.RowCount);
-        Assert.Equal(1, report.RoundTrips);
-        Assert.Equal(3, report.ChunkSize);
+        Assert.Equal(BulkLadder.AutoCopyRoundTrips, report.RowCount);
+        Assert.Equal(BulkLadder.AutoCopyRoundTrips, report.RoundTrips);
+        Assert.Equal(1, report.ChunkSize);
+        Checks.Has($"按文本层要 {BulkLadder.AutoCopyRoundTrips} 次往返", report.Reason);
+        Checks.Has($"（≥ {BulkLadder.AutoCopyRoundTrips}）", report.Reason);
         Checks.Has("不发 SQL 文本、不走参数", report.Reason);
-        Checks.Has("一次递交", report.Reason);
+        Checks.Has($"分 {BulkLadder.AutoCopyRoundTrips} 次递交", report.Reason);
 
         // 层是"哪一条出口"自己的事：同一份请求在文本口那边仍然是一条 INSERT，
         // 换句话说 Explain() 永远不会因为通道在场而交不出文本。
         Checks.Has("INSERT INTO [QuickSqlOrder] ", insert.Explain().Chunks[0].Sql.Text);
+    }
+
+    [Fact]
+    public void Auto_stays_on_the_text_layer_below_the_threshold_even_when_a_channel_is_offered()
+    {
+        var report = orm(CopyChannelProvider.OfferingChannel(Real())).InsertRange(rows(3)).ExplainBulk();
+
+        Assert.Equal(BulkMethod.Auto, report.Requested);
+        Assert.Equal(BulkMethod.MultiValue, report.Method);
+        Assert.False(report.Degraded);
+        Assert.Equal(3, report.RowCount);
+
+        // 通道在场而门槛没到：Reason 要把这笔账算给现场看（几次往返、门槛是几），
+        // 且措辞是"取第一档满足条件的层"——Auto 没承诺过任何一层，不存在"退回"，留痕位也不派发。
+        Checks.Has("装载通道在场", report.Reason);
+        Checks.Has("只要 1 次往返", report.Reason);
+        Checks.Has($"门槛 {BulkLadder.AutoCopyRoundTrips}", report.Reason);
+        Checks.Absent("退回", report.Reason);
     }
 
     [Fact]
@@ -135,6 +160,7 @@ public sealed class BulkLayerTests
         Checks.Has("FallbackPolicy.Never 不允许退回文本层", refused.Message);
 
         // Never 只在"拿不到"时咬人：通道在场时它与 DegradeAndLog 交回同一个产物。
+        // 顺带钉住门槛的另一半：3 行不够 Auto 的行数门槛，但显式点名的那一档不算请求特征——照样走通道。
         Assert.Equal(BulkMethod.CopyChannel,
             orm(CopyChannelProvider.OfferingChannel(Real())).InsertRange(rows(3))
                 .WithBulk(BulkMethod.CopyChannel, FallbackPolicy.Never).ExplainBulk().Method);

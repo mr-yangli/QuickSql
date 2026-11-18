@@ -314,7 +314,7 @@ public static class Materializer
             var firstPkIndex = Array.IndexOf(contract.Columns, firstPk);
             var nullCheckOrdinal = node.ColumnOffset + firstPkIndex;
 
-            var setter = ResolveNavigationSetter(parentClrType, node.NavigationMemberName);
+            var setter = node.Relationship.NavigationWriter ?? ResolveNavigationSetter(parentClrType, node.NavigationMemberName);
             var children = BuildIncludePlans(node.Children, registry, contract.ClrType);
 
             plans[i] = new IncludePlan(read, contract, node.ColumnOffset, nullCheckOrdinal, setter, children);
@@ -323,6 +323,8 @@ public static class Materializer
         return plans;
     }
 
+    /// <summary>G1 关系不带生成写口（G2 契约 / 不可写导航）时的退路：启动期编译一次 setter。
+    /// G1 命中时 BuildIncludePlans 直接用 RelationshipContract.NavigationWriter，不进这一颗。</summary>
     [RequiresUnreferencedCode("Include 物化按运行期 Type 解析导航属性。")]
     [RequiresDynamicCode("Include 物化的导航设置器是编译出来的委托。")]
     static Action<object, object?> ResolveNavigationSetter(Type parentType, string memberName)

@@ -21,6 +21,13 @@ public sealed class EntityContractGenerator : IIncrementalGenerator
     /// 键名公开是给测试抄的：抄一份字符串进测试，改这一处就成静默假绿。</summary>
     public const string XmlDocCommentsOption = "build_property.QuickSqlXmlDocComments";
 
+    /// <summary>AOT 严格档，默认关：开了之后 QuickSql003（实体不走 G1）从 Info 升为 Warning——
+    /// trim/AOT 宿主把「没被生成」当成要在编译期看见的事，而不是运行期才发现的退回。
+    /// 消费方开法与 XmlDocComments 同一颗：属性 QuickSqlAotStrict=true 加 CompilerVisibleProperty Include。
+    /// 只升 Warning 不升 Error：G2 兜底仍是合法路径（JIT 宿主），要不要红由消费方的
+    /// TreatWarningsAsErrors 自己裁，生成器不替它做主。</summary>
+    public const string AotStrictOption = "build_property.QuickSqlAotStrict";
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 选项走管道而不是实例字段：生成器实例在 IDE 里跨编译复用，存字段会让上一次的读数
@@ -28,13 +35,16 @@ public sealed class EntityContractGenerator : IIncrementalGenerator
         var xmlDocComments = context.AnalyzerConfigOptionsProvider
             .Select(static (provider, _) => Read(provider.GlobalOptions, XmlDocCommentsOption));
 
+        var aotStrict = context.AnalyzerConfigOptionsProvider
+            .Select(static (provider, _) => Read(provider.GlobalOptions, AotStrictOption));
+
         var outcomes = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 DataSchemaTable,
                 static (node, _) => node is TypeDeclarationSyntax { AttributeLists.Count: > 0 },
                 static (capture, _) => capture)
-            .Combine(xmlDocComments)
-            .Select(static (both, _) => EntityFactsBuilder.Build(both.Left, both.Right))
+            .Combine(xmlDocComments.Combine(aotStrict))
+            .Select(static (both, _) => EntityFactsBuilder.Build(both.Left, both.Right.Left, both.Right.Right))
             .Collect();
 
         context.RegisterSourceOutput(outcomes, static (spc, batch) =>
@@ -87,6 +97,11 @@ static class QuickSqlDiagnostics
     /// <summary>不是错：G2 接得住，只是这一条路径上没有「编译期零反射」的待遇。</summary>
     public static readonly DiagnosticDescriptor NotGenerated = Define(
         "QuickSql003", "实体不走 G1，退回反射解析", DiagnosticSeverity.Info);
+
+    /// <summary>QuickSql003 的 AOT 严格档（QuickSqlAotStrict=true）：同一颗 ID 升 Warning，
+    /// 让 trim/AOT 宿主在编译期就看见「这颗实体没被生成」。</summary>
+    public static readonly DiagnosticDescriptor NotGeneratedStrict = Define(
+        "QuickSql003", "实体不走 G1，退回反射解析（AOT 严格档）", DiagnosticSeverity.Warning);
 
     /// <summary>与 QuickSql002 同一形状：现拼的消息与反射侧 EntityContractFactory.MapSkipIndexes
     /// 那两句逐字相同（缺表达式、引用了不是列的成员各一句）。</summary>

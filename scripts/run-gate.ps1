@@ -25,7 +25,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$exe = Join-Path $root 'benchmarks/QuickSql.Benchmarks/bin/Release/net10.0/QuickSql.Benchmarks.exe'
+$exe = Join-Path $root 'benchmarks/QuickSql.Benchmarks/bin/Release/net11.0/QuickSql.Benchmarks.exe'
 
 if (-not (Test-Path -LiteralPath $exe)) {
     throw "gate host not built: $exe"

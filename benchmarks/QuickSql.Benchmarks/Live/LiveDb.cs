@@ -1,5 +1,3 @@
-using System.Data;
-using System.Data.Common;
 using Dapper;
 using FreeSql;
 using Microsoft.Data.Sqlite;
@@ -7,6 +5,7 @@ using QuickSql.DriverLoading;
 using QuickSql.Generated;
 using QuickSql.Schema;
 using SqlSugar;
+using System.Data;
 using QuickSqlSqliteProvider = QuickSql.Providers.Sqlite.SqliteProvider;
 
 namespace QuickSql.Benchmarks.Live;
@@ -27,7 +26,13 @@ namespace QuickSql.Benchmarks.Live;
 /// decimal 落 TEXT（定点没有无损的落处）、Guid 落 <c>GUID</c> 声明（本家认这颗名字，
 /// System.Data.SQLite 与 Microsoft.Data.Sqlite 都会按它解析文本）、DateTime 落 TEXT、
 /// bool/枚举落 INTEGER。抽查守门（<see cref="LiveGuard"/>）替这些落位验真 —— 有哪家把
-/// "串位/串型"装成正常数字，行数那一格先红。</para></summary>
+/// "串位/串型"装成正常数字，行数那一格先红。</para>
+///
+/// <para><b>⚠ 构建配置不对称（所有 Live 基准共用这颗口径）</b>：FreeSql 3.5.311 / SqlSugarCore 5.1.4.221
+/// 的官方 NuGet DLL 是 Debug 构建（DebuggableAttribute=263，DisableOptimizations=True，JIT 关优化），
+/// Dapper / QuickSql 是 Release（=2，JIT 开优化）——2026-11-17 读元数据 blob 实测确认，且这两个版本就是 NuGet 最新版。
+/// 故 FreeSql/SqlSugar 臂的时间列偏悲观，跨家时间对比要把这颗税读进去（详见 LiveWriteBench 类注释与 plan-cross-orm-bench.md）。
+/// 决议保留官方包原样（"用户拿到的那一份"），不源码构建、不改二进制。</para></summary>
 public sealed class LiveArms : IDisposable
 {
     /// <summary>与离线套件同一档行数（1001）：两片的"每行成本"要能横向读。</summary>
@@ -80,7 +85,11 @@ public sealed class LiveArms : IDisposable
         {
             Provider = provider,
             ConnectionString = cs,
-        }, new GeneratedEntitySchemaRegistry(provider, QuickSqlGeneratedMetadata.TryGet));
+        }, new GeneratedEntitySchemaRegistry(provider, QuickSqlGeneratedMetadata.TryGet,
+            // 显式 Id 口径：关掉「整型主键即自增」约定，WideRow.Id 落进插入列清单（30 列），
+            // 与另三家（Dapper/FreeSql/SqlSugar 显式插 Id）齐平，消去默认装配口 29 列那 1/30 的列差。
+            // 只动 Live 臂这颗 G1 注册表；离线套件与门禁走 Harness.Generated（默认 true），不受影响。
+            integralPrimaryKeyAutoIncrement: false));
 
         var fsql = new FreeSqlBuilder()
             .UseConnectionString(DataType.Sqlite, cs)

@@ -11,11 +11,13 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- 多目标 net10.0 + net11.0（2026-11-11，随 QuickJob 10.1.0 的先例）：25 颗库包单包双资产，
-         消费方按宿主 TFM 自动还原。两档都是现代 .NET，§2「不做 netstandard2.0 / .NET Framework /
-         .NET 6/8 兼容层」的向下口径不变；生成器仍 netstandard2.0（Roslyn 主机约束）。
-         tests / benchmarks 一并继承双档，scripts 里钉的 bin/…/net10.0 路径不受影响。 -->
-    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+    <!-- 单目标 net11.0（2026-11-16，性能/低分配倡议：不再兼容低版本，吃满 .NET 11 的 JIT 去虚化、
+         逃逸分析、CWT 句柄老化与 runtime-async 等红利）。原 net10.0 + net11.0 双档（2026-11-11）
+         随本笔下线：net10 是 LTS 但性能红利差一档，消费方口径改为「跟 .NET 11 STS 走」。
+         §2「不做 netstandard2.0 / .NET Framework / .NET 6/8/10 兼容层」的向下口径不变；
+         生成器仍 netstandard2.0（Roslyn 主机约束，与消费方 TFM 无关）。
+         tests / benchmarks 一并继承，scripts 里钉的 bin/…/net11.0 路径同步翻档。 -->
+    <TargetFramework>net11.0</TargetFramework>
     <LangVersion>preview</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -24,17 +26,25 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <Deterministic>true</Deterministic>
     <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- runtime-async（.NET 11 预览档）2026-11-16 开闸验证过，读数不支持现在开：
+         编排路受益（查询构建 −288 B/次、SaveChanges 13 行 −648/−1512 B），但物化热路回归
+         +144 B/行（592→736，恰回 net10 档——预览档 codegen 吃掉了 JIT 逃逸分析红利），
+         吞吐 vs Dapper 84%→81%。字节是确定量，不是噪声。性能优先口径下物化路权重更大，撤。
+         .NET 12 计划默认开，届时重验（读数：obj/logs/net11-rasync-gate.log 对 net11-baseline-net11.log）。
+         开法备忘：<Features Condition="'$(TargetFramework)' == 'net11.0' and '$(MSBuildProjectName)' != 'QuickSql.Generators'">$(Features);runtime-async=on</Features>
+         （生成器 netstandard2.0 不吃这颗；它的 TFM 在 csproj 体才覆写，props 求值时还是 net11.0，须按名排除）。 -->
   </PropertyGroup>
 
   <!-- NuGet 打包元数据里本仓独有的那三颗：版本号、README 挂哪一份册子、Tags 说什么。作者与许可内联在本文件上面那段。
-       版本跟 .NET 主版本走（.NET 10 → 10.x），10.0.0 起发稳定档（2026-11-09 首颗上 NuGet），不再是预发布序列。
+       版本跟 .NET 主版本走（.NET 11 → 11.x），10.0.0 起发稳定档（2026-11-09 首颗上 NuGet），不再是预发布序列。
+       11.0.0 起单目标 net11.0（2026-11-16，见上段 TFM 决议）：对只要 net10 资产的消费方是破坏性变更，按口径升主版本。
        每重打一次包必升一颗：同版本号不同内容的两颗包，消费方全局缓存里那颗会压住新打的 —— 还原照样绿，
        拿到的却是旧二进制（2026-10-10 在应用侧实测过这一格）。
        这一组只喂 dotnet pack，编译期行为一个字不改；非库工程（tests / benchmarks / samples）各自在
        csproj 或本目录的 props 里标 IsPackable=false，所以 dotnet pack QuickSql.slnx 出的是本家 25 颗库包。
        版本号改了就同步 CHANGELOG.md 那一节的标题。 -->
   <PropertyGroup>
-    <Version>10.1.0</Version>
+    <Version>11.0.0</Version>
     <PackageReadmeFile>quicksql-orm-usage.md</PackageReadmeFile>
     <PackageTags>orm;sql;linq;ado.net;source-generator</PackageTags>
   </PropertyGroup>

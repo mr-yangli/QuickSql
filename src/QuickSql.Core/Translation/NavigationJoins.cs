@@ -20,9 +20,8 @@ internal readonly record struct NavigationJoin(int HostIndex, string Member, Tab
 /// 或指向已删行的两种数据上少行，而少行在投影结果里读不出来。ON 直接用 Include 那一份 BuildJoinCondition：
 /// 一条导航怎么联全仓库只许有一个答案（外键列序对目标主键列序那一格尤其脆，复合键错一位就是语法正确、
 /// 结果错列的 SQL）。集合导航不在这档：IEnumerable 边联进 FROM 会让主表行按明细行数重复，归 IncludeMany
-/// 的两条查询。RUC/RDC 标注与 ExpressionTranslator 同一份理由：它落在表达式翻译的调用链上。</summary>
-[RequiresUnreferencedCode("按运行期 Type 向注册表取目标实体的契约。")]
-[RequiresDynamicCode("目标实体的契约由注册表按 Type 解析（G2）。")]
+/// 的两条查询。本类不带 RUC/RDC：契约从表位上已建好的那份读（host.Contract），新表位经 newTableRef
+/// 委托走注册表接口——两颗口都不反射、不产生动态代码；翻译现场的闭包反射税在 ExpressionTranslator 那颗。</summary>
 internal sealed class NavigationJoinScout(IReadOnlyList<NavigationJoin> joined, int indexBase, Func<Type, int, TableRef> newTableRef,
     QueryModel model)
 {

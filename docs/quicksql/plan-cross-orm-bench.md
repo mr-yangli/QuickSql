@@ -1,4 +1,4 @@
-# 与 FreeSql / SqlSugar 的三方性能对照（SQLite 装置，2026-11-11 实测）
+# 与 FreeSql / SqlSugar 的三方性能对照（SQLite 装置 2026-11-11 实测；§7 活库四家写侧 2026-11-18 扩展）
 
 > 树册（`plan-tree-query.md` §13）把"整行物化比两家慢 1.2–1.8×，属另一本账"这句话留在了那一节末尾。
 > 本册就是把那本账开出来：树册量的是"读树这一件事"，本册量 §12.8 的通用形状 —— 简单查询、宽行物化、
@@ -35,8 +35,16 @@
    所以**这两臂的时间列偏悲观**，读比值时要带着这一条。BDN 的优化校验器会拒绝执行引用 Debug 程序集的
    基准，而本对照要量的恰恰是"用户从 NuGet 拿到的那一份" —— 校验放行，边界记在这里。
    （树册 §13 那一天的读数同样带着这条，只是当时没人翻开那颗 DLL。）
-5. **QuickSql 写侧走默认装配口**：整型 Id 按自增约定省列（29 列），另三家发显式 Id（30 列）。列差 1/30，
-   不是这一格的主项。
+   **【2026-11-17 复核确认 + 决议】** 读元数据 blob 实测：FreeSql/SqlSugar/FreeSql.Provider.Sqlite = `07-01-00-00`（263，
+   DisableOptimizations=True），Dapper/QuickSql.Core = `02-00-00-00`（2，False）；且 3.5.311 / 5.1.4.221 **就是 NuGet 最新版**，
+   无更新 Release 可升。决议（用户拍板）：**保留官方包原样 + 显著标注**——不源码 Release 构建、不改二进制；
+   各臂 BDN Description 就地标 Release/Debug，LiveWriteBench/LiveArms 类注释显著写明这颗税。要量"各家设计峰值"
+   需源码 Release 重编两臂（§5 余项挂着），本套不做。
+5. **QuickSql 写臂列口径（2026-11-17 改判）**：原默认装配口整型 Id 按自增约定省列（29 列），另三家显式 Id（30 列），
+   列差 1/30。为公平消去这颗混淆，Live 写臂的 G1 注册表传 `integralPrimaryKeyAutoIncrement: false`，QuickSql 也显式插 Id
+   （30 列齐平）。实测：改后 QuickSql 时间几乎不变（47.00→47.18 ms，噪声档），分配 +0.6 MB（多一列 Id 的每格对象）——
+   即默认省 Id 那列反而略省，列差不是 QuickSql 慢的主项（主项是 SQLite 命名参数平方价 + 写侧无 ArrayPool）。
+   只动 Live 臂；离线套件与门禁走 Harness.Generated（默认 true），29 列口径不变。
 6. **MetadataLookup 与 ChangeTrackerDetect10k 不进本册**：前者是本家的元数据税、后者量的变更跟踪只有
    本家有 —— 没有对照物的形状进了表就是一行无意义的数。SelectSimpleDto 也不进（离线片已发现投影委托
    没有指纹缓存，账还清之前量它，量的是已知欠账）。
@@ -116,7 +124,113 @@ SQLite 抛"Must add values"）、裸 ADO 臂没开连接就发命令（Dapper �
   命令**（每语句 ~250 µs 编排固定成本 → SqlSugar 的 28 ms 那一线），记 §14。
 - **对照**：FreeSql/SqlSugar 若出 Release 构建的官方包（或自源码 Release 重编两臂）重跑一场，
   第 4 条读数里的"偏悲观"边界就可以撤；FreeSql 联接格 2.83× 里有多少是 Debug 交付的，重编后才答得清。
-- **活库**：本装置只有本地 SQLite。树册 §13 那句"活库（PG / MySQL / OceanBase / 虚谷 / SQL Server）上
-  三家的形状要另开一跑"对本册同样成立，别把这张表读成六家通用——写侧那格尤其要小心：333 这个极点
-  是 Microsoft.Data.Sqlite 的形状，换驱动（System.Data.SQLite 在 FreeSql 臂）曲线要另测。
+- **活库（已兑现，见 §7）**：本装置原本只有本地 SQLite。2026-11-18 补了 SqlServer / MySQL / PG 三家活库写侧对照
+  （§7.2）+ PG 5 万行缩放（§7.3），并把 SQLite 写侧再推一档（编号 ?N，§7.1）。§3–§4 那张表仍是本地 SQLite 形状，
+  跨库绝对值别搬（驱动曲线不同源）；写侧 333 那个极点已被编号 ?N + 预算 150 取代（§7.1）。OceanBase / 虚谷活库待补。
 - **补形状**：`SelectSimpleDto` 等投影指纹缓存落地后补进读侧（装置已留好位置，加一个类即可）。
+
+## 7. 活库四家写侧对照（2026-11-18，兑现 §6 那句"活库另开一跑"）
+
+§3–§4 那张表是本地 SQLite 的形状，§6 早已警告"别读成六家通用"。本节补 SqlServer / MySQL / PG 三家活库
+（连接取仓库根 `quicksql-test.*.connection.local.txt`，本机凭据不入库），并把 SQLite 写侧再推一档。
+装置：`benchmarks/QuickSql.Benchmarks/Live/LiveWriteBench{SqlServer,MySql,PostgreSql}.cs`（各五臂：
+QuickSql Auto / QuickSql 显式 L1 / Dapper 逐行 / FreeSql / SqlSugar）+ `LiveWriteBenchPostgreSqlMass.cs`（5 万行）。
+新增包 `FreeSql.Provider.{SqlServer,MySqlConnector,PostgreSQL}` + `Microsoft.Data.SqlClient` / `MySqlConnector` / `Npgsql`。
+
+### 7.1 SQLite 写侧再改判：编号 ?N 取代 §4.4 的预算 333
+
+§4.4 终跑 47.3 ms（预算 333、具名 @p）不是终点。Microsoft.Data.Sqlite 按名查找映射参数是平方价，
+**编号位置参数 ?N**（`ParameterName="?N"` 绑位置 N，驱动认；匿名 ? 配无名参被拒）常数小一档。
+`SqliteDialect.ParameterNamer` 把批量插入发射口（`InsertEngine.EmitChunk`）发名改「?+(下标+1)」，
+`SqliteBulk.ParameterBudget` 333→**150**（编号消大半平方价后极点左移）。活库扫描（1000×30，BDN）：
+333→29.9 ms、200→25.97、**150→23.73**、100→24.96，150 时间分配双优。再补**编号名串缓存**（?N 跨块复用，
+静态 `string?[1024]`）→ **22.38 ms / 12.22 MB**（§4.4 的 47.3→22.38，累计 ≈2.1×）。
+编号 ?N 是 SQLite 专属（其驱动平方价）；PG/MySQL/SqlServer 驱动按名绑定 O(N)（预算 32767/65535/2100 为证）不需编号。
+
+### 7.2 四家 1000 行 × 30 列对照（Id 自增各家省 Id 29 列，short job）
+
+| 库 | QuickSql 最优臂 | Dapper 逐行 | SqlSugar | FreeSql | 备注 |
+| --- | --- | --- | --- | --- | --- |
+| SQLite | 22.4 ms（编号?N L3） | **18.3 ms** | 27.7 ms | 247 ms | 无装载通道，Dapper 小参数集避平方最快 |
+| SqlServer | **115 ms**（L1 SqlBulkCopy） | 961 ms | 175 ms | 4180 ms | L3 文本（ExecuteAffrowsAsync）慢 34×（3875 ms） |
+| MySQL | **76.6 ms**（L1 LOAD DATA） | 637 ms | Insertable 125 ms；Fastest 91.8 ms/4.85MB（丢1行999） | 199 ms | **QuickSql L1 反超 SqlSugar Fastest**（快17%+更省+插满1000）；Auto L3 也快（106 ms） |
+| PG | **36.2 ms**（L1 二进制 COPY） | 5495 ms | 108 ms | 257 ms | Auto L3 多值 98 ms 也赢两家 |
+| 虚谷 | **411.6 ms**（L3 多值，Bulk=null） | 522 ms | 1087 ms / **4.3 GB** | —（缺驱动包） | 无装载通道、保守预算 100→334 块仍最快最省；SqlSugar 虚谷分配爆炸（185×） |
+
+分配（QuickSql 最优臂，确定量）：SQLite 12.22 MB / SqlServer L1 5.12 MB / MySQL L1 4.69 MB / PG L1 3.89 MB。
+**QuickSql L1 装载通道相对普通 Insertable/逐行是结构性优势**；但相对 SqlSugar **Fastest**（对等 bulk copy）则 SqlServer/PG 被反超、
+MySQL 反超对方——公平性改判与 QuickSql L1 通道开销欠账见 §7.4（别把本表读成"QuickSql 全场最快"）。
+
+### 7.3 PG 5 万行缩放（short job）
+
+| 臂 | Mean | Allocated | Alloc Ratio |
+| --- | --- | --- | --- |
+| QuickSql L1 二进制 COPY | **2.23 s** | **194.75 MB** | 1.00 |
+| QuickSql Auto（门槛上自动选 L1） | 2.47 s | 194.93 MB | 1.00 |
+| QuickSql L3 多值 VALUES | 6.66 s | 698.8 MB | 3.58 |
+| SqlSugar | 4.79 s | 1048 MB | 5.38 |
+| FreeSql | 13.35 s | 1519 MB | 7.80 |
+
+Auto 门槛设计生效：1000 行（门槛下）选 L3 多值省往返，5 万行（门槛上）自动选 L1 COPY。
+**分配差距随规模拉大**（L1 vs FreeSql 从 1000 行 ~4× 到 5 万行 7.8×）；L3 文本 vs L1 COPY 量越大越亏（3× 时间 / 3.6× 分配）。
+
+### 7.4 贯穿规律与口径
+
+- **【2026-11-18 公平性改判：SqlSugar Fastest 反超 QuickSql L1】** 先前"QuickSql L1 最快最省"只在 SqlSugar 用普通 `Insertable`
+  时成立——**不公平**。SqlSugar 有对等的 `Fastest<T>().BulkCopyAsync()`（同走 SqlBulkCopy / Npgsql COPY / MySqlBulkCopy）。
+  补 Fastest 臂后（`IFastest<T>.BulkCopyAsync(List<T>)`，装置传 `new List<WideRow>(_rows)`）：
+  **SqlServer SqlSugar Fastest 47.6 ms / 3.46 MB 胜 QuickSql L1 62 ms（中位）/ 5.12 MB；PG SqlSugar Fastest 31.7 ms / 2.93 MB
+  胜 QuickSql L1 COPY ~36 ms / 3.89 MB**。SqlSugar 是 Debug 构建（JIT 关优化）仍赢 → **QuickSql L1 通道有真实开销**
+  （CopyChannel 反射绑定 + 额外缓冲，分配多 ~1.66 MB、时间慢 ~30%）。这是 QuickSql 性能欠账：L1 通道实现不如 SqlSugar
+  bulk copy 包装精简，优化方向＝减中间缓冲/反射、对齐 SqlBulkCopy 最优选项（BatchSize/KeepIdentity），记 §14。
+  MySQL Fastest **实插 999 行（真丢 1 行，COUNT(*) 实证，非计数 quirk）**：AllowLoadLocalInfile=true 已在（EnsureConnectionFlag），
+  根因是 SqlSugar `MySqlFastBuilder` 非 byte[] 列时走 CSV + LOAD DATA LOCAL + 临时表路径（非 MySqlBulkCopy.WriteToServer），该 CSV 路径丢行——SqlSugar bug，装置按实际 COUNT 守门故 NA。虚谷 Fastest 不支持（FastestProvider._BulkCopy 抛）。
+  读数 `obj/logs/net11-bdn-{sqlserver-fastest2,PostgreSql-fastest}.log`。
+- **【2026-11-18 优化兑现：QuickSql L1 反超 SqlSugar Fastest】** 定位开销主项＝`InsertEngine.CopyRequestFor` 为取归一值
+  每格 `binder.CreateParameter(...).Value` 白 new 一颗 AdoParameter record（1000×30=30000 颗≈1.4 MB）。修：`IValueBinder` 加
+  `NormalizeValue(value,hint)` 默认接口方法（fallback CreateParameter.Value），SqlServer/PG/MySQL 覆写直取各自廉价 Normalize；
+  CopyRequestFor 改用 NormalizeValue（免 record + 免 c{column} 假名数组）；SqlServerBulkCopy.Table 加 `MinimumCapacity`+`BeginLoadData`。
+  **战果（BDN short job，分配确定量）**：SqlServer L1 5.12→**3.36 MB**（< SqlSugar Fastest 3.45）；PG L1 COPY 3.89→**2.33 MB**、
+  ~36→**22.4 ms**（胜 SqlSugar Fastest 36.9 ms/2.93 MB，时间分配双赢）。**SqlServer 时间长 job 稳测已结清（同日）**：
+  BDN LongRun（3 启动 × 100 迭代）争议两臂 L1 均值 60.26 ms/中位 54.73 vs Fastest 70.38/60.97，99.9% CI 各 ±4.4 ms
+  不重叠；反序复核轮 68.59/59.13 对 59.24/54.67 同向——时间（约 13%）分配双赢、与臂序无关。
+  验证：方言册 1657 绿、门禁 5/19 钉不变、SqlServer/PG/MySQL 集成各 283/0 失败。读数 `obj/logs/net11-bdn-{sqlserver-opt1,pg-opt1,sqlserver-long1,sqlserver-long2-fastest,sqlserver-long2-qsl1}.log`。
+- **L1 装载通道仍是结构性优势（相对普通 Insertable/逐行）**：SqlBulkCopy / LOAD DATA LOCAL / 二进制 COPY 在大批量下
+  吞吐 + 分配远胜文本层与逐行（PG 5 万行 L1 vs FreeSql 7.8× 分配），规模越大越显著——只是相对 SqlSugar Fastest 还有精简空间。
+- **API 选择决定成败（SqlServer UX 欠账，2026-11-18 同日兑现）**：原欠账＝`InsertRange().ExecuteAffrowsAsync()` 默认走 L3 文本
+  （SqlServer 慢 34×），要快须 `ExecuteBulkAsync()`。**改判落地：默认出口改钩子感知 Auto**（用户裁决推翻「钉死文本层」在册裁决）——
+  无 `CudBuilding`/`ParameterBinding` 订阅且量过门槛时默认自动走 L1，订阅任一颗钉回文本层；修剪税上签名、SaveChanges 走内部文本出口不背税。
+  全文 `plan-auto-bulk.md` §6 与 CHANGELOG 11.0.0 变更档首条；判据 `BulkPathTests` 四颗新钉 + 五族集成册。
+- **名缓存 provider 中性赢面**：默认发号 `prefix+"p"+count` 每格造三颗串（中间串 + ToString + 拼接），
+  `AtParameterNames` 共享 '@pN' 分段惰性缓存（SqlServer/MySQL/PG 同 '@' 前缀）。门禁 SqlServer 形状 BulkInsert/BulkBuild
+  各 −2.5 MB（8768728→6264128）；离线探针 N=30000 省 2.14 MB（缓存稳态 0 B）。MySQL/PG 块内名不重复、收益跨迭代。
+- **ArrayPool 不适用**：取值矩阵 Cells 缓存在 `InsertEngine._preparation`（实例生命周期、三出口共用），非 transient，
+  池化需 disposal 还池点（无）。真正分配杠杆是每格 ParameterValue/AdoParameter record→struct 或引擎复用（§14）。
+- **口径边界**：① FreeSql/SqlSugar 官方最新 NuGet 是 Debug 构建（`DebuggableAttribute=263` DisableOptimizations，
+  元数据探针实测；Dapper/QuickSql=2 Release），时间列偏悲观，各臂 Description 就地标注。② 远程库（SqlServer/MySQL/PG）
+  网络延迟主导时间，short job 噪声大（Error 可达 Mean 量级），**排名可信、精确比值待长 job**；分配是确定量。
+  ③ 各家 Id 自增省列 29 列齐平（SqlServer/MySQL/PG），SQLite 片显式 Id 30 列（口径不同源，别跨库搬绝对值）。
+- **读数日志**：`obj/logs/net11-bdn-{sqlserver-l1,mysql-2,pg-3,pg-mass}.log`、`net11-sqlite-numbered-budget-sweep.log`、
+  `net11-shared-namecache-evidence.log`。
+- **装置事故备忘**：MySQL fixture 曾被误覆盖（未跟踪草稿），用 ilspycmd 反编译旧 dll 恢复原版（Auto 13763 行门槛断言 +
+  显式 CopyChannel + ProbeArms 验真），仅修一处潜伏 bug（`GuidFormat=char36` 下探针 `GetString`→`GetGuid`）。
+  PG fixture 修 SqlSugar `PgSqlIsAutoToLower=false`（保 quoted 混合大小写表名）。
+- **虚谷注记（`LiveWriteBenchXugu.cs`，QuickSql+Dapper+SqlSugar 三臂）**：**XuguBulk 欠账已兑（2026-11-18）**：
+  `XuguProvider.Bulk` 交 `XuguBulk`——仍无装载通道（驱动 XG* 导出面二进制扫描无装载类）。**双数落账**：
+  安全界 **2048**（净室探针一尝试一连接：2048 颗收 / 2049 颗拒且服务端断连接；3 列/1 列两梯边界同点 ⇒ 限颗数不限文本长；
+  边界内 2046/1842 颗带主键全行读回错绑 0）；性能终值 **300**（BDN A/B：LongRun 100=409.1ms±8.5 vs 2048=702.7ms±5.5，
+  宽块时间输 1.72×；medium 扫描 200=340.5±19.8 / 300=346.6±12.6 / 600=381.0±14.6 / 1000=452.8±12.9，谷底平在 200–300，
+  取 300＝9 行/块、1000 行 112 块；LongRun 定案腿 `net11-bdn-xugu-long-300.log`）。
+  机制＝服务端每语句代价随颗数超线性（sweep：87 颗≈0.4ms / 435 颗 6ms / 899 颗 11ms / 1827 颗 39ms）——
+  与 SQLite 驱动侧平方价同课不同源，**硬上限≠性能最优**；sweep 暖连接长事务低估宽块绝对值，只定机制不定终值。
+  另实测两颗与预算无关的库侧界限：单事务改行上限 10000（max_trans_modify，E14024）、同步 ExecuteNonQuery 成功也交回 0
+  （行数以读回为准；同连接读回看不见刚提交的写，读回须另开连接）——探针方法学三颗记 notes.md。
+  旧读数备查：兜底 100 时代 QuickSql 411.6 ms / 23.22 MB 仍最快最省，赢 Dapper 逐行 522 ms（1.27×）、SqlSugar 1087 ms（2.65×）。**SqlSugar 虚谷分配爆炸：1000 行 4.3 GB（185× QuickSql，Gen0/1/2 全 14 万+）**——
+  其虚谷 bulk 路径极度浪费（疑逐行重反射）+ Debug 税。SqlSugar 虚谷臂经文档（donet5.com typeId=2640）启用：包 **SqlSugar.XuguCoreNew**
+  （交付程序集名 SqlSugar.XuguCore.dll）+ `InstanceFactory.CustomAssemblies = { Assembly.Load("SqlSugar.XuguCore") }` 绕过按名探测。
+  FreeSql 虚谷臂驱动兼容未验暂不入。踩坑：残留非自增 ID 旧表（Create 先 DROP 再 SyncStructure）、虚谷参数前缀 `:`（非 @，Dapper 裸 SQL 须 :Name1）、
+  标识符折大写（列名 CODE1 等）。驱动 XuguClient 厂商 4.0.0.8 经 DriverRegistry 解析（drivers/ 拷贝，编译期不引用）。
+  集成册虚谷红皆环境非代码：TreePathTests 万节点撞夹具表 24907 残留行（历史跑 finally 撞 E14024 没删掉），
+  重置后 14/14 绿（万节点批的内容对拍即由其读回断言承担）；端口耗尽 flake 在全量跑里轮换落点
+  （LeakPathTests 或 ThreadConcurrencyPathTests，谁赶上端口耗尽谁红），单跑复绿（终值跑 287 格 1 环境红，
+  并发册单跑 4/4 绿；v41-xugu300-int-xugu.log）。

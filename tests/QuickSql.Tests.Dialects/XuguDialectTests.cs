@@ -971,28 +971,33 @@ public sealed class XuguDialectTests
     }
 
     [Fact]
-    public void The_bulk_slot_is_the_second_one_to_answer_null_so_the_fallback_now_has_two_customers()
+    public void The_bulk_slot_declares_a_measured_budget_so_the_fallback_keeps_only_the_Oracle_lineage()
     {
-        // 与第三家同一档：没有能举证的参数预算数字 ⇒ 交回 null，分块器走那颗 100 的保守兜底。
-        // 三家各有一颗指得出的数（2100 / 32767 / 65535），两家指不到 —— 而"报大了得到真库一句参数过多、
-        // 报小了只是多几次往返"这一句判据在两家身上给出同一个答案。
-        Assert.Null(Provider.Bulk);
+        // v11.0.0 翻格（原文按 §13.1 的规矩留在 git 历史里）：活库探针把参数颗数上限钉在 2048
+        // （2048 收 / 2049 拒且断连接，3 列/1 列两梯边界同点——限颗数不限文本长，账在 XuguBulk 类注释
+        // 与 obj/logs/xugu-budget-probe-2.log）。本家从此不是兜底分支的消费者；那一支只剩 Oracle 血统
+        // （达梦 ∶ 神通  Oracle 共用基类那颗 null），"两族同走兜底"的旧账缩回"一族"。
+        // 声明值是性能拐点 300 而非硬上限 2048：BDN A/B 证宽块时间输（2048≈702.7ms vs 300≈346.6ms，
+        // 每语句代价随颗数超线性），安全界与性能终值双数落账见 XuguBulk。
+        Assert.NotNull(Provider.Bulk);
+        Assert.Equal(300, Provider.Bulk!.ParameterBudget);
 
         var plan = orm().InsertRange(Enumerable.Range(1, 600).Select(static n => row(n)).ToArray()).Explain();
 
-        // 600 行 × 7 列按 100 切：900/7 → 每块 12 行 → 50 块。<b>第三家那句话"只有这一族是 50 块"从今天起不成立</b>
-        // （那一格在 DamengDialectTests 里同步翻格），可数的是"两家同数"而不是"一家孤数"。
-        Assert.Equal(100, plan.ParameterBudget);
+        // 600 行 × 7 列按 300 切：270/7 → 每块 38 行 → 16 块。
+        Assert.Equal(300, plan.ParameterBudget);
         Assert.Equal(7, plan.ColumnsPerRow);
-        Assert.Equal(12, plan.RowsPerStatement);
-        Assert.Equal(50, plan.Chunks.Count);
+        Assert.Equal(38, plan.RowsPerStatement);
+        Assert.Equal(16, plan.Chunks.Count);
         Assert.Equal(600, plan.Chunks.Sum(static c => c.RowCount));
-        Checks.Has("参数预算 100", plan.Reason);
+        Checks.Has("参数预算 300", plan.Reason);
 
         var damengPlan = Dameng.Orm().InsertRange(Enumerable.Range(1, 600).Select(static n => row(n)).ToArray()).Explain();
 
-        Assert.Equal(damengPlan.Chunks.Count, plan.Chunks.Count);
-        Assert.Equal(damengPlan.ParameterBudget, plan.ParameterBudget);
+        // 对读守住的是"兜底分支还有真实消费者且给出这几个数"：达梦仍 100 → 12 行 → 50 块。
+        Assert.Equal(100, damengPlan.ParameterBudget);
+        Assert.Equal(50, damengPlan.Chunks.Count);
+        Assert.True(damengPlan.ParameterBudget < plan.ParameterBudget);
     }
 
     [Fact]

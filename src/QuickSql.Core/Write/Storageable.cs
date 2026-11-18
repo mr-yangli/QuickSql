@@ -48,18 +48,18 @@ public sealed class StorageResult<T> where T : class
 {
     readonly QuickSqlOrm _orm;
     readonly ColumnContract[] _columns;
-    readonly Func<object, object>[] _getters;
+    readonly ColumnReaders _readers;
     readonly bool _keysArePrimaryKey;
 
     internal StorageResult(IReadOnlyList<T> inserts, IReadOnlyList<T> updates, IReadOnlyList<T> deletes,
-        QuickSqlOrm orm, ColumnContract[] columns, Func<object, object>[] getters, bool keysArePrimaryKey)
+        QuickSqlOrm orm, ColumnContract[] columns, ColumnReaders readers, bool keysArePrimaryKey)
     {
         InsertList = inserts;
         UpdateList = updates;
         DeleteList = deletes;
         _orm = orm;
         _columns = columns;
-        _getters = getters;
+        _readers = readers;
         _keysArePrimaryKey = keysArePrimaryKey;
     }
 
@@ -83,7 +83,9 @@ public sealed class StorageResult<T> where T : class
         return total;
     }
 
-    /// <summary>只执行新增桶（orm.InsertRange 那条链）。</summary>
+    /// <summary>只执行新增桶（orm.InsertRange 那条链，含它的钩子感知 Auto 默认档）。</summary>
+    [RequiresUnreferencedCode("转调 InsertRange 链的默认出口：钩子感知 Auto 够得到装载通道（IInsert.ExecuteAffrowsAsync 那颗标注的镜像）。")]
+    [RequiresDynamicCode("与 RequiresUnreferencedCode 同一条：反射解析装载类需要运行时生成代码。")]
     public async Task<int> ExecuteInsertAsync(CancellationToken ct = default)
         => InsertList.Count == 0
             ? 0
@@ -126,7 +128,7 @@ public sealed class StorageResult<T> where T : class
             foreach (var (get, column) in setters)
                 chain = chain.Set<object>(column, get(row));
 
-            var key = StorageableChain<T>.KeyOf(row, _getters, _columns);
+            var key = StorageableChain<T>.KeyOf(row, _readers, _columns);
 
             total += await chain.Where(StorageableChain<T>.MatchesAny(_columns, [key]))
                 .ExecuteAffrowsAsync(ct).ConfigureAwait(false);
@@ -146,7 +148,7 @@ public sealed class StorageResult<T> where T : class
 
         var keys = new List<StorageKey>(DeleteList.Count);
         foreach (var row in DeleteList)
-            keys.Add(StorageableChain<T>.KeyOf(row, _getters, _columns));
+            keys.Add(StorageableChain<T>.KeyOf(row, _readers, _columns));
 
         var total = 0;
         var size = StorageableChain<T>.ChunkSize(_columns.Length, _orm);
@@ -232,7 +234,7 @@ internal sealed class StorageableChain<T> : IStorageable<T> where T : class
     {
         var contract = _orm.Schemas.Contract<T>();
         var columns = ResolveKeys(contract);
-        var getters = BuildGetters(columns);
+        var readers = BuildKeyReaders(contract, columns);
 
         // 第一步：清单分拣。自增键"没填"的行不查库直接进新增桶（见接口抬头），
         // 其余行带着键去对账；同一颗键说两次话当场拒。
@@ -241,7 +243,7 @@ internal sealed class StorageableChain<T> : IStorageable<T> where T : class
 
         foreach (var row in _rows)
         {
-            var key = KeyOf(row, getters, columns);
+            var key = KeyOf(row, readers, columns);
 
             if (columns.Length == 1 && IsUnsetIdentity(columns[0], key.Values[0]))
             {
@@ -276,7 +278,7 @@ internal sealed class StorageableChain<T> : IStorageable<T> where T : class
                 .ToListAsync(ct).ConfigureAwait(false);
 
             foreach (var dbKey in dbKeys)
-                found.Add(KeyOf(dbKey, getters, columns));
+                found.Add(KeyOf(dbKey, readers, columns));
         }
 
         List<T> updates = [];
@@ -301,11 +303,11 @@ internal sealed class StorageableChain<T> : IStorageable<T> where T : class
             var all = await scan.ToListAsync(ct).ConfigureAwait(false);
 
             foreach (var dbRow in all)
-                if (!seen.Contains(KeyOf(dbRow, getters, columns)))
+                if (!seen.Contains(KeyOf(dbRow, readers, columns)))
                     deletes.Add(dbRow);
         }
 
-        return new StorageResult<T>(inserts, updates, deletes, _orm, columns, getters, KeysArePrimaryKey(columns, contract));
+        return new StorageResult<T>(inserts, updates, deletes, _orm, columns, readers, KeysArePrimaryKey(columns, contract));
     }
 
     [RequiresUnreferencedCode("按键位属性名建表达式树（PropertyOrField 按名反射）。")]
@@ -332,12 +334,12 @@ internal sealed class StorageableChain<T> : IStorageable<T> where T : class
         return Expression.Lambda<Func<T, bool>>(body!, parameter);
     }
 
-    internal static StorageKey KeyOf(object row, Func<object, object>[] getters, ColumnContract[] columns)
+    internal static StorageKey KeyOf(object row, ColumnReaders readers, ColumnContract[] columns)
     {
-        var values = new object?[getters.Length];
+        var values = new object?[columns.Length];
 
-        for (var i = 0; i < getters.Length; i++)
-            values[i] = Canonical(getters[i](row), columns[i].ClrType);
+        for (var i = 0; i < columns.Length; i++)
+            values[i] = Canonical(readers.Value(row, i), columns[i].ClrType);
 
         return new StorageKey(values);
     }
@@ -409,13 +411,12 @@ internal sealed class StorageableChain<T> : IStorageable<T> where T : class
                 $"实体 {typeof(T).Name} 上没有 {name} 这一列：WhereColumns 点名要与实体契约对得上。"))];
     }
 
-    [RequiresUnreferencedCode("键读口按反射编译。")]
-    [RequiresDynamicCode("键读口编译成委托。")]
-    static Func<object, object>[] BuildGetters(ColumnContract[] columns)
-        => [.. columns.Select(column => MemberAccessors.Getter(
-                typeof(T), column.MemberName,
-                $"实体 {typeof(T).Name} 上没有键属性 {column.MemberName}",
-                $"实体 {typeof(T).Name} 的键属性 {column.MemberName} 没有公共 getter"))];
+    /// <summary>键读口按列序取（与导航缝合/树形闭包同一颗 <see cref="ColumnReaders"/>）：G1 是生成期写死的
+    /// ordinal switch，G2 是启动期编译好的读委托表，热路径不再按名字反射读成员——取代旧的 MemberAccessors.Getter
+    /// 按名编译 + 字典缓存。零反射零动态代码，故不带 RUC/RDC（ToStorageAsync 那两颗税留给谓词构建 MatchesAny/KeyProjector，
+    /// 它们仍编译表达式树，不在本笔射程内）。</summary>
+    ColumnReaders BuildKeyReaders(EntityContract contract, ColumnContract[] columns)
+        => ColumnReaders.For(_orm.Schemas, contract, columns);
 
     /// <summary>自增键"没填"的判据：null，或该值类型自己的默认值（int 的 0、Guid 的空）。非自增列不认这一条
     /// ——点名的键上 0 是一颗真实的键值，不是"还没填"。</summary>

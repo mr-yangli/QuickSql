@@ -9,7 +9,9 @@ namespace QuickSql.Providers;
 /// Auto 不是"另一层"，是"由这一条出口自己从上往下取第一个满足条件的层"。</summary>
 public enum BulkMethod
 {
-    /// <summary>从上往下取第一个满足条件的层：装载通道 → 多值语句。</summary>
+    /// <summary>从上往下取第一个满足条件的层：装载通道 → 多值语句。「满足」带一颗行数门槛
+    /// （<see cref="BulkLadder.AutoCopyRoundTrips"/>：按文本层分块要发的语句数到数才换通道，量少留在多值语句）；
+    /// 显式点名 <see cref="CopyChannel"/> 的不算请求特征，不看门槛。</summary>
     Auto,
 
     /// <summary>批量装载通道：不走 SQL 文本、不走参数（SQL Server 的 SqlBulkCopy）。</summary>

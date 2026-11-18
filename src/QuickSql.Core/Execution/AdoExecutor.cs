@@ -110,7 +110,7 @@ public sealed partial class AdoExecutor
         }
     }
 
-    public AdoExecutor(IDbProvider provider, ConnectionSources sources, QuickSqlAop aop, int commandTimeoutSeconds, Func<string, Metadata.EntityContract?>? contractByTable = null)
+    public AdoExecutor(IDbProvider provider, ConnectionSources sources, QuickSqlAop aop, int commandTimeoutSeconds, Func<string, Metadata.EntityContract?>? contractByTable = null, System.Action<System.Data.Common.DbConnection>? onConnectionOpened = null)
     {
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentNullException.ThrowIfNull(aop);
@@ -119,6 +119,7 @@ public sealed partial class AdoExecutor
         _sources = sources;
         Aop = aop;
         CommandTimeoutSeconds = commandTimeoutSeconds;
+        OnConnectionOpened = onConnectionOpened;
         _contractByTable = contractByTable;
     }
 
@@ -131,6 +132,8 @@ public sealed partial class AdoExecutor
     public QuickSqlAop Aop { get; }
 
     public int CommandTimeoutSeconds { get; }
+
+    readonly System.Action<System.Data.Common.DbConnection>? OnConnectionOpened;
 
     /// <summary>预容量的天花板（行）。"取全部"那一档若按请求行数开数组，会在读第一行之前就把进程按死。</summary>
     const int MaxPreallocatedRows = 8192;
@@ -488,7 +491,10 @@ public sealed partial class AdoExecutor
         try
         {
             if (ownsConnection)
+            {
                 connection.Open();
+                OnConnectionOpened?.Invoke(connection);
+            }
 
             var transaction = new QuickSqlTransaction(this, cluster, connection, connection.BeginTransaction(level), ownsConnection, suspended, level);
 
@@ -618,6 +624,7 @@ public sealed partial class AdoExecutor
         try
         {
             await connection.OpenAsync(ct).ConfigureAwait(false);
+            OnConnectionOpened?.Invoke(connection);
         }
         catch
         {

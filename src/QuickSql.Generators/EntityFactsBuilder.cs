@@ -18,6 +18,9 @@ sealed class BuildOutcome
     public EntityModel? Model;
 
     public List<Diagnostic> Diagnostics = [];
+
+    /// <summary>QuickSqlAotStrict 开关的本次编译读数：QuickSql003 按它挑 Info 还是 Warning。</summary>
+    public bool AotStrict;
 }
 
 static class EntityFactsBuilder
@@ -60,9 +63,9 @@ static class EntityFactsBuilder
     /// <summary>xmlDocComments 是整条链上唯一一颗 G1 独有的来源：源码里的 /// summary 只有编译器看得见，
     /// 反射侧没有这一份。开着它，同一张表在两条启动路径上就能给出两个备注（对拍的 comment= 那一格会红），
     /// 所以默认关、且只在消费方点名后才生效——"开它"要是一次签字，不是一次顺带。</summary>
-    public static BuildOutcome Build(GeneratorAttributeSyntaxContext context, bool xmlDocComments)
+    public static BuildOutcome Build(GeneratorAttributeSyntaxContext context, bool xmlDocComments, bool aotStrict)
     {
-        var outcome = new BuildOutcome();
+        var outcome = new BuildOutcome { AotStrict = aotStrict };
         var entity = (INamedTypeSymbol)context.TargetSymbol;
         var at = context.TargetNode.GetLocation();
         var attributes = entity.GetAttributes();
@@ -182,7 +185,8 @@ static class EntityFactsBuilder
 
         if (property.GetMethod is not { DeclaredAccessibility: Accessibility.Public } || !writable)
         {
-            outcome.Diagnostics.Add(Diagnostic.Create(QuickSqlDiagnostics.NotGenerated, entityLocation,
+            outcome.Diagnostics.Add(Diagnostic.Create(
+                outcome.AotStrict ? QuickSqlDiagnostics.NotGeneratedStrict : QuickSqlDiagnostics.NotGenerated, entityLocation,
                 $"实体 {model.Name} 的属性 {property.Name} 不是公共可读写的（init 或受限 set），G1 不生成该实体，退回 G2（§12.7）。"));
 
             conflicts = true;
@@ -424,6 +428,9 @@ static class EntityFactsBuilder
                     Note = declared is null ? $"集合导航：{property.Name} ⇒ {child.Name}" : $"[ForeignKey(\"{string.Join(",", declared)}\")]",
                     IsCollection = true,
                     Cascade = !IsNoCascade(property, entity),
+                    CollectionType = TypeExpression(property.Type),
+                    CollectionWritable = property.SetMethod is { DeclaredAccessibility: Accessibility.Public } && !IsInitOnly(property),
+                    CollectionAppendable = IsAppendableCollection(property.Type, child),
                 });
 
                 continue;
@@ -450,6 +457,7 @@ static class EntityFactsBuilder
                     Members = [.. declared],
                     Layer = "DataAccessAnnotation",
                     Note = $"[ForeignKey(\"{string.Join(",", declared)}\")]",
+                    Writable = property.SetMethod is { DeclaredAccessibility: Accessibility.Public } && !IsInitOnly(property),
                 });
 
                 continue;
@@ -468,6 +476,7 @@ static class EntityFactsBuilder
                 Members = [convention],
                 Layer = "Convention",
                 Note = $"约定：{property.Name} ⇒ {convention}",
+                Writable = property.SetMethod is { DeclaredAccessibility: Accessibility.Public } && !IsInitOnly(property),
             });
         }
     }
@@ -494,6 +503,27 @@ static class EntityFactsBuilder
 
         return null;
     }
+
+    /// <summary>集合声明类型可不可追加：实现 ICollection&lt;TChild&gt;（即有 Add(TChild)）。反射侧
+    /// BindCollectionCore 的 appendable 问的是 GetMethod("Add",[elementType])，这里取它的编译期<em>保守子集</em>——
+    /// ICollection&lt;T&gt; 一定有 Add(T)，List/Collection/IList/ICollection 都实现它故判 true；
+    /// IEnumerable/IReadOnlyList/数组不实现故判 false。自定义 Add 但不实现 ICollection&lt;T&gt; 的罕见形状判 false
+    /// 退回反射侧（行为不变，只是不生成委托）——保守是为了不在生成期镜像错形状。</summary>
+    static bool IsAppendableCollection(ITypeSymbol type, ITypeSymbol element)
+    {
+        if (IsICollectionOf(type, element))
+            return true;
+
+        foreach (var iface in type.AllInterfaces)
+            if (IsICollectionOf(iface, element))
+                return true;
+
+        return false;
+    }
+
+    static bool IsICollectionOf(ITypeSymbol type, ITypeSymbol element)
+        => type is INamedTypeSymbol { IsGenericType: true, ConstructedFrom.SpecialType: SpecialType.System_Collections_Generic_ICollection_T } named
+           && SymbolEqualityComparer.Default.Equals(named.TypeArguments[0], element);
 
     /// <summary>[NoCascade] 的两档：打在实体上这一张表的导航都不带人，打在那根集合导航上只有它不带。
     /// 级联缺省为开，所以这里只判退出（反射侧同一条）。</summary>
@@ -735,7 +765,8 @@ static class EntityFactsBuilder
 
     static BuildOutcome Blocked(BuildOutcome outcome, Location location, string reason)
     {
-        outcome.Diagnostics.Add(Diagnostic.Create(QuickSqlDiagnostics.NotGenerated, location,
+        outcome.Diagnostics.Add(Diagnostic.Create(
+            outcome.AotStrict ? QuickSqlDiagnostics.NotGeneratedStrict : QuickSqlDiagnostics.NotGenerated, location,
             $"该实体不走 G1（{reason}），运行期由 G2 反射解析兜住（§12.7 的三级路径）。"));
 
         return outcome;

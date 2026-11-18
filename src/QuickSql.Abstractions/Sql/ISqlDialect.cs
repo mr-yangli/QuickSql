@@ -25,6 +25,12 @@ public interface ISqlDialect
     /// 这里只管"前缀摘不摘"这一格。</summary>
     bool DriverAcceptsPrefixedParameterNames { get; }
 
+    /// <summary>参数命名方案（按发射下标发名），默认 null = 具名形「前缀 + p + 下标」。
+    /// 非 null 是方言点名的编号位置形：SQLite 批量插入覆写成「? + (下标+1)」，避开 Microsoft.Data.Sqlite
+    /// 按名查找映射参数的平方价。编号 = 发射序 = 绑定序（同源于 SqlWriter 参数表下标），按序绑定不串位。
+    /// 默认实现交 null，各方言不必各写一句；要编号的那一家（SqliteDialect）覆写它。委托应缓存，别每次发射新造。</summary>
+    Func<int, string>? ParameterNamer => null;
+
     /// <summary>是否把字符串当 Unicode 传参。SQL Server 必须为 true，否则 cp1252 排序规则下非 ASCII 会静默变成问号。</summary>
     bool PrefixUnicodeLiterals { get; }
 

@@ -1,46 +1,42 @@
 <Project>
-
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
-
   <ItemGroup>
     <!-- 驱动包只出现在 tests/ 与 benchmarks/，src/ 下的 provider 一律不编译期引用（§1.2 原则 3）。
          Sqlite 取 10.0.11：树册三方对照（docs/quicksql/plan-tree-query.md §13）在本家 provider 上
          实测过的版本，同时是 SqlSugarCore 5.1.4.221 的传递依赖 —— 单一版本避免对照装置里驱动漂移。 -->
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.1.0" />
-    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.1.2" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="11.0.0" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
-    <PackageVersion Include="MySqlConnector" Version="2.6.2" />
-
+    <PackageVersion Include="MySqlConnector" Version="3.0.0" />
     <!-- 源生成器主机基线：低于 SDK 自带 Roslyn 才安全 -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
-
-    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
-
+    <!-- 0.16 预览是认 net11.0 的第一档（0.15.8 不认 net11 moniker，2026-11-16 单 TFM 化随升）。
+         驱动包版本不动：Sqlite 10.0.11 是三方对照装置的钉住版本（见上段），升驱动会漂移对照结论。 -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.16.0-preview.2" />
     <!-- §12.8 第二行「物化吞吐 vs Dapper ≥ 90%」的对照组。只在 benchmarks/ 出现：
          基准要的是"业界公认的快"，不是要引入第二个 ORM —— 依赖方向与 src/ 无关。 -->
-    <PackageVersion Include="Dapper" Version="2.1.35" />
-
+    <PackageVersion Include="Dapper" Version="2.1.89" />
     <!-- 树册 §13 那本"另一本账"的三方对照组（口径与读数：docs/quicksql/plan-cross-orm-bench.md）。
          与 Dapper 同一条依赖纪律：只在 benchmarks/ 出现，不进 src/。
          注意 FreeSql.Provider.Sqlite 底下是 System.Data.SQLite.Core（自带原生驱动），
          与另三臂共用的 Microsoft.Data.Sqlite 不同源 —— 这条边界属于对照结论的一部分，不是配置失误。 -->
     <PackageVersion Include="FreeSql" Version="3.5.311" />
     <PackageVersion Include="FreeSql.Provider.Sqlite" Version="3.5.311" />
+    <PackageVersion Include="FreeSql.Provider.SqlServer" Version="3.5.311" />
+    <PackageVersion Include="FreeSql.Provider.MySqlConnector" Version="3.5.311" />
+    <PackageVersion Include="FreeSql.Provider.PostgreSQL" Version="3.5.311" />
+    <PackageVersion Include="FreeSql.Provider.Xugu" Version="3.5.311" />
     <PackageVersion Include="SqlSugarCore" Version="5.1.4.221" />
-
+    <PackageVersion Include="SqlSugar.XuguCoreNew" Version="5.1.4.198" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.1" />
     <PackageVersion Include="xunit.v3.assert" Version="4.0.1" />
     <PackageVersion Include="xunit.v3.runner.visualstudio" Version="4.0.1" />
-
-    <!-- DI 注册入口（AddQuickSqlOrm）的依赖。只引 Abstractions，不引实现 —— src/ 不替宿主选容器。 -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
-
-    <!-- samples/ 用的完整 DI 容器（BuildServiceProvider）。只在示例项目出现，不进 src/。 -->
+    <!-- DI 注册入口（AddQuickSqlOrm）依赖的 Abstractions 自 net11.0 起进共享框架，src/ 不再显式引用。
+         完整容器（BuildServiceProvider）仍只在 samples/ 与 tests/ 出现，不进 src/。 -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
   </ItemGroup>
-
 </Project>

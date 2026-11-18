@@ -685,16 +685,15 @@ public sealed class DialectParityTests
         Assert.True(myq.ParameterBudget > kes.ParameterBudget);
         Assert.True(myq.RowsPerStatement > kes.RowsPerStatement);
 
-        // 第五家把这一格从"四家四个数"长成"五家<em>四</em>个数"：它与达梦同为"没有批量策略"，
-        // 于是拿到同一份保守兜底（100 → 12 行 → 50 块），这是那三颗有出处的预算之外<em>第二</em>个走兜底分支的消费者。
-        // v0.30 之前"只有这一族是 50 块"那句话从今天起是假话，而这一格记的不是数字，是<b>兜底分支的代价会长大</b>：
-        // 两家没有真预算 ⇒ 同一批行在两处各多 49 次往返，而这两处谁都不会主动报告。
-        // 重开条件与达梦那一条同一格（要先有活库才拿得到参数上限），§14 里现在记的是"两族"而不是"一族"。
-        Assert.Equal(100, xgu.ParameterBudget);
-        Assert.Equal(12, xgu.RowsPerStatement);
-        Assert.Equal(50, xgu.Chunks.Count);
+        // 第五家在 v11.0.0 从兜底分支毕业：活库探针把参数颗数上限钉在 2048（2048 收 / 2049 拒且断连接，
+        // 3 列/1 列两梯边界同点——限的是颗数不是文本长，账在 XuguBulk 类注释），但声明值是性能拐点 300：
+        // BDN A/B 证每语句代价随颗数超线性、宽块时间输（2048≈702.7ms vs 300≈346.6ms），硬上限只作安全界。
+        // 300 → 38 行 → 16 块；兜底分支的消费者只剩 Oracle 血统（达梦 ∶ 神通那颗 null），§14 的"两族"账缩回"一族"。
+        Assert.Equal(300, xgu.ParameterBudget);
+        Assert.Equal(38, xgu.RowsPerStatement);
+        Assert.Equal(16, xgu.Chunks.Count);
         Assert.Equal(600, xgu.Chunks.Sum(static c => c.RowCount));
-        Assert.Equal(dam.RowsPerStatement, xgu.RowsPerStatement);
+        Assert.True(xgu.ParameterBudget > dam.ParameterBudget);
     }
 
     /// <summary>对拍账本用的那 8 条链，五家各跑一遍。<b>名字只服务于失败信息</b>：这一条红的时候要说得出

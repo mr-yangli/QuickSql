@@ -741,8 +741,10 @@ public sealed class TrackingPathTests
         Assert.Equal(2, db.ChangeTracker.Count);
 
         // 投影不是实体：标量那一档一条都不进身份映射，否则"改了这个整数就改了一行"是假的。
+        // 序要显式给：断言的意图是播种序（自增 Id 升序），而无 ORDER BY 的行序在 PG 上是堆序、
+        // 不保证插入序——2026-11-17 全 provider 矩阵跑里这一颗在 PG 上翻过 [second, first]。
         var ids = await db.Set<Order>().Where(o => o.Note == note + "/a" || o.Note == note + "/b")
-            .Select(o => o.Id).ToListAsync(ct);
+            .OrderBy(o => o.Id).Select(o => o.Id).ToListAsync(ct);
 
         Assert.Equal([first, second], ids);
         Assert.Equal(2, db.ChangeTracker.Count);

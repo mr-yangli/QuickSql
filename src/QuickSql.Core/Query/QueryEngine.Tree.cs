@@ -18,6 +18,7 @@ sealed partial class QueryEngine
     /// 只单向拦（树口接在急切加载/拆查之后要拒）：反方向没有出口——三颗树口交回的是 <c>ITreeQuery&lt;T&gt;</c>，
     /// 那上面根本没有 Include/IncludeMany/AsSplitQuery 几颗口，所以"先点树再挂加载器"这件事在类型上就写不出来，
     /// 为此加一份运行期护栏就是死代码。与 AsSplitQuery↔IncludeMany 那一对双向护栏的差别在此。</summary>
+    [RequiresUnreferencedCode("片界定判定要问过滤器贴入后的模型（Filtered）。")]
     internal QueryEngine Tree(LambdaExpression parentSelector, TreeDirection direction, object[] anchors)
     {
         ArgumentNullException.ThrowIfNull(parentSelector);
@@ -120,6 +121,7 @@ sealed partial class QueryEngine
     /// <summary>树形链的 SQL 出口：整片档给那一句取片；锚点档给锚点那一句的逻辑形状
     /// （主键 IN 全部锚点 + 链上谓词与过滤器）。执行期按参数预算分块，实际句数看 AOP 播报——
     /// 一颗 string 装不下多句，假装装得下就是诊断口骗人。</summary>
+    [RequiresUnreferencedCode("转调 Effective（过滤器贴入）。")]
     internal DialectSql TreeFirstSql(out SelectStatement ast)
     {
         var model = Effective();
@@ -165,6 +167,7 @@ sealed partial class QueryEngine
         return new DialectSql(writer.ToSqlString(), writer.Parameters);
     }
 
+    [RequiresUnreferencedCode("转调 TreeFirstSql/Effective（过滤器贴入）。")]
     internal QueryPlan TreeExplain()
     {
         var sql = TreeFirstSql(out var ast);
@@ -211,6 +214,8 @@ sealed partial class QueryEngine
 
     /// <summary>树形出口。整片走 Rows（过滤/缓存/跟踪与任何一句查询同一条咽喉），
     /// 锚点闭包走逐层爬；两者交回同一颗缝合器，所以"行与节点对不上"没有存在的空间。</summary>
+    [RequiresUnreferencedCode("整片档走 Rows/Effective（物化分派/过滤器）；锚点档的键读口走 schema（零反射）。")]
+    [RequiresDynamicCode("整片档的物化分派含 DTO 装配与导航缝合。")]
     internal async Task<List<TreeNode<T>>> TreeForestAsync<T>(CancellationToken ct)
     {
         _gate?.Enter();

@@ -1,0 +1,13 @@
+SOURCE=file(mysql)
+DATA_SOURCE=Server=192.168.0.228 Database=TestDB
+STAMP=手写 stamp：scripts/run-integration.ps1 的探针段用 SqlConnectionStringBuilder，只吃 SQL Server 串；非默认家族按同一纪律手写（不打印口令），类过滤 BulkPathTests
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 11.0.0)
+  Discovering: QuickSql.Tests.Integration
+  Discovered:  QuickSql.Tests.Integration
+  Starting:    QuickSql.Tests.Integration
+PrepareCatalog：mysql 一支不建库（授权只到那一座 TestDB 里建表），目标库必须在场。实例身份四颗读数（8.4.8 / Community Server - GPL / 无 ANSI_QUOTES / lower_case_table_names=0）记在 obj/logs/v37-my-recon-2.log 的 S 段，连接串本身含口令、不进任何一行输出。
+[bulk-timing] rows=2000 copy_ms=79 l3_ms=125
+  Finished:    QuickSql.Tests.Integration (ID = '36fb9a1d299f24a33ddd75012f3bce697829903b2a62478b75c1c5b1919c8fcf')
+=== TEST EXECUTION SUMMARY ===
+   QuickSql.Tests.Integration  Total: 12, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 3.715s
+EXIT=0

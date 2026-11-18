@@ -1,0 +1,36 @@
+SOURCE=file(xugu)
+DATA_SOURCE=Server=192.168.0.228 Database=TESTDB
+STAMP=手写 stamp：scripts/run-integration.ps1 的探针段用 SqlConnectionStringBuilder，只吃 SQL Server 串；非默认家族按同一纪律手写（不打印口令），类过滤 BulkPathTests
+xUnit.net v3 In-Process Runner v4.0.1+8ed8aa354c (64-bit .NET 11.0.0)
+  Discovering: QuickSql.Tests.Integration
+  Discovered:  QuickSql.Tests.Integration
+  Starting:    QuickSql.Tests.Integration
+PrepareCatalog：xugu 一支不建库（§13.17 的授权只到建表），目标库必须在场。
+    QuickSql.Tests.Integration.BulkPathTests.A_backfill_exit_never_borrows_the_channel_even_when_one_is_offered [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+    QuickSql.Tests.Integration.BulkPathTests.A_requested_copy_channel_lands_the_whole_batch_and_reports_the_layer [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+    QuickSql.Tests.Integration.BulkPathTests.A_client_generated_key_goes_inside_the_batch_because_it_is_a_written_column [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+    QuickSql.Tests.Integration.BulkPathTests.The_wall_clock_gap_is_printed_not_asserted [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+    QuickSql.Tests.Integration.BulkPathTests.Auto_switches_to_the_channel_only_when_the_text_layer_hits_the_threshold [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+    QuickSql.Tests.Integration.BulkPathTests.The_local_infile_gate_moves_the_batch_to_l3_and_names_the_parameter_it_needs [SKIP]
+      Xugu 这一家的装载通道不欠连接串参数（MySQL 血统走 LOAD DATA LOCAL 才要客户端放行），这一格在本家没有对象；通道本身由下面那几条判。
+    QuickSql.Tests.Integration.BulkPathTests.The_same_batch_lands_on_l1_once_the_connection_string_allows_local_infile [SKIP]
+      Xugu 这一家的装载通道不欠连接串参数，这一格问的是欠参数那一家的两种读数。
+    QuickSql.Tests.Integration.BulkPathTests.A_batch_split_into_deliveries_keeps_row_order_across_the_boundaries [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+    QuickSql.Tests.Integration.BulkPathTests.What_the_channel_writes_is_what_the_text_layer_writes [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+    QuickSql.Tests.Integration.BulkPathTests.The_copy_channel_rides_the_transaction_and_rolls_back_with_it [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+    QuickSql.Tests.Integration.BulkPathTests.The_payload_handed_to_the_channel_is_the_kernels_normalized_one_and_in_row_order [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+    QuickSql.Tests.Integration.BulkPathTests.A_channel_that_under_reports_its_rows_fails_loudly_instead_of_returning_a_plausible_number [SKIP]
+      Xugu 这一家交不出装载通道（ResolveCopyChannel() 为 null：没接，或这一支驱动里没有装载类），WithBulk(CopyChannel) 会整批退回 L3 多值语句，本册判的那件事在这里没有对象（退路本身由离线册 BulkLayerTests 钉住）。
+  Finished:    QuickSql.Tests.Integration (ID = '36fb9a1d299f24a33ddd75012f3bce697829903b2a62478b75c1c5b1919c8fcf')
+=== TEST EXECUTION SUMMARY ===
+   QuickSql.Tests.Integration  Total: 12, Errors: 0, Failed: 0, Skipped: 12, Not Run: 0, Time: 0.497s
+EXIT=0

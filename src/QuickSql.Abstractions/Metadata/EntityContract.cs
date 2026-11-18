@@ -30,6 +30,10 @@ public sealed record RelationshipContract(
     IReadOnlyList<string> ColumnNames)
 {
     public required OriginTrace Origin { get; init; }
+
+    /// <summary>导航写口（把子实体缝回父实体这一格）。G1 带生成器写好的 lambda，G2 为 null——
+    /// 消费侧 null 时退回 MemberAccessors.Setter 的编译委托。可选 init 位，外部构造不受影响。</summary>
+    public Action<object, object?>? NavigationWriter { get; init; }
 }
 
 /// <summary>一根集合导航（父端到子端）解析出来的事实，级联唯一的来源。
@@ -52,6 +56,18 @@ public sealed record CollectionEdgeContract(
 
     /// <summary>级联开关，缺省开；NoCascade 注解折在这一格。</summary>
     public bool Cascade { get; init; } = true;
+
+    /// <summary>集合导航的整只写回口（G1 生成 lambda，G2/不可写形状 null）。与 NavigationReader（读口）
+    /// 合起来覆盖集合缝合的四把委托里的两把；消费侧 null 时退回 MemberAccessors.BindCollection。
+    /// 可选 init 位，外部构造不受影响。生成判据与其余两把见 RelationshipFacts.CollectionSetter。</summary>
+    public Action<object, object?>? CollectionSetter { get; init; }
+
+    /// <summary>集合导航的追加口（G1 生成 lambda，G2/其余形状 null）。IncludeMany 就地追加每行只调它。</summary>
+    public Action<object, object>? CollectionAdd { get; init; }
+
+    /// <summary>集合导航的造表口（G1 字面 new List&lt;TChild&gt;()，G2/其余形状 null）。AOT 下反射侧的
+    /// Expression.New(List&lt;T&gt; ctor) 会被裁，生成侧的字面 new 裁剪看得见——这一颗是 IncludeMany 过 AOT 的关键。</summary>
+    public Func<object>? NewCollection { get; init; }
 }
 
 /// <summary>一个实体的解析结果。启动期一次性构建，之后不可变。</summary>

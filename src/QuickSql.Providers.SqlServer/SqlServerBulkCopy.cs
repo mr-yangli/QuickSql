@@ -139,8 +139,14 @@ sealed class SqlServerBulkCopy : IBulkCopyChannel
         foreach (var column in request.Columns)
             table.Columns.Add(column.ColumnName, NetType(column)!);
 
+        // 预容量 + BeginLoadData：关掉逐行通知/约束维护，Rows.Add 批量加载提速（SqlSugar Fastest 同手法）。
+        table.MinimumCapacity = request.Rows.Count;
+        table.BeginLoadData();
+
         foreach (var row in request.Rows)
             table.Rows.Add(row);
+
+        table.EndLoadData();
 
         return table;
     }
