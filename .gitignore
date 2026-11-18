@@ -15,3 +15,7 @@ BenchmarkDotNet.Artifacts/
 *.db
 *.db-shm
 *.db-wal
+
+# AOT 冒烟闸的生成器 inspect 副本：EmitCompilerGeneratedFiles 落在树内 Generated/，
+# csproj 已 Compile Remove 不参与编译，每次 build 重产——不进仓（双份真相 + diff 噪声）
+tests/QuickSql.Tests.AotSmoke/Generated/
